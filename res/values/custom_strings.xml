@@ -22,4 +22,8 @@
 
     <string name="call_end_sound_title">Call end tone</string>
     <string name="call_end_sound_summary">Play tone on end call</string>
+
+    <!-- Sprint MWI Quirk: Phantom message wait indicator workaround -->
+    <string name="mwi_notification_title">Message wait indicator</string>
+    <string name="mwi_notification_summary">Show message wait indicator voicemail notifications</string>
 </resources>
