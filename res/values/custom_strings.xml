@@ -20,4 +20,8 @@
     <string name="preference_category_interface">Interface</string>
     <string name="non_intrusive_incall_title">Non intrusive</string>
     <string name="non_intrusive_incall_summary">Use non intrusive dialog for incoming calls</string>
+
+    <!-- Sprint MWI Quirk: Phantom message wait indicator workaround -->
+    <string name="mwi_notification_title">Message wait indicator</string>
+    <string name="mwi_notification_summary">Show message wait indicator voicemail notifications</string>
 </resources>
