@@ -29,6 +29,7 @@ import com.android.internal.telephony.cdma.CdmaCallWaitingNotification;
 import com.android.internal.telephony.cdma.CdmaInformationRecords.CdmaDisplayInfoRec;
 import com.android.internal.telephony.cdma.CdmaInformationRecords.CdmaSignalInfoRec;
 import com.android.internal.telephony.cdma.SignalToneUtil;
+import com.android.phone.CallFeaturesSetting;
 
 import android.app.ActivityManagerNative;
 import android.bluetooth.BluetoothAdapter;
@@ -1139,6 +1140,13 @@ public class CallNotifier extends Handler
             // capable devices.)
             Log.w(LOG_TAG, "Got onMwiChanged() on non-voice-capable device! Ignoring...");
             return;
+        }
+
+        boolean notifProp = mApplication.getResources().getBoolean(R.bool.sprint_mwi_quirk);
+        boolean notifOption = Settings.System.getInt(mApplication.getPhone().getContext().getContentResolver(), Settings.System.ENABLE_MWI_NOTIFICATION, 0) == 1;
+        if (notifProp && !notifOption) {
+           if (VDBG) log("onMwiChanged(): mwi_notification is disabled. Ignoring...");
+           return;
         }
 
         mApplication.notificationMgr.updateMwi(visible);

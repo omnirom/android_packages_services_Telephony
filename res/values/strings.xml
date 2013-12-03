@@ -1505,4 +1505,6 @@
     <!-- String resource for the font-family to use for the call setting activity's title
          Do not translate. -->
     <string name="call_settings_title_font_family">sans-serif-light</string>
+    <string name="mwi_notification_title">Message wait indicator</string>
+    <string name="mwi_notification_summary">Show message wait indicator voicemail notifications</string>
 </resources>
