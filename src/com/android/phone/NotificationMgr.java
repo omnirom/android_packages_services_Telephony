@@ -415,7 +415,8 @@ public class NotificationMgr {
                             }
                             // We couldn't find person Uri, so we're sure we cannot obtain a photo.
                             // Call notifyMissedCall() right now.
-                            notifyMissedCall(n.name, n.number, n.type, null, null, n.date);
+                            notifyMissedCall(n.name, n.number, n.presentation, n.type, null, null,
+                                    n.date);
                         }
 
                         if (DBG) log("closing contact cursor.");
@@ -431,7 +432,7 @@ public class NotificationMgr {
                 int token, Drawable photo, Bitmap photoIcon, Object cookie) {
             if (DBG) log("Finished loading image: " + photo);
             NotificationInfo n = (NotificationInfo) cookie;
-            notifyMissedCall(n.name, n.number, n.type, photo, photoIcon, n.date);
+            notifyMissedCall(n.name, n.number, n.presentation, n.type, photo, photoIcon, n.date);
         }
 
         /**
@@ -513,8 +514,8 @@ public class NotificationMgr {
      * should be used when non-null.
      * @param date the time when the missed call happened
      */
-    /* package */ void notifyMissedCall(
-            String name, String number, String type, Drawable photo, Bitmap photoIcon, long date) {
+    /* package */ void notifyMissedCall(String name, String number, int presentation, String type,
+            Drawable photo, Bitmap photoIcon, long date) {
 
         // When the user clicks this notification, we go to the call log.
         final PendingIntent pendingCallLogIntent = PhoneGlobals.createPendingCallLogIntent(
@@ -584,8 +585,8 @@ public class NotificationMgr {
         // TODO: consider removing equals() checks here, and modify callers of this method instead.
         if (mNumberMissedCalls == 1
                 && !TextUtils.isEmpty(number)
-                && !TextUtils.equals(number, mContext.getString(R.string.private_num))
-                && !TextUtils.equals(number, mContext.getString(R.string.unknown))){
+                && (presentation == PhoneConstants.PRESENTATION_ALLOWED ||
+                        presentation == PhoneConstants.PRESENTATION_PAYPHONE)) {
             if (DBG) log("Add actions with the number " + number);
 
             builder.addAction(R.drawable.stat_sys_phone_call,
