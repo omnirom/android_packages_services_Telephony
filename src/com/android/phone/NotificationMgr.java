@@ -106,9 +106,9 @@ public class NotificationMgr {
     private static final String NOTIFICATION_LIGHT_PULSE_VMAIL_LED_ON = "notification_light_pulse_vmail_led_on";
     private static final String NOTIFICATION_LIGHT_PULSE_VMAIL_LED_OFF = "notification_light_pulse_vmail_led_off";
 
-    // notification light default constants
-    public static final int DEFAULT_COLOR = 0xFFFFFF; //White
-    public static final int DEFAULT_TIME = 1000; // 1 second
+    private static int mDefaultNotificationColor;
+    private static int mDefaultNotificationLedOn;
+    private static int mDefaultNotificationLedOff;
 
     /** The singleton NotificationMgr instance. */
     private static NotificationMgr sInstance;
@@ -156,6 +156,13 @@ public class NotificationMgr {
         mPhone = app.phone;  // TODO: better style to use mCM.getDefaultPhone() everywhere instead
         mCM = app.mCM;
         statusBarHelper = new StatusBarHelper();
+
+        mDefaultNotificationColor = mContext.getResources().getColor(
+                com.android.internal.R.color.config_defaultNotificationColor);
+        mDefaultNotificationLedOn = mContext.getResources().getInteger(
+                com.android.internal.R.integer.config_defaultNotificationLedOn);
+        mDefaultNotificationLedOff = mContext.getResources().getInteger(
+                com.android.internal.R.integer.config_defaultNotificationLedOff);
     }
 
     /**
@@ -471,19 +478,28 @@ public class NotificationMgr {
         // get the default Notification light settings
         ContentResolver resolver = context.getContentResolver();
         boolean lightEnabled = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE, 0) == 1;
-        int color = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_DEFAULT_COLOR, DEFAULT_COLOR);
-        int timeOn = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_DEFAULT_LED_ON, DEFAULT_TIME);
-        int timeOff = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_DEFAULT_LED_OFF, DEFAULT_TIME);
+        int color = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_DEFAULT_COLOR,
+                mDefaultNotificationColor);
+        int timeOn = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_DEFAULT_LED_ON,
+                mDefaultNotificationLedOn);
+        int timeOff = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_DEFAULT_LED_OFF,
+                mDefaultNotificationLedOff);
 
         // Get Missed call and Voice mail values if they are to be used
         if (notificationType == MISSED_CALL_NOTIFICATION) {
-            color = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_CALL_COLOR, DEFAULT_COLOR);
-            timeOn = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_CALL_LED_ON, DEFAULT_TIME);
-            timeOff = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_CALL_LED_OFF, DEFAULT_TIME);
+            color = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_CALL_COLOR,
+                    mDefaultNotificationColor);
+            timeOn = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_CALL_LED_ON,
+                    mDefaultNotificationLedOn);
+            timeOff = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_CALL_LED_OFF,
+                    mDefaultNotificationLedOff);
         } else if (notificationType == VOICEMAIL_NOTIFICATION) {
-            color = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_VMAIL_COLOR, DEFAULT_COLOR);
-            timeOn = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_VMAIL_LED_ON, DEFAULT_TIME);
-            timeOff = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_VMAIL_LED_OFF, DEFAULT_TIME);
+            color = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_VMAIL_COLOR,
+                    mDefaultNotificationColor);
+            timeOn = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_VMAIL_LED_ON,
+                    mDefaultNotificationLedOn);
+            timeOff = Settings.System.getInt(resolver, NOTIFICATION_LIGHT_PULSE_VMAIL_LED_OFF,
+                    mDefaultNotificationLedOff);
         }
 
         // Set the LED flags if notification light is enabled
