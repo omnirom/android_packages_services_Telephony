@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6b8b61a3_d22172af",
+        "filename": "res/values-fr/custom_strings.xml",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000001
+      },
+      "writtenOn": "2013-12-08T11:15:05Z",
+      "side": 1,
+      "message": "\"la boite de dialogue\" \u003d\u003d\u003e non instrusive?",
+      "revId": "360d94fefb6c7e41b0419d03bcb20a3d02854721",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    }
+  ]
+}
