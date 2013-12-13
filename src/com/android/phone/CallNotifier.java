@@ -1418,6 +1418,14 @@ public class CallNotifier extends Handler
                     okToPlayTone = true;
                 }
 
+                if (okToPlayTone){
+                    if (mToneId == TONE_CALL_ENDED &&
+                            Settings.System.getInt(mApplication.getContentResolver(),
+                                android.provider.Settings.System.CALL_END_SOUND, 1) == 0){
+                         okToPlayTone = false;
+                    }
+                }
+
                 synchronized (this) {
                     if (okToPlayTone && mState != TONE_STOPPED) {
                         mState = TONE_ON;
