@@ -195,6 +195,7 @@ public class CallFeaturesSetting extends PreferenceActivity
             "sip_settings_category_key";
 
     private static final String BUTTON_NON_INTRUSIVE_INCALL_KEY = "button_non_intrusive_incall";
+    private static final String BUTTON_CALL_END_SOUND_KEY = "button_call_end_sound";
 
     private Intent mContactListIntent;
 
@@ -281,6 +282,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     private CheckBoxPreference mVoicemailNotificationVibrate;
     private SipSharedPreferences mSipSharedPreferences;
     private CheckBoxPreference mNonIntrusiveInCall;
+    private CheckBoxPreference mCallEndSound;
 
     private class VoiceMailProvider {
         public VoiceMailProvider(String name, Intent intent) {
@@ -534,6 +536,10 @@ public class CallFeaturesSetting extends PreferenceActivity
         } else if (preference == mNonIntrusiveInCall){
             Settings.System.putInt(getContentResolver(), Settings.System.NON_INTRUSIVE_INCALL,
                     mNonIntrusiveInCall.isChecked() ? 1 : 0);
+            return true;
+        } else if (preference == mCallEndSound){
+            Settings.System.putInt(getContentResolver(), Settings.System.CALL_END_SOUND,
+                    mCallEndSound.isChecked() ? 1 : 0);
             return true;
         }
         return false;
@@ -1621,6 +1627,11 @@ public class CallFeaturesSetting extends PreferenceActivity
         mNonIntrusiveInCall = (CheckBoxPreference) findPreference(BUTTON_NON_INTRUSIVE_INCALL_KEY);
         mNonIntrusiveInCall.setChecked(Settings.System.getInt(getContentResolver(),
                 Settings.System.NON_INTRUSIVE_INCALL, 1) == 0 ? false : true);
+
+        mCallEndSound = (CheckBoxPreference) findPreference(BUTTON_CALL_END_SOUND_KEY);
+        mCallEndSound.setChecked(Settings.System.getInt(getContentResolver(),
+                Settings.System.CALL_END_SOUND, 1) == 0 ? false : true);
+
 
         // create intent to bring up contact list
         mContactListIntent = new Intent(Intent.ACTION_GET_CONTENT);
