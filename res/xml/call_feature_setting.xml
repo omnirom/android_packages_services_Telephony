@@ -94,6 +94,13 @@
       android:persistent="false"
       android:defaultValue="true" />
 
+   <CheckBoxPreference
+      android:key="button_call_end_sound"
+      android:title="@string/call_end_sound_title"
+      android:summary="@string/call_end_sound_summary"
+      android:persistent="false"
+      android:defaultValue="false" />
+
   <PreferenceScreen
       android:key="button_respond_via_sms_key"
       android:title="@string/respond_via_sms_setting_title"

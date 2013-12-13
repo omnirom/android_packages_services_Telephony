@@ -20,4 +20,7 @@
     <string name="preference_category_interface">Interface</string>
     <string name="non_intrusive_incall_title">Non intrusive</string>
     <string name="non_intrusive_incall_summary">Use non intrusive dialog for incoming calls</string>
+
+    <string name="call_end_sound_title">Call end sound</string>
+    <string name="call_end_sound_summary">Play call end sound</string>
 </resources>
