@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6b8b61a3_ee9d9dc0",
+        "filename": "res/values-de/custom_strings.xml",
+        "patchSetId": 2
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000098
+      },
+      "writtenOn": "2013-12-16T21:31:12Z",
+      "side": 1,
+      "message": "Remove all tabulation",
+      "revId": "ce213a6ff1a2778a6b0ceab1adcb020c4758216f",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    }
+  ]
+}
