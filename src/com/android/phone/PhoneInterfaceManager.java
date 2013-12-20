@@ -897,4 +897,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public int getLteOnCdmaMode() {
         return mPhone.getLteOnCdmaMode();
     }
+
+    public void toggleLTE(boolean on) {
+        return;
+    }
 }
