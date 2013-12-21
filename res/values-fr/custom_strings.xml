@@ -17,7 +17,10 @@
  -->
 
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="preference_category_interface">Interface</string>
     <string name="non_intrusive_incall_title">Non intrusif</string>
-    <string name="non_intrusive_incall_summary">Utiliser la boite dialogue non intrusive lors d\'un appel entrant</string>
+    <string name="non_intrusive_incall_summary">Utiliser la boîte de dialogue non intrusive lors d\'un appel entrant</string>
+    <string name="call_end_sound_title">Son en fin d\'appel</string>
+    <string name="call_end_sound_summary">Émettre un son à la fin d\'un appel</string>
+    <string name="mwi_notification_title">Message en attente</string>
+    <string name="mwi_notification_summary">Afficher une notification lorsqu\'un message est en attente dans la boîte vocale</string>
 </resources>
