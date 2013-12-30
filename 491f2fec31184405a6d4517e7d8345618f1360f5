@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6b8b61a3_882b24da",
+        "filename": "res/values-fr/custom_strings.xml",
+        "patchSetId": 3
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000516
+      },
+      "writtenOn": "2013-12-30T10:29:22Z",
+      "side": 1,
+      "message": "Should be \u0027la boîte de dialogue\u0027 ?",
+      "revId": "491f2fec31184405a6d4517e7d8345618f1360f5",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    }
+  ]
+}
