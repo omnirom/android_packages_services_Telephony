@@ -35,6 +35,11 @@
         android:summaryOn="@string/roaming_enable"
         android:summaryOff="@string/roaming_disable"/>
 
+    <CheckBoxPreference
+        android:key="button_battery_mode_key"
+        android:title="@string/battery_mode"
+        android:summary="@string/battery_mode_label"/>
+
     <ListPreference
         android:key="preferred_network_mode_key"
         android:title="@string/preferred_network_mode_title"

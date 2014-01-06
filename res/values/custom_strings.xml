@@ -17,6 +17,10 @@
  -->
 
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="battery_mode">Battery saving mode</string>
+    <!-- Mobile network settings screen, setting summary text when check box is selected -->
+    <string name="battery_mode_label">Set network to 2G when device is locked</string>
+
     <string name="non_intrusive_incall_title">Non intrusive</string>
     <string name="non_intrusive_incall_summary">Use non intrusive dialog for incoming calls</string>
 
