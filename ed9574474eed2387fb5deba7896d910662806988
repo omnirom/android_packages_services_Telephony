@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6b8b61a3_9bf607f6",
+        "filename": "res/xml/call_feature_setting.xml",
+        "patchSetId": 3
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2014-01-07T21:01:19Z",
+      "side": 1,
+      "message": "please follow the google formating conventions",
+      "revId": "ed9574474eed2387fb5deba7896d910662806988",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6b8b61a3_bbfbc3dc",
+        "filename": "src/com/android/phone/CallFeaturesSetting.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2014-01-07T21:01:19Z",
+      "side": 1,
+      "message": "wrong import",
+      "revId": "ed9574474eed2387fb5deba7896d910662806988",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    }
+  ]
+}
