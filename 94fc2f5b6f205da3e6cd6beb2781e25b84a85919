@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6b8b61a3_5b239fa7",
+        "filename": "res/values/strings.xml",
+        "patchSetId": 2
+      },
+      "lineNbr": 1553,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2014-01-07T16:54:16Z",
+      "side": 1,
+      "message": "must be in custom_strings.xml",
+      "revId": "94fc2f5b6f205da3e6cd6beb2781e25b84a85919",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6b8b61a3_fb0b8b23",
+        "filename": "res/xml/call_feature_setting.xml",
+        "patchSetId": 2
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2014-01-07T16:54:16Z",
+      "side": 1,
+      "message": "add android:persistent\u003d\"false\"",
+      "revId": "94fc2f5b6f205da3e6cd6beb2781e25b84a85919",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6b8b61a3_1b19177e",
+        "filename": "src/com/android/phone/CallFeaturesSetting.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 1649,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2014-01-07T16:54:16Z",
+      "side": 1,
+      "message": "why twice?",
+      "revId": "94fc2f5b6f205da3e6cd6beb2781e25b84a85919",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    }
+  ]
+}
