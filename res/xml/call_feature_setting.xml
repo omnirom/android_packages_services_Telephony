@@ -96,6 +96,15 @@
           />
   </PreferenceScreen>
 
+  <PreferenceScreen
+      android:key="button_blacklist"
+      android:title="@string/blacklist_title"
+      android:persistent="false">
+      <intent android:action="android.intent.action.MAIN"
+          android:targetPackage="com.android.settings"
+          android:targetClass="com.android.settings.Settings$BlacklistSettingsActivity" />
+  </PreferenceScreen>
+
   <CheckBoxPreference
       android:key="button_play_dtmf_tone"
       android:title="@string/dtmf_tone_enable_title"
