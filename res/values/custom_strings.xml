@@ -36,13 +36,6 @@
     <!-- Setting summary for the flip action setting. -->
     <string name="flip_action_summary">Flipping the phone down will <xliff:g id="action">%s</xliff:g></string>
 
-    <!-- Values for the flip action settings. -->
-    <string-array name="flip_action_setting_values" translatable="false">
-        <item>0</item>
-        <item>1</item>
-        <item>2</item>
-    </string-array>
-
     <!-- Values for flip action array entries -->
     <string name="entry_do_nothing">Do nothing</string>
     <string name="entry_mute_ringer">Mute ringer</string>
@@ -51,18 +44,4 @@
     <string name="summary_mute_ringer">mute the ringer</string>
     <string name="summary_dismiss_call">dismiss the call</string>
 
-    <!-- Entries listed in the setting for the flip action. -->
-    <string-array name="flip_action_setting_entries">
-        <item>@string/entry_do_nothing</item>
-        <item>@string/entry_mute_ringer</item>
-        <item>@string/entry_dismiss_call</item>
-    </string-array>
-
-    <!-- Summary texts for flip action. Must be ordered by numerical
-         value (do nothing = 0, mute = 1, dismiss = 2) -->
-    <string-array name="flip_action_summary_entries">
-        <item>@string/summary_do_nothing</item>
-        <item>@string/summary_mute_ringer</item>
-        <item>@string/summary_dismiss_call</item>
-    </string-array>
 </resources>
