@@ -26,4 +26,36 @@
     <!-- Sprint MWI Quirk: Phantom message wait indicator workaround -->
     <string name="mwi_notification_title">Indikátor čekajících zpráv</string>
     <string name="mwi_notification_summary">Zobrazit upozornění v případě čekajících zpráv v hlasové schránce</string>
+
+    <!-- Setting title for the flip action setting. -->
+    <string name="flip_action_title">Akce při otočení</string>
+
+    <!-- Dialog title of the flip action setting. -->
+    <string name="flip_action_dialog_title">Otočením zařízení\u2026</string>
+
+    <!-- Setting summary for the flip action setting. -->
+    <string name="flip_action_summary">Otočením zařízení bude provedena následující akce <xliff:g id="action">%s</xliff:g></string>
+
+    <!-- Values for flip action array entries -->
+    <string name="entry_do_nothing">Žádná akce</string>
+    <string name="entry_mute_ringer">Ztlumit vyzvánění</string>
+    <string name="entry_dismiss_call">Odmítnout hovor</string>
+    <string name="summary_do_nothing">žádná akce</string>
+    <string name="summary_mute_ringer">ztlumit vyzvánění</string>
+    <string name="summary_dismiss_call">odmítnout hovor</string>
+
+    <!-- Entries listed in the setting for the flip action. -->
+    <string-array name="flip_action_setting_entries">
+        <item>@string/entry_do_nothing</item>
+        <item>@string/entry_mute_ringer</item>
+        <item>@string/entry_dismiss_call</item>
+    </string-array>
+
+    <!-- Summary texts for flip action. Must be ordered by numerical
+         value (do nothing = 0, mute = 1, dismiss = 2) -->
+    <string-array name="flip_action_summary_entries">
+        <item>@string/summary_do_nothing</item>
+        <item>@string/summary_mute_ringer</item>
+        <item>@string/summary_dismiss_call</item>
+    </string-array>
 </resources>
