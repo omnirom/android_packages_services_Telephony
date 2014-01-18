@@ -36,7 +36,6 @@ import android.net.Uri;
 import android.os.PowerManager;
 import android.os.SystemProperties;
 import android.preference.PreferenceManager;
-import android.provider.Settings;
 import android.provider.CallLog.Calls;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.PhoneLookup;
@@ -586,7 +585,9 @@ public class NotificationMgr {
         }
 
         Notification.Builder builder = new Notification.Builder(mContext);
-        builder.setSmallIcon(android.R.drawable.stat_notify_missed_call)
+        if (Settings.System.getInt(mContext.getContentResolver(),
+                    Settings.System.KEY_MISSED_CALL_BREATH, 0) == 1) {
+            builder.setSmallIcon(R.drawable.stat_notify_missed_call_breath)
                 .setTicker(mContext.getString(R.string.notification_missedCallTicker, callName))
                 .setWhen(date)
                 .setContentTitle(mContext.getText(titleResId))
@@ -594,6 +595,14 @@ public class NotificationMgr {
                 .setContentIntent(pendingCallLogIntent)
                 .setAutoCancel(true)
                 .setDeleteIntent(createClearMissedCallsIntent());
+        } else {
+            builder.setSmallIcon(android.R.drawable.stat_notify_missed_call)
+                .setTicker(mContext.getString(R.string.notification_missedCallTicker, callName))
+                .setWhen(date)
+                .setContentIntent(pendingCallLogIntent)
+                .setAutoCancel(true)
+                .setDeleteIntent(createClearMissedCallsIntent());
+        }
 
         // Simple workaround for issue 6476275; refrain having actions when the given number seems
         // not a real one but a non-number which was embedded by methods outside (like
@@ -768,9 +777,14 @@ public class NotificationMgr {
     /* package */ void updateMwi(boolean visible) {
         if (DBG) log("updateMwi(): " + visible);
 
+        int resId;
         if (visible) {
-            int resId = android.R.drawable.stat_notify_voicemail;
-
+            if (Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.KEY_VOICEMAIL_BREATH, 0) == 1) {
+                resId = R.drawable.stat_notify_voicemail_breath;
+            } else {
+                resId = android.R.drawable.stat_notify_voicemail;
+            }
             // This Notification can get a lot fancier once we have more
             // information about the current voicemail messages.
             // (For example, the current voicemail system can't tell
