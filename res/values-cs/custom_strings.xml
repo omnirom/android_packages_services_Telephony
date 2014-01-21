@@ -26,4 +26,22 @@
     <!-- Sprint MWI Quirk: Phantom message wait indicator workaround -->
     <string name="mwi_notification_title">Indikátor čekajících zpráv</string>
     <string name="mwi_notification_summary">Zobrazit upozornění v případě čekajících zpráv v hlasové schránce</string>
+
+    <!-- Setting title for the flip action setting. -->
+    <string name="flip_action_title">Akce při otočení</string>
+
+    <!-- Dialog title of the flip action setting. -->
+    <string name="flip_action_dialog_title">Při otočení zařízení\u2026</string>
+
+    <!-- Setting summary for the flip action setting. -->
+    <string name="flip_action_summary">Otočením zařízení provést následující akci <xliff:g id="action">%s</xliff:g></string>
+
+    <!-- Values for flip action array entries -->
+    <string name="entry_do_nothing">Žádná</string>
+    <string name="entry_mute_ringer">Ztlumit vyzvánění</string>
+    <string name="entry_dismiss_call">Odmítnout hovor</string>
+    <string name="summary_do_nothing">žádná</string>
+    <string name="summary_mute_ringer">ztlumit vyzvánění</string>
+    <string name="summary_dismiss_call">odmítnout hovor</string>
+
 </resources>
