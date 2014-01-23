@@ -22,4 +22,26 @@
 
     <string name="call_end_sound_title">Suono di fine chiamata</string>
     <string name="call_end_sound_summary">Attiva un suono al termine di ogni chiamata</string>
+
+    <!-- Sprint MWI Quirk: Phantom message wait indicator workaround -->
+    <string name="mwi_notification_title">Messaggio indicatore d\'attesa</string>
+    <string name="mwi_notification_summary">Mostra notifiche vocali per indicatore d\'attesa</string>
+
+    <!-- Setting title for the flip action setting. -->
+    <string name="flip_action_title">Rotazione telefono</string>
+
+    <!-- Dialog title of the flip action setting. -->
+    <string name="flip_action_dialog_title">Ruota il telefono per\u2026</string>
+
+    <!-- Setting summary for the flip action setting. -->
+    <string name="flip_action_summary">Ruotando il telefono con lo schermo verso il basso farai<xliff:g id="action">%s</xliff:g></string>
+
+    <!-- Values for flip action array entries -->
+    <string name="entry_do_nothing">Svolgere nessuna azione</string>
+    <string name="entry_mute_ringer">Silenziare la suoneria</string>
+    <string name="entry_dismiss_call">Rifiutare le chiamate</string>
+    <string name="summary_do_nothing">svolgere nessuna azione</string>
+    <string name="summary_mute_ringer">silenziare la suoneria</string>
+    <string name="summary_dismiss_call">rifiutare le chiamate</string>
+
 </resources>
