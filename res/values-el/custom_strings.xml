@@ -24,7 +24,7 @@
     <string name="call_end_sound_summary">Τόνος κατά τη λήξη της κλήσης</string>
 
     <!-- Sprint MWI Quirk: Phantom message wait indicator workaround -->
-    <string name="mwi_notification_title">Ένδειξη αναμονής μηνύματοςMessage wait indicator</string>
+    <string name="mwi_notification_title">Ένδειξη αναμονής μηνύματος</string>
     <string name="mwi_notification_summary">Εμφάνιση του μηνύματος ειδοποίησης ένδειξης αναμονής τηλεφωνητή</string>
 
     <!-- Setting title for the flip action setting. -->
