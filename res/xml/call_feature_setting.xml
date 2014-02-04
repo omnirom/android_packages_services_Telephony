@@ -45,10 +45,26 @@
             android:persistent="false" />
     </PreferenceCategory>
 
-  <PreferenceCategory
-      android:key="button_misc_category_key"
-      android:title="@string/other_settings"
-      android:persistent="false" />
+    <PreferenceCategory
+        android:key="button_misc_category_key"
+        android:title="@string/other_settings"
+        android:persistent="false">
+
+        <CheckBoxPreference
+            android:key="button_enable_suggestions"
+            android:title="@string/enable_suggestions_title"
+            android:summary="@string/enable_suggestions_summary"
+            android:defaultValue="false"
+            android:persistent="false" />
+
+        <CheckBoxPreference
+            android:key="button_enable_reverse_lookup"
+            android:title="@string/enable_reverse_lookup_title"
+            android:summary="@string/enable_reverse_lookup_summary"
+            android:defaultValue="false"
+            android:persistent="false" />
+
+    </PreferenceCategory>
 
   <PreferenceScreen
       android:key="button_voicemail_category_key"
