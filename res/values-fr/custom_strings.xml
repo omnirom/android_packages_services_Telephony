@@ -32,4 +32,8 @@
     <string name="summary_do_nothing">ne fait rien</string>
     <string name="summary_mute_ringer">éteint la sonnerie</string>
     <string name="summary_dismiss_call">refuse l\'appel</string>
+    <string name="enable_suggestions_title">Activer les suggestions</string>
+    <string name="enable_suggestions_summary">Suggérer les numéros des établissements à proximité lors de recherche avec le pavé de numérotation</string>
+    <string name="enable_reverse_lookup_title">Activer la recherche inversée</string>
+    <string name="enable_reverse_lookup_summary">Recherche le nom de l\'appelant lorsqu\'il ne figure pas dans la liste des contacts</string>
 </resources>
