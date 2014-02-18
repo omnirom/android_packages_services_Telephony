@@ -44,10 +44,28 @@
     <string name="summary_mute_ringer">mute the ringer</string>
     <string name="summary_dismiss_call">dismiss the call</string>
 
-
     <!-- Integrated phone directory -->
     <string name="enable_suggestions_title">Enable suggestions</string>
     <string name="enable_suggestions_summary">Suggest phone number of nearby places when searching in the dialer</string>
     <string name="enable_reverse_lookup_title">Enable reverse lookup</string>
     <string name="enable_reverse_lookup_summary">Look up names on incoming calls when number is not in phone book</string>
+
+    <string name="advanced_setting">Advanced</string>
+
+    <!-- Blacklist preferences -->
+    <string name="blacklist_title">Blacklist</string>
+    <string name="blacklist_summary_disabled">Disabled</string>
+    <string name="blacklist_summary">Incoming calls from phone numbers in the blacklist will be blocked</string>
+
+    <!-- Blacklist notifications -->
+    <string name="blacklist_call_notification">Blocked a call from %s</string>
+    <string name="blacklist_call_notification_private_number">Blocked a call from a private number</string>
+    <string name="blacklist_call_notification_unknown_number">Blocked a call from unknown number %s</string>
+    <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> calls were blocked</string>
+    <string name="blacklist_message_notification">Blocked a message from %s</string>
+    <string name="blacklist_message_notification_private_number">Blocked a message from a private number</string>
+    <string name="blacklist_message_notification_unknown_number">Blocked a message from unknown number %s</string>
+    <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> messages were blocked</string>
+    <string name="blacklist_notification_list_private">Private</string>
+    <string name="unblock_number">Unblock</string>
 </resources>
