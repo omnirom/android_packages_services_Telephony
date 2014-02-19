@@ -16,6 +16,24 @@
       "revId": "1ec065b3049985d0c4bdc920664ca5a55b52819a",
       "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8b77b57d_0abe4bcd",
+        "filename": "src/com/android/phone/Ringer.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1000117
+      },
+      "writtenOn": "2014-02-19T14:37:41Z",
+      "side": 1,
+      "message": "AFAIK, second user isn\u0027t allowed to call. So that means it\u0027s only applicable to 1st user ?",
+      "parentUuid": "8b77b57d_0ae56b07",
+      "revId": "1ec065b3049985d0c4bdc920664ca5a55b52819a",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
     }
   ]
 }
