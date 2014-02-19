@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8b77b57d_0ae56b07",
+        "filename": "src/com/android/phone/Ringer.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2014-02-19T13:02:43Z",
+      "side": 1,
+      "message": "IMHO must use getIntForUser here",
+      "revId": "1ec065b3049985d0c4bdc920664ca5a55b52819a",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    }
+  ]
+}
