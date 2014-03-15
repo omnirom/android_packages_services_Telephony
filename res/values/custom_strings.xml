@@ -20,6 +20,10 @@
     <string name="non_intrusive_incall_title">Non intrusive</string>
     <string name="non_intrusive_incall_summary">Use non intrusive dialog for incoming calls</string>
 
+    <!-- Smart Phone Call -->
+    <string name="smart_phone_call_title">Smart phone call</string>
+    <string name="smart_phone_call_summary">Put on your ear, and this will automatically call current number in message or dialer</string>
+
     <string name="call_end_sound_title">Call end tone</string>
     <string name="call_end_sound_summary">Play tone on end call</string>
 
