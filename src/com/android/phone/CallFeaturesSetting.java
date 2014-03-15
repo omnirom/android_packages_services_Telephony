@@ -197,6 +197,7 @@ public class CallFeaturesSetting extends PreferenceActivity
 
     private static final String BUTTON_NON_INTRUSIVE_INCALL_KEY = "button_non_intrusive_incall";
     private static final String BUTTON_CALL_END_SOUND_KEY = "button_call_end_sound";
+    private static final String BUTTON_SMART_PHONE_CALL_KEY = "button_smart_phone_call";
 
     private Intent mContactListIntent;
 
@@ -285,6 +286,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     private SipSharedPreferences mSipSharedPreferences;
     private CheckBoxPreference mNonIntrusiveInCall;
     private CheckBoxPreference mCallEndSound;
+    private CheckBoxPreference mSmartCall;
     private ListPreference mFlipAction;
     private CheckBoxPreference mEnableSuggestions;
     private CheckBoxPreference mEnableReverseLookup;
@@ -548,6 +550,10 @@ public class CallFeaturesSetting extends PreferenceActivity
         } else if (preference == mNonIntrusiveInCall){
             Settings.System.putInt(getContentResolver(), Settings.System.NON_INTRUSIVE_INCALL,
                     mNonIntrusiveInCall.isChecked() ? 1 : 0);
+            return true;
+        } else if (preference == mSmartCall){
+            Settings.System.putInt(getContentResolver(), Settings.System.SMART_PHONE_CALLER,
+                    mSmartCall.isChecked() ? 1 : 0);
             return true;
         } else if (preference == mEnableSuggestions){
             Settings.System.putInt(getContentResolver(), Settings.System.ENABLE_DIALER_SUGGESTIONS,
@@ -1683,10 +1689,14 @@ public class CallFeaturesSetting extends PreferenceActivity
         mNonIntrusiveInCall.setChecked(Settings.System.getInt(getContentResolver(),
                 Settings.System.NON_INTRUSIVE_INCALL, 1) == 0 ? false : true);
 
+        mSmartCall = (CheckBoxPreference) findPreference(BUTTON_SMART_PHONE_CALL_KEY);
+        mSmartCall.setChecked(Settings.System.getInt(getContentResolver(),
+                Settings.System.SMART_PHONE_CALLER, 0) != 0 ? true : false);
+
         mEnableSuggestions = (CheckBoxPreference) findPreference(BUTTON_ENABLE_SUGGESTIONS);
         mEnableSuggestions.setChecked(Settings.System.getInt(getContentResolver(),
                 Settings.System.ENABLE_DIALER_SUGGESTIONS, 1) == 0 ? false : true);
- 
+
         mEnableReverseLookup = (CheckBoxPreference) findPreference(BUTTON_ENABLE_REVERSE_LOOKUP);
         mEnableReverseLookup.setChecked(Settings.System.getInt(getContentResolver(),
                 Settings.System.ENABLE_DIALER_REVERSE_LOOKUP, 1) == 0 ? false : true);
