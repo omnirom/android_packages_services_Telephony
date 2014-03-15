@@ -23,6 +23,10 @@
     <string name="call_end_sound_title">Call end tone</string>
     <string name="call_end_sound_summary">Play tone on end call</string>
 
+    <!-- Smart Dialer -->
+    <string name="smart_dialer_title">Smart dialer</string>
+    <string name="smart_dialer_summary">Automatically dial current number by putting device to ear</string>
+
     <!-- Sprint MWI Quirk: Phantom message wait indicator workaround -->
     <string name="mwi_notification_title">Message wait indicator</string>
     <string name="mwi_notification_summary">Show message wait indicator voicemail notifications</string>

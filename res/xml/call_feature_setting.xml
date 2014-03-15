@@ -219,6 +219,13 @@
     </PreferenceScreen>
 
     <CheckBoxPreference
+        android:key="button_smart_dialer"
+        android:title="@string/smart_dialer_title"
+        android:summary="@string/smart_dialer_summary"
+        android:persistent="false"
+        android:defaultValue="false" />
+
+    <CheckBoxPreference
         android:key="button_non_intrusive_incall"
         android:title="@string/non_intrusive_incall_title"
         android:summary="@string/non_intrusive_incall_summary"
