@@ -179,7 +179,12 @@ import java.util.List;
 
     public void onMuteChange(boolean muted) {
         logD("onMuteChange: " + muted);
+        
         notifyListeners();
+        
+        // Fix for low in-call volume bug
+        // Reset the audio volume stream after mute change
+        PhoneUtils.resetAudioStreamVolume();
     }
 
     /**
@@ -350,6 +355,10 @@ import java.util.List;
         if (doNotify) {
             notifyListeners();
         }
+        
+        // Fix for low in-call volume bug
+        // Reset the audio volume stream after switching audio mode
+        PhoneUtils.resetAudioStreamVolume();
     }
 
     /**
