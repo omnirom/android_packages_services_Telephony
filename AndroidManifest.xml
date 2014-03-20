@@ -142,6 +142,30 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="ContactScreenActivity"
+            android:theme="@style/SimImportTheme"
+            android:label="@string/ContactScreen"
+            android:screenOrientation="portrait"
+            android:icon="@mipmap/ic_launcher_contacts">
+            <intent-filter >
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="ExportContactsToSim"
+            android:theme="@style/SimImportTheme"
+            android:label="@string/ExportContactScreen"
+            android:screenOrientation="portrait"
+            android:icon="@mipmap/ic_launcher_contacts">
+            <intent-filter >
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <activity android:name="FdnList"
                 android:label="@string/fdnListLabel"
                 android:theme="@style/SettingsLight">
