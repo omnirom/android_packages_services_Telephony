@@ -18,6 +18,7 @@ package com.android.phone;
 
 import android.accounts.Account;
 import android.app.ActionBar;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
@@ -30,6 +31,9 @@ import android.content.OperationApplicationException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.os.RemoteException;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.CommonDataKinds.Email;
@@ -38,6 +42,7 @@ import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.RawContacts;
+import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -67,6 +72,15 @@ public class SimContacts extends ADNList {
 
     private static final int MENU_IMPORT_ONE = 1;
     private static final int MENU_IMPORT_ALL = 2;
+    private static final int MENU_DELETE_ALL = 3;
+    private static final int MENU_ADD_CONTACT = 4;
+    private static final int MENU_EDIT_CONTACT = 5;
+    private static final int MENU_SMS = 6;
+    private static final int MENU_DIAL = 7;
+    private static final int MENU_DELETE = 8;
+
+    private static final int EVENT_CONTACTS_DELETED = 9;
+
     private ProgressDialog mProgressDialog;
 
     private Account mAccount;
@@ -246,7 +260,7 @@ public class SimContacts extends ADNList {
     @Override
     protected Uri resolveIntent() {
         Intent intent = getIntent();
-        intent.setData(Uri.parse("content://icc/adn"));
+        intent.setData(getUri());
         if (Intent.ACTION_PICK.equals(intent.getAction())) {
             // "index" is 1-based
             mInitialSelection = intent.getIntExtra("index", 0) - 1;
@@ -258,6 +272,8 @@ public class SimContacts extends ADNList {
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         menu.add(0, MENU_IMPORT_ALL, 0, R.string.importAllSimEntries);
+        menu.add(0, MENU_DELETE_ALL, 0, R.string.deleteAllSimEntries);
+        menu.add(0, MENU_ADD_CONTACT, 0, R.string.addSimEntries);
         return true;
     }
 
@@ -267,11 +283,16 @@ public class SimContacts extends ADNList {
         if (item != null) {
             item.setVisible(mCursor != null && mCursor.getCount() > 0);
         }
+        item = menu.findItem(MENU_DELETE_ALL);
+        if (item != null) {
+            item.setVisible(mCursor != null && mCursor.getCount() > 0);
+        }
         return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        CharSequence title, message;
         switch (item.getItemId()) {
             case android.R.id.home:
                 Intent intent = new Intent();
@@ -280,9 +301,26 @@ public class SimContacts extends ADNList {
                 startActivity(intent);
                 finish();
                 return true;
+            case MENU_DELETE_ALL:
+                title = getString(R.string.deleteAllSimEntries);
+                message = getString(R.string.deleteSimContacts);
+                deleteAllSimContactsThread deleteThread = new deleteAllSimContactsThread();
+                if (mCursor == null) {
+                    showAlertDialog(getString(R.string.cursorError));
+                    break;
+                }
+                prepareProgressDialog(title, message);
+                mProgressDialog.setButton(DialogInterface.BUTTON_NEGATIVE,
+                        getString(R.string.cancel), deleteThread);
+                mProgressDialog.show();
+                deleteThread.start();
+                return true;
+            case MENU_ADD_CONTACT:
+                showContactScreen(null, null, 1);
+                return true;
             case MENU_IMPORT_ALL:
-                CharSequence title = getString(R.string.importAllSimEntries);
-                CharSequence message = getString(R.string.importingSimContacts);
+                title = getString(R.string.importAllSimEntries);
+                message = getString(R.string.importingSimContacts);
 
                 ImportAllSimContactsThread thread = new ImportAllSimContactsThread();
 
@@ -291,14 +329,9 @@ public class SimContacts extends ADNList {
                     Log.e(LOG_TAG, "cursor is null. Ignore silently.");
                     break;
                 }
-                mProgressDialog = new ProgressDialog(this);
-                mProgressDialog.setTitle(title);
-                mProgressDialog.setMessage(message);
-                mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                prepareProgressDialog(title, message);
                 mProgressDialog.setButton(DialogInterface.BUTTON_NEGATIVE,
                         getString(R.string.cancel), thread);
-                mProgressDialog.setProgress(0);
-                mProgressDialog.setMax(mCursor.getCount());
                 mProgressDialog.show();
 
                 thread.start();
@@ -308,18 +341,229 @@ public class SimContacts extends ADNList {
         return super.onOptionsItemSelected(item);
     }
 
+    void prepareProgressDialog(CharSequence title, CharSequence message) {
+        mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setTitle(title);
+        mProgressDialog.setMessage(message);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        mProgressDialog.setProgress(0);
+        if (mCursor != null) {
+            mProgressDialog.setMax(mCursor.getCount());
+        }
+    }
+
     @Override
     public boolean onContextItemSelected(MenuItem item) {
+        int position;
+        ContextMenu.ContextMenuInfo menuInfo = item.getMenuInfo();
+        if (menuInfo instanceof AdapterView.AdapterContextMenuInfo) {
+            position = ((AdapterView.AdapterContextMenuInfo)menuInfo).position;
+        } else {
+            // seems to be some problem
+            return super.onContextItemSelected(item);
+        }
         switch (item.getItemId()) {
             case MENU_IMPORT_ONE:
-                ContextMenu.ContextMenuInfo menuInfo = item.getMenuInfo();
-                if (menuInfo instanceof AdapterView.AdapterContextMenuInfo) {
-                    int position = ((AdapterView.AdapterContextMenuInfo)menuInfo).position;
-                    importOneSimContact(position);
-                    return true;
-                }
+                importOneSimContact(position);
+                return true;
+            case MENU_EDIT_CONTACT:
+                editOneSimContact(position);
+                return true;
+            case MENU_SMS:
+                smsToNumber(position);
+                return true;
+            case MENU_DIAL:
+                dialNumber(position);
+                return true;
+            case MENU_DELETE:
+                deleteOneSimContact(position);
+                return true;
         }
         return super.onContextItemSelected(item);
+    }
+
+    private void smsToNumber(int position) {
+        if (mCursor.moveToPosition(position)) {
+            String phoneNumber = mCursor.getString(NUMBER_COLUMN);
+            phoneNumber = PhoneNumberUtils.formatNumber(phoneNumber);
+            Intent intent = new Intent(Intent.ACTION_SENDTO,
+                    Uri.fromParts("smsto", phoneNumber, null));
+            startActivity(intent);
+            finish();
+        } else {
+            showAlertDialog(getString(R.string.cursorError));
+        }
+    }
+
+    private void dialNumber(int position) {
+        if (mCursor.moveToPosition(position)) {
+            String phoneNumber = mCursor.getString(NUMBER_COLUMN);
+            if (phoneNumber == null || !TextUtils.isGraphic(phoneNumber)) {
+                Log.e(LOG_TAG, " There is no number in contact ...");
+            }
+            Intent intent = new Intent(Intent.ACTION_CALL_PRIVILEGED,
+                    Uri.fromParts("tel", phoneNumber, null));
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+            startActivity(intent);
+            finish();
+        } else {
+            showAlertDialog(getString(R.string.cursorError));
+        }
+    }
+
+    private class deleteAllSimContactsThread extends Thread
+            implements OnCancelListener, OnClickListener {
+
+        boolean mCanceled = false;
+
+        public deleteAllSimContactsThread() {
+            super("deleteAllSimContactsThread");
+        }
+
+        @Override
+        public void run() {
+            int result = 1;
+            mCursor.moveToPosition(-1);
+            while (!mCanceled && mCursor.moveToNext()) {
+                result = result & actuallyDeleteOneSimContact(mCursor);
+               mProgressDialog.incrementProgressBy(1);
+            }
+
+            mProgressDialog.dismiss();
+            Message message = Message.obtain(mHandler, EVENT_CONTACTS_DELETED, (Integer)result);
+            mHandler.sendMessage(message);
+        }
+
+        public void onCancel(DialogInterface dialog) {
+            mCanceled = true;
+        }
+
+        public void onClick(DialogInterface dialog, int which) {
+            if (which == DialogInterface.BUTTON_NEGATIVE) {
+                mCanceled = true;
+                mProgressDialog.dismiss();
+            } else {
+                Log.e(LOG_TAG, "Unknown button event has come: " + dialog.toString());
+            }
+        }
+    }
+
+    private void deleteOneSimContact(int position) {
+        if (mCursor.moveToPosition(position)) {
+            new Thread(new Runnable() {
+                public void run() {
+                    Looper.prepare();
+                    int result = actuallyDeleteOneSimContact(mCursor);
+                    if (result == 1) {
+                        showAlertDialog(getString(R.string.contactdeleteSuccess));
+                    } else {
+                        showAlertDialog(getString(R.string.contactdeleteFailed));
+                    }
+                    Looper.loop();
+                }
+            }).start();
+        } else {
+            showAlertDialog(getString(R.string.cursorError));
+        }
+    }
+
+    private int actuallyDeleteOneSimContact(Cursor cursor){
+        final NamePhoneTypePair namePhoneTypePair =
+                new NamePhoneTypePair(cursor.getString(NAME_COLUMN));
+        final String name = namePhoneTypePair.name;
+        final int phoneType = namePhoneTypePair.phoneType;
+        final String phoneNumber = cursor.getString(NUMBER_COLUMN);
+
+        Uri uri = getUri();
+        int result = -1;
+        if (uri != null) {
+            result = getContentResolver().delete(uri, "tag=" + name
+                    + " AND number=" + phoneNumber, null);
+        } else {
+            Log.e(LOG_TAG, "actuallyDeleteOneSimContact: uri is null!!!");
+        }
+        return result;
+    }
+
+    private void editOneSimContact(int position) {
+        if (mCursor.moveToPosition(position)) {
+            final NamePhoneTypePair namePhoneTypePair =
+                    new NamePhoneTypePair(mCursor.getString(NAME_COLUMN));
+            final String name = namePhoneTypePair.name;
+            final int phoneType = namePhoneTypePair.phoneType;
+            final String phoneNumber = mCursor.getString(NUMBER_COLUMN);
+            showContactScreen(name, phoneNumber, 2);
+        } else {
+            showAlertDialog(getString(R.string.cursorError));
+        }
+    }
+
+    private void showContactScreen(String name, String phoneNumber, int requestCode) {
+        Intent intent = new Intent();
+        intent.setClassName("com.android.phone", "com.android.phone.ContactScreenActivity");
+        intent.putExtra("NAME", name);
+        intent.putExtra("PHONE", phoneNumber);
+        startActivityForResult(intent, requestCode);
+    }
+
+    @Override
+    protected void onActivityResult(final int requestCode, final int resultCode,
+            final Intent intent) {
+        super.onActivityResult(requestCode, resultCode, intent);
+        new Thread(new Runnable() {
+            public void run() {
+                Looper.prepare();
+                Uri uri = getUri();
+                if (uri == null) {
+                    Log.e(LOG_TAG, "onActivityResult: uri is null, return!!!");
+                    return;
+                }
+                ContentValues values = new ContentValues();
+
+                if (resultCode == RESULT_OK && requestCode == 1){
+                    String name = intent.getStringExtra("NEWNAME");
+                    String number = intent.getStringExtra("NEWPHONE");
+                    values.put("tag", name);
+                    values.put("number", number);
+                    Uri result = getContentResolver().insert(uri, values);
+                    if (result != null) {
+                        showAlertDialog(getString(R.string.contactAddSuccess));
+                    } else {
+                        showAlertDialog(getString(R.string.contactAddFailed));
+                    }
+                } else if (resultCode == RESULT_OK && requestCode == 2) {
+                    String oldName = intent.getStringExtra("NAME");
+                    String oldNumber = intent.getStringExtra("PHONE");
+                    String newName = intent.getStringExtra("NEWNAME");
+                    String newNumber = intent.getStringExtra("NEWPHONE");
+                    values.put("tag", oldName);
+                    values.put("number", oldNumber);
+                    values.put("newTag", newName);
+                    values.put("newNumber", newNumber);
+                    int result = getContentResolver().update(uri, values, null, null);
+                    if (result == 1) {
+                        showAlertDialog(getString(R.string.contactUpdateSuccess));
+                    } else {
+                        showAlertDialog(getString(R.string.contactUpdateFailed));
+                    }
+                }
+                Looper.loop();
+            }
+        }).start();
+    }
+
+    private void showAlertDialog(String value) {
+        AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+        alertDialog.setTitle("Result...");
+        alertDialog.setMessage(value);
+        alertDialog.setButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                // finish sim contacts activity
+                finish();
+            }
+        });
+        alertDialog.show();
     }
 
     @Override
@@ -333,6 +577,10 @@ public class SimContacts extends ADNList {
                 menu.setHeaderTitle(textView.getText());
             }
             menu.add(0, MENU_IMPORT_ONE, 0, R.string.importSimEntry);
+            menu.add(0, MENU_EDIT_CONTACT, 0, R.string.editContact);
+            menu.add(0, MENU_SMS, 0, R.string.sendSms);
+            menu.add(0, MENU_DIAL, 0, R.string.dial);
+            menu.add(0, MENU_DELETE, 0, R.string.delete);
         }
     }
 
@@ -363,5 +611,25 @@ public class SimContacts extends ADNList {
             }
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch(msg.what) {
+                case EVENT_CONTACTS_DELETED:
+                    int result = (Integer)msg.obj;
+                    if (result == 1) {
+                        showAlertDialog(getString(R.string.allContactdeleteSuccess));
+                    } else {
+                        showAlertDialog(getString(R.string.allContactdeleteFailed));
+                    }
+                    break;
+            }
+        }
+    };
+
+    protected Uri getUri() {
+        return Uri.parse("content://icc/adn");
     }
 }
