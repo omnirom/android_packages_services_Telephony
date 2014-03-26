@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (C) 2013 The OmniROM Project
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ -->
+
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="non_intrusive_incall_title">Ненавязчивый режим</string>
+    <string name="non_intrusive_incall_summary">Использовать ненавязчивое отображение входящих звонков</string>
+
+    <string name="call_end_sound_title">Сигнал при завершении вызова</string>
+    <string name="call_end_sound_summary">Воспроизводить звуковой сигнал при завершении вызова</string>
+
+    <!-- Sprint MWI Quirk: Phantom message wait indicator workaround -->
+    <string name="mwi_notification_title">Индикатор непросмотренных сообщений</string>
+    <string name="mwi_notification_summary">Показывать индикатор непросмотренных сообщений голосовой почты</string>
+
+    <!-- Setting title for the flip action setting. -->
+    <string name="flip_action_title">Действие при перевороте</string>
+
+    <!-- Dialog title of the flip action setting. -->
+    <string name="flip_action_dialog_title">Выбор действия\u2026</string>
+
+    <!-- Setting summary for the flip action setting. -->
+    <string name="flip_action_summary">Перевернув телефон экраном вниз, <xliff:g id="action">%s</xliff:g></string>
+
+    <!-- Values for flip action array entries -->
+    <string name="entry_do_nothing">Ничего не делать</string>
+    <string name="entry_mute_ringer">Выключить звонок</string>
+    <string name="entry_dismiss_call">Сбросить вызов</string>
+    <string name="summary_do_nothing">ничего не делать</string>
+    <string name="summary_mute_ringer">выключить звонок</string>
+    <string name="summary_dismiss_call">cбросить вызов</string>
+
+
+    <!-- Integrated phone directory -->
+    <string name="enable_suggestions_title">Включить рекомендации</string>
+    <string name="enable_suggestions_summary">Предложить номер телефона близлежащих мест при поиске в номеронабирателе</string>
+    <string name="enable_reverse_lookup_title">Обратный поиск</string>
+    <string name="enable_reverse_lookup_summary">Искать информацию о человеке/месте для незнакомых входящих номеров</string>
+
+    <string name="advanced_setting">Расширенные настройки</string>
+
+    <!-- Blacklist preferences -->
+    <string name="blacklist_title">Черный список</string>
+    <string name="blacklist_summary_disabled">Отключено</string>
+    <string name="blacklist_summary">Входящие звонки с номеров, находящихся в черном списке, будут блокироваться</string>
+
+    <!-- Blacklist notifications -->
+    <string name="blacklist_call_notification">Заблокирован вызов от %s</string>
+    <string name="blacklist_call_notification_private_number">Заблокирован вызов со скрытого номера</string>
+    <string name="blacklist_call_notification_unknown_number">Заблокирован вызов с неизвестного номера %s</string>
+    <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> calls were blocked</string>
+    <string name="blacklist_message_notification">Сообщение от %s заблокировано</string>
+    <string name="blacklist_message_notification_private_number">Заблокировано сообщение от скрытого номера</string>
+    <string name="blacklist_message_notification_unknown_number">Заблокировано сообщение от неизвестного номера %s</string>
+    <string name="blacklist_message_notification_multiple">Заблокировано сообщений: <xliff:g id="count">%d</xliff:g></string>
+    <string name="blacklist_notification_list_private">Скрытый</string>
+    <string name="unblock_number">Разблокировать</string>
+</resources>
