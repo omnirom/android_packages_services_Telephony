@@ -36,4 +36,41 @@
     <string name="enable_suggestions_summary">Suggérer les numéros des établissements à proximité lors de recherche avec le pavé de numérotation</string>
     <string name="enable_reverse_lookup_title">Activer la recherche inversée</string>
     <string name="enable_reverse_lookup_summary">Recherche le nom de l\'appelant lorsqu\'il ne figure pas dans la liste des contacts</string>
+    <string name="advanced_setting">Avancés</string>
+    <string name="exportContacts">Export des contacts de la carte SIM\u2026</string>
+    <string name="blacklist_title">Liste noire</string>
+    <string name="blacklist_summary_disabled">Désactivé</string>
+    <string name="blacklist_summary">Les appels entrants provenant de numéro de la liste noire seront bloqués</string>
+    <string name="blacklist_call_notification">Appel de %s bloqué</string>
+    <string name="blacklist_call_notification_private_number">Appel d\'un numéro privé bloqué</string>
+    <string name="blacklist_call_notification_unknown_number">Appel d\'un numéro inconnu %s bloqué</string>
+    <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> appels ont été bloqués</string>
+    <string name="blacklist_message_notification">Blocked a message from %s</string>
+    <string name="blacklist_message_notification_private_number">Un message d\'un numéro privé bloqué</string>
+    <string name="blacklist_message_notification_unknown_number">Un message d\'un numéro inconnu %s bloqué</string>
+    <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> messages ont été bloqués</string>
+    <string name="blacklist_notification_list_private">Privée</string>
+    <string name="unblock_number">Débloqué</string>
+    <string name="ContactScreen">Ajouter/Éditer les contacts de la carte SIM</string>
+    <string name="ExportContactScreen">Exporter les contacts du téléphone vers la SIM</string>
+    <string name="addSimEntries">Ajouter les contacts à la SIM</string>
+    <string name="deleteAllSimEntries">Supprimer TOUS les contacts de la carte SIM</string>
+    <string name="deleteSimContacts">Suppression des contacts de la carte SIM</string>
+    <string name="editContact">Éditer</string>
+    <string name="sendSms">Envoi SMS</string>
+    <string name="delete">Supprimer</string>
+    <string name="dial">Appeler</string>
+    <string name="enterName">Entrer un nom\u00A0:</string>
+    <string name="enterNumber">Entrer un numéro de téléphone\u00A0:</string>
+    <string name="contactAddSuccess">Contact ajouté à la SIM avec succés</string>
+    <string name="contactAddFailed">Impossible d\'ajouter le contact à la SIM\u00A0!!!</string>
+    <string name="contactUpdateSuccess">Contact de la SIM mis à jour avec succès</string>
+    <string name="contactUpdateFailed">Impossible de mettre à jour le contact de la SIM\u00A0!!!</string>
+    <string name="contactdeleteSuccess">Contact supprimé de la SIM avec succés</string>
+    <string name="contactdeleteFailed">Impossible de supprimer le contact de la SIM\u00A0!!!</string>
+    <string name="allContactdeleteSuccess">Tous les contacts ont été supprimés de la carte SIM avec succés</string>
+    <string name="allContactdeleteFailed">Impossible de supprimer les contacts de la carte SIM\u00A0!!!</string>
+    <string name="exportAllcontatsSuccess">Tous les contacts ont été exportés de la carte SIM avec succés</string>
+    <string name="exportAllcontatsFailed">Impossible d\'exporter les contacts de la carte SIM\u00A0!!!</string>
+    <string name="cursorError">Le curseur n\'a pas de données suffisantes\u00A0!!!</string>
 </resources>
