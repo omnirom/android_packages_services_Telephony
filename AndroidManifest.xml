@@ -580,5 +580,17 @@
         <!-- service to dump telephony information -->
         <service android:name="HfaService" android:exported="false"/>
 
+        <!-- QuietHours -->
+        <service android:name="QuietHoursAlarmService"/>
+
+        <activity
+            android:name="QuietHoursBypassAlarm"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:screenOrientation="portrait"
+            android:taskAffinity="com.android.phone.QuietHoursBypassAlarm"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+
     </application>
 </manifest>

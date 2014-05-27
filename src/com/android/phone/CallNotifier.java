@@ -501,6 +501,12 @@ public class CallNotifier extends Handler
                         silenceRinger();
                     }
                     break;
+                case Settings.System.QUIET_HOURS_RINGER_WHITELIST_ONLY:
+                    if (!QuietHoursHelper.isWhitelistContact(mApplication, number)) {
+                        if (DBG) log("Muting ringer, caller is not in whitelist");
+                        silenceRinger();
+                    }
+                    break;
                 case Settings.System.QUIET_HOURS_RINGER_DISABLED:
                     if (DBG) log("Muting ringer");
                     silenceRinger();
