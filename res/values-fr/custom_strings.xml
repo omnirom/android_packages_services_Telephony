@@ -73,4 +73,10 @@
     <string name="exportAllcontatsSuccess">Tous les contacts ont été exportés de la carte SIM avec succés</string>
     <string name="exportAllcontatsFailed">Impossible d\'exporter les contacts de la carte SIM\u00A0!!!</string>
     <string name="cursorError">Le curseur n\'a pas de données suffisantes\u00A0!!!</string>
+    <string name="quiet_hours_alarm_dismiss">Rejeter l\'alarme</string>
+    <string name="quiet_hours_alarm_and">" et "</string>
+    <string name="quiet_hours_alarm_dialog_title">OUTREPASSER LES HEURES SILENCIEUSES</string>
+    <string name="quiet_hours_alarm_message">" rempli les conditions pour outrepasser les heures silencieuses !"</string>
+    <string name="quiet_hours_auto_sms_null">[Message automatique] Je suis de retour vers vous dès que possible.</string>
+    <string name="quiet_hours_sms_code_null">[Alarme]</string>
 </resources>
