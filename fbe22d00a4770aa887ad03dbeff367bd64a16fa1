@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4b713d8b_3463650d",
+        "filename": "res/values/custom_strings.xml",
+        "patchSetId": 4
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2014-08-01T14:50:56Z",
+      "side": 1,
+      "message": "Smart phone call sounds way to smart :) The call doesnt get smart but only the dialing. So what about \"Smart dialer\"?",
+      "revId": "fbe22d00a4770aa887ad03dbeff367bd64a16fa1",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4b713d8b_5460e1fd",
+        "filename": "res/values/custom_strings.xml",
+        "patchSetId": 4
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2014-08-01T14:50:56Z",
+      "side": 1,
+      "message": "As mentioned in the Mms part there should be separate setting for Mms and Dialer. So this should become specific for dialer. e.g. \"Automatically call active number by putting the device to the ear\". For the mms it could be \"Automatically call number of message sender by ...\"",
+      "revId": "fbe22d00a4770aa887ad03dbeff367bd64a16fa1",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    }
+  ]
+}
