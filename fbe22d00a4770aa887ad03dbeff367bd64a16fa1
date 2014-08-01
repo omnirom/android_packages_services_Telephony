@@ -33,6 +33,24 @@
       "revId": "fbe22d00a4770aa887ad03dbeff367bd64a16fa1",
       "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4b713d8b_cff9be19",
+        "filename": "res/values/custom_strings.xml",
+        "patchSetId": 4
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000313
+      },
+      "writtenOn": "2014-08-01T17:30:21Z",
+      "side": 1,
+      "message": "Thanks max, +1, will do",
+      "parentUuid": "4b713d8b_5460e1fd",
+      "revId": "fbe22d00a4770aa887ad03dbeff367bd64a16fa1",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
     }
   ]
 }
