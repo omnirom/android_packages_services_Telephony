@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2b6ec9b0_93fffcab",
+        "filename": "res/values/custom_strings.xml",
+        "patchSetId": 6
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2014-08-04T17:44:27Z",
+      "side": 1,
+      "message": "I would still write it the other way round :)\n\"Automatic dialing of current number when putting device to ear\"",
+      "range": {
+        "startLine": 28,
+        "startChar": 40,
+        "endLine": 28,
+        "endChar": 43
+      },
+      "revId": "e093ae667c2ac7359f180e34bac8ee4e6fdd4a38",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55",
+      "unresolved": false
+    }
+  ]
+}
