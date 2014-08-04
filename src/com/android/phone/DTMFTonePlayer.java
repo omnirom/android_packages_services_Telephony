@@ -32,6 +32,8 @@ import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.services.telephony.common.Call;
 
+import com.android.internal.util.slim.QuietHoursHelper;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -163,9 +165,10 @@ public class DTMFTonePlayer implements CallModeler.Listener {
 
         // see if we need to play local tones.
         if (PhoneGlobals.getInstance().getResources().getBoolean(R.bool.allow_local_dtmf_tones)) {
-            mLocalToneEnabled = Settings.System.getInt(
+            mLocalToneEnabled = (Settings.System.getInt(
                     PhoneGlobals.getInstance().getContentResolver(),
-                    Settings.System.DTMF_TONE_WHEN_DIALING, 1) == 1;
+                    Settings.System.DTMF_TONE_WHEN_DIALING, 1) == 1)
+                    && !QuietHoursHelper.inQuietHours(PhoneGlobals.getInstance(), Settings.System.QUIET_HOURS_SYSTEM);
         } else {
             mLocalToneEnabled = false;
         }
