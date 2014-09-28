@@ -287,6 +287,7 @@
         <!-- "Mobile network settings" screen, used on both
              non-voice-capable tablets and regular phone devices. -->
         <activity android:name="MobileNetworkSettings"
+            android:icon="@mipmap/ic_launcher_settings"
             android:label="@string/settings_label"
             android:theme="@style/Theme.Settings">
             <intent-filter>
