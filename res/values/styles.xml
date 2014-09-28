@@ -156,8 +156,8 @@
     <!-- Theme for the activity com.android.phone.Settings, which is the
          "Mobile network settings" screen (used on non-voice-capable
          tablets as well as regular phone devices.) -->
-    <style name="Theme.Settings" parent="@android:style/Theme.Holo.DialogWhenLarge">
-        <item name="android:windowCloseOnTouchOutside">true</item>
+    <style name="Theme.Settings" parent="@android:style/Theme.Holo">
+        <item name="android:actionBarStyle">@android:style/Widget.Holo.ActionBar.Solid</item>
     </style>
 
     <style name="SettingsLight" parent="@android:style/Theme.Holo.Light">
