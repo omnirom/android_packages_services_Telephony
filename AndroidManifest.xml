@@ -40,7 +40,6 @@
     <protected-broadcast android:name="com.android.internal.telephony.data-restart-trysetup" />
     <protected-broadcast android:name="com.android.internal.telephony.data-stall" />
 
-    <uses-permission android:name="android.permission.BIND_CALL_SERVICE" />
     <uses-permission android:name="android.permission.BROADCAST_STICKY" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.CALL_PRIVILEGED" />
@@ -65,6 +64,7 @@
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.SEND_RESPOND_VIA_MESSAGE" />
+    <uses-permission android:name="android.permission.SET_TIME" />
     <uses-permission android:name="android.permission.SET_TIME_ZONE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
@@ -87,12 +87,16 @@
     <uses-permission android:name="android.permission.USE_SIP" />
     <uses-permission android:name="android.permission.REBOOT" />
     <uses-permission android:name="android.permission.UPDATE_LOCK" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL" />
     <uses-permission android:name="com.android.smspush.WAPPUSH_MANAGER_BIND" />
     <uses-permission android:name="android.permission.MANAGE_USERS" />
     <uses-permission android:name="android.permission.UPDATE_APP_OPS_STATS" />
     <uses-permission android:name="android.permission.CONNECTIVITY_INTERNAL" />
     <uses-permission android:name="android.permission.SET_PREFERRED_APPLICATIONS" />
+    <uses-permission android:name="android.permission.READ_SEARCH_INDEXABLES" />
+    <uses-permission
+            android:name="com.android.server.telecom.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION" />
 
     <!-- This tells the activity manager to not delay any of our activity
          start requests, even if they happen immediately after the user
@@ -103,6 +107,7 @@
                  android:persistent="true"
                  android:label="@string/phoneAppLabel"
                  android:icon="@mipmap/ic_launcher_phone"
+                 android:allowBackup="false"
                  android:supportsRtl="true">
             <provider android:name="IccProvider"
                       android:authorities="icc"
@@ -168,7 +173,7 @@
 
         <activity android:name="FdnList"
                 android:label="@string/fdnListLabel"
-                android:theme="@style/SettingsLight">
+                android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -177,6 +182,7 @@
         </activity>
 
         <activity android:name="OutgoingCallBroadcaster"
+                android:enabled="false"
                 android:theme="@style/OutgoingCallBroadcasterTheme"
                 android:permission="android.permission.CALL_PHONE"
                 android:screenOrientation="nosensor"
@@ -209,6 +215,7 @@
         </activity>
 
         <activity-alias android:name="EmergencyOutgoingCallBroadcaster"
+                android:enabled="false"
                 android:targetActivity="OutgoingCallBroadcaster"
                 android:permission="android.permission.CALL_PRIVILEGED">
             <intent-filter android:priority="1000">
@@ -236,6 +243,7 @@
         </activity-alias>
 
         <activity-alias android:name="PrivilegedOutgoingCallBroadcaster"
+                android:enabled="false"
                 android:targetActivity="OutgoingCallBroadcaster"
                 android:screenOrientation="nosensor"
                 android:permission="android.permission.CALL_PRIVILEGED">
@@ -289,7 +297,7 @@
         <activity android:name="MobileNetworkSettings"
             android:icon="@mipmap/ic_launcher_settings"
             android:label="@string/settings_label"
-            android:theme="@style/Theme.Settings">
+            android:theme="@style/SettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.MAIN" />
@@ -305,13 +313,10 @@
         <!-- service to handle network query requests sent to RIL -->
         <service android:name="NetworkQueryService" />
 
-        <!-- clearing of missed call notifications  -->
-        <service android:name="ClearMissedCallsService" />
-
         <activity android:name="NetworkSetting"
                 android:label="@string/networks"
                 android:configChanges="orientation|screenSize|keyboardHidden"
-                android:theme="@android:style/Theme.Holo.DialogWhenLarge">
+                android:theme="@style/NetworkOperatorsSettingsTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.settings.NETWORK_OPERATOR_SETTINGS" />
@@ -321,7 +326,7 @@
 
         <activity android:name="GsmUmtsOptions"
                 android:label="@string/gsm_umts_options"
-                android:theme="@style/SettingsLight">
+                android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -329,7 +334,7 @@
 
         <activity android:name="CdmaOptions"
                 android:label="@string/cdma_options"
-                android:theme="@style/SettingsLight">
+                android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -337,7 +342,7 @@
 
         <activity android:name="GsmUmtsCallOptions"
                 android:label="@string/gsm_umts_options"
-                android:theme="@style/SettingsLight">
+                android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -345,7 +350,7 @@
 
         <activity android:name="CdmaCallOptions"
                 android:label="@string/cdma_options"
-                android:theme="@style/SettingsLight">
+                android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -380,7 +385,7 @@
         <!-- fdn setting -->
         <activity android:name="FdnSetting"
                 android:label="@string/fdn"
-                android:theme="@style/SettingsLight">
+                android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -388,7 +393,7 @@
 
         <activity android:name="EnableFdnScreen"
                 android:label=""
-                android:theme="@style/SettingsLight">
+                android:theme="@style/DialerSettingsLight">
         </activity>
 
         <!-- SIM PIN setting -->
@@ -417,12 +422,12 @@
         </activity>
 
         <activity android:name="EditFdnContactScreen"
-                android:theme="@style/SettingsLight"
+                android:theme="@style/DialerSettingsLight"
                 android:windowSoftInputMode="stateVisible">
         </activity>
 
         <activity android:name="DeleteFdnContactScreen"
-                android:theme="@style/SettingsLight"
+                android:theme="@style/DialerSettingsLight"
                 android:label="@string/delete_fdn_contact">
         </activity>
 
@@ -446,21 +451,16 @@
         <activity android:name="CallFeaturesSetting"
                 android:label="@string/call_settings"
                 android:configChanges="orientation|screenSize|keyboardHidden"
-                android:theme="@style/SettingsLight">
+                android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.telecom.action.SHOW_CALL_SETTINGS" />
+                <action android:name="android.telecom.action.CHANGE_PHONE_ACCOUNTS" />
                 <action android:name="com.android.phone.CallFeaturesSetting.ADD_VOICEMAIL" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-
-        <!-- bluetooth phone service -->
-        <service android:name="BluetoothPhoneService">
-            <intent-filter>
-                <action android:name="android.bluetooth.IBluetoothHeadsetPhone" />
-            </intent-filter>
-        </service>
 
         <!-- Broadcast Receiver that will process BOOT Complete and launch OTA -->
         <receiver android:name="OtaStartupReceiver" android:exported="false"
@@ -489,46 +489,49 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name="SipBroadcastReceiver">
+        <!-- Start SIP -->
+        <service android:name="com.android.services.telephony.sip.SipCallServiceProvider"
+                 android:singleUser="true" >
             <intent-filter>
-                <action android:name="com.android.phone.SIP_INCOMING_CALL" />
-                <action android:name="com.android.phone.SIP_ADD_PHONE" />
-                <action android:name="com.android.phone.SIP_REMOVE_PHONE" />
+                <action android:name="android.telecom.CallServiceProvider" />
+            </intent-filter>
+        </service>
+        <service android:name="com.android.services.telephony.sip.SipConnectionService"
+                 android:label="@string/sip_connection_service_label"
+                 android:singleUser="true"
+                 android:permission="android.permission.BIND_CONNECTION_SERVICE" >
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
+        </service>
+        <receiver android:name="com.android.services.telephony.sip.SipBroadcastReceiver">
+            <intent-filter>
                 <action android:name="android.net.sip.SIP_SERVICE_UP" />
+                <action android:name="com.android.phone.SIP_INCOMING_CALL" />
+                <action android:name="com.android.phone.SIP_REMOVE_PHONE" />
+                <action android:name="com.android.phone.SIP_CALL_OPTION_CHANGED" />
             </intent-filter>
         </receiver>
 
         <activity android:label="Sip Settings"
-                  android:name=".sip.SipSettings"
-                  android:theme="@style/SettingsLight"
+                  android:name="com.android.services.telephony.sip.SipSettings"
+                  android:theme="@style/DialerSettingsLight"
                   android:launchMode="singleTop"
                   android:configChanges="orientation|screenSize|keyboardHidden"
-                  android:uiOptions="splitActionBarWhenNarrow">
+                  android:uiOptions="splitActionBarWhenNarrow"
+                  android:parentActivityName="com.android.phone.CallFeaturesSetting" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.net.sip.NOTIFY" />
             </intent-filter>
         </activity>
-        <activity android:name=".sip.SipEditor"
-                android:theme="@style/SettingsLight"
+        <activity android:name="com.android.services.telephony.sip.SipEditor"
+                android:theme="@style/DialerSettingsLight"
                 android:configChanges="orientation|screenSize|keyboardHidden"
                 android:uiOptions="splitActionBarWhenNarrow">
         </activity>
-        <activity android:name=".SipCallOptionHandler"
-                android:theme="@style/SipCallOptionHandlerTheme"
-                android:screenOrientation="nosensor"
-                android:configChanges="orientation|screenSize|keyboardHidden"
-                android:excludeFromRecents="true">
-        </activity>
 
-        <activity android:name="RespondViaSmsManager$Settings"
-                android:label="@string/respond_via_sms_setting_title"
-                android:configChanges="orientation|screenSize|keyboardHidden"
-                android:theme="@style/SettingsLight">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
-        </activity>
+        <!-- End SIP -->
 
         <activity android:name="ErrorDialogActivity"
                 android:configChanges="orientation|screenSize|keyboardHidden"
@@ -555,6 +558,11 @@
                 android:launchMode="singleInstance"
                 android:theme="@style/Empty"
                 android:exported="false">
+        </activity>
+
+        <activity android:name="com.android.phone.settings.PhoneAccountSettingsActivity"
+            android:label="@string/phone_accounts"
+            android:theme="@style/DialerSettingsLight">
         </activity>
 
         <receiver android:name="RejectedSmsReceiver">
@@ -593,5 +601,32 @@
             android:taskAffinity="com.android.phone.QuietHoursBypassAlarm"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
 
+        <!-- Telecom integration -->
+        <service android:name="com.android.services.telephony.TelephonyCallServiceProvider"
+                android:singleUser="true">
+            <intent-filter>
+                <action android:name="android.telecom.CallServiceProvider" />
+            </intent-filter>
+        </service>
+        <service
+                android:singleUser="true"
+                android:name="com.android.services.telephony.TelephonyConnectionService"
+                android:label="@string/pstn_connection_service_label"
+                android:permission="android.permission.BIND_CONNECTION_SERVICE" >
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
+        </service>
+        <provider
+                android:name="PhoneSearchIndexablesProvider"
+                android:authorities="com.android.phone"
+                android:multiprocess="false"
+                android:grantUriPermissions="true"
+                android:permission="android.permission.READ_SEARCH_INDEXABLES"
+                android:exported="true">
+            <intent-filter>
+                <action android:name="android.content.action.SEARCH_INDEXABLES_PROVIDER" />
+            </intent-filter>
+        </provider>
     </application>
 </manifest>

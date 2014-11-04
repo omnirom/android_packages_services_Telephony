@@ -42,6 +42,7 @@ import android.provider.ContactsContract.CommonDataKinds.Phone;
 import android.provider.ContactsContract.CommonDataKinds.StructuredName;
 import android.provider.ContactsContract.Data;
 import android.provider.ContactsContract.RawContacts;
+import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.util.Log;
@@ -63,10 +64,6 @@ import java.util.ArrayList;
  */
 public class SimContacts extends ADNList {
     private static final String LOG_TAG = "SimContacts";
-
-    private static final String UP_ACTIVITY_PACKAGE = "com.android.contacts";
-    private static final String UP_ACTIVITY_CLASS =
-            "com.android.contacts.activities.PeopleActivity";
 
     static final ContentValues sEmptyContentValues = new ContentValues();
 
@@ -295,11 +292,7 @@ public class SimContacts extends ADNList {
         CharSequence title, message;
         switch (item.getItemId()) {
             case android.R.id.home:
-                Intent intent = new Intent();
-                intent.setClassName(UP_ACTIVITY_PACKAGE, UP_ACTIVITY_CLASS);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
-                finish();
+                onBackPressed();
                 return true;
             case MENU_DELETE_ALL:
                 title = getString(R.string.deleteAllSimEntries);
@@ -583,7 +576,7 @@ public class SimContacts extends ADNList {
                         return true;
                     }
                     Intent intent = new Intent(Intent.ACTION_CALL_PRIVILEGED,
-                            Uri.fromParts(Constants.SCHEME_TEL, phoneNumber, null));
+                            Uri.fromParts(PhoneAccount.SCHEME_TEL, phoneNumber, null));
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                                           | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
                     startActivity(intent);

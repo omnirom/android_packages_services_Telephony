@@ -29,6 +29,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
+import android.os.UserManager;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceGroup;
@@ -71,6 +72,9 @@ public class NetworkSetting extends PreferenceActivity
 
     Phone mPhone;
     protected boolean mIsForeground = false;
+
+    private UserManager mUm;
+    private boolean mUnavailable;
 
     /** message for network selection */
     String mNetworkSelectMsg;
@@ -224,6 +228,14 @@ public class NetworkSetting extends PreferenceActivity
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
+        mUm = (UserManager) getSystemService(Context.USER_SERVICE);
+
+        if (mUm.hasUserRestriction(UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)) {
+            setContentView(R.layout.telephony_disallowed_preference_screen);
+            mUnavailable = true;
+            return;
+        }
+
         addPreferencesFromResource(R.xml.carrier_select);
 
         mPhone = PhoneGlobals.getPhone();
@@ -262,9 +274,10 @@ public class NetworkSetting extends PreferenceActivity
      */
     @Override
     protected void onDestroy() {
-        // unbind the service.
-        unbindService(mNetworkQueryServiceConnection);
-
+        if (!mUnavailable) {
+            // unbind the service.
+            unbindService(mNetworkQueryServiceConnection);
+        }
         super.onDestroy();
     }
 

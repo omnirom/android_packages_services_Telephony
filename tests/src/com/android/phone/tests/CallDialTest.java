@@ -23,6 +23,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.util.Log;
@@ -33,7 +34,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.internal.telephony.ITelephony;
-import com.android.phone.Constants;
 
 /**
  * Test activity that mimics the behavior of 3rd party apps firing off
@@ -125,9 +125,9 @@ public class CallDialTest extends Activity implements View.OnClickListener {
             if (number.contains(":")) {
                 uri = Uri.parse(number);
             } else if (PhoneNumberUtils.isUriNumber(number)) {
-                uri = Uri.fromParts(Constants.SCHEME_SIP, number, null);
+                uri = Uri.fromParts(PhoneAccount.SCHEME_SIP, number, null);
             } else {
-                uri = Uri.fromParts(Constants.SCHEME_TEL, number, null);
+                uri = Uri.fromParts(PhoneAccount.SCHEME_TEL, number, null);
             }
         }
         log("==> uri: " + uri);

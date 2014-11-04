@@ -4,23 +4,34 @@ LOCAL_PATH:= $(call my-dir)
 # for the 'other' dialer.
 include $(CLEAR_VARS)
 
-LOCAL_JAVA_LIBRARIES := telephony-common voip-common
-LOCAL_STATIC_JAVA_LIBRARIES := com.android.phone.shared \
+phone_common_dir := ../../apps/PhoneCommon
+
+src_dirs := src $(phone_common_dir)/src sip/src
+res_dirs := res $(phone_common_dir)/res sip/res
+
+LOCAL_JAVA_LIBRARIES := telephony-common voip-common ims-common
+LOCAL_STATIC_JAVA_LIBRARIES := \
         com.android.services.telephony.common \
         guava \
 
-LOCAL_SRC_FILES := $(call all-java-files-under, src)
+LOCAL_SRC_FILES := $(call all-java-files-under, $(src_dirs))
 LOCAL_SRC_FILES += \
         src/com/android/phone/EventLogTags.logtags \
         src/com/android/phone/INetworkQueryService.aidl \
         src/com/android/phone/INetworkQueryServiceCallback.aidl
+LOCAL_RESOURCE_DIR := $(addprefix $(LOCAL_PATH)/, $(res_dirs))
+
+LOCAL_AAPT_FLAGS := \
+    --auto-add-overlay \
+    --extra-packages com.android.phone.common \
+    --extra-packages com.android.services.telephony.sip
 
 LOCAL_PACKAGE_NAME := TeleService
 
 LOCAL_CERTIFICATE := platform
 LOCAL_PRIVILEGED_MODULE := true
 
-LOCAL_PROGUARD_FLAG_FILES := proguard.flags
+LOCAL_PROGUARD_FLAG_FILES := proguard.flags sip/proguard.flags
 
 include $(BUILD_PACKAGE)
 

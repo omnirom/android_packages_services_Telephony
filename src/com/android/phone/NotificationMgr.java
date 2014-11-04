@@ -22,26 +22,22 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.StatusBarManager;
-import android.content.AsyncQueryHandler;
 import android.content.ComponentName;
-import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.media.AudioManager;
+import android.content.pm.UserInfo;
 import android.net.Uri;
 import android.os.SystemProperties;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.provider.CallLog.Calls;
 import android.provider.ContactsContract.Contacts;
 import android.provider.ContactsContract.PhoneLookup;
 import android.provider.Settings;
+import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.ServiceState;
 import android.text.BidiFormatter;
@@ -57,9 +53,10 @@ import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneBase;
-import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.util.BlacklistUtils;
+
+import java.util.List;
 
 /**
  * NotificationManager-related utility code for the Phone app.
@@ -76,15 +73,6 @@ public class NotificationMgr {
             (PhoneGlobals.DBG_LEVEL >= 1) && (SystemProperties.getInt("ro.debuggable", 0) == 1);
     // Do not check in with VDBG = true, since that may write PII to the system log.
     private static final boolean VDBG = false;
-
-    private static final String[] CALL_LOG_PROJECTION = new String[] {
-        Calls._ID,
-        Calls.NUMBER,
-        Calls.NUMBER_PRESENTATION,
-        Calls.DATE,
-        Calls.DURATION,
-        Calls.TYPE,
-    };
 
     // notification types
     static final int MISSED_CALL_NOTIFICATION = 1;
@@ -114,19 +102,18 @@ public class NotificationMgr {
     private static int mDefaultNotificationLedOn;
     private static int mDefaultNotificationLedOff;
 
+
     /** The singleton NotificationMgr instance. */
     private static NotificationMgr sInstance;
 
     private PhoneGlobals mApp;
     private Phone mPhone;
-    private CallManager mCM;
 
     private Context mContext;
     private NotificationManager mNotificationManager;
     private StatusBarManager mStatusBarManager;
+    private UserManager mUserManager;
     private Toast mToast;
-    private boolean mShowingSpeakerphoneIcon;
-    private boolean mShowingMuteIcon;
 
     public StatusBarHelper statusBarHelper;
 
@@ -160,14 +147,9 @@ public class NotificationMgr {
     private static final int VM_NUMBER_RETRY_DELAY_MILLIS = 10000;
     private int mVmNumberRetriesRemaining = MAX_VM_NUMBER_RETRIES;
 
-    // Query used to look up caller-id info for the "call log" notification.
-    private QueryHandler mQueryHandler = null;
-    private static final int CALL_LOG_TOKEN = -1;
-    private static final int CONTACT_TOKEN = -2;
-
     /**
      * Private constructor (this is a singleton).
-     * @see init()
+     * @see #init(PhoneGlobals)
      */
     private NotificationMgr(PhoneGlobals app) {
         mApp = app;
@@ -176,8 +158,8 @@ public class NotificationMgr {
                 (NotificationManager) app.getSystemService(Context.NOTIFICATION_SERVICE);
         mStatusBarManager =
                 (StatusBarManager) app.getSystemService(Context.STATUS_BAR_SERVICE);
+        mUserManager = (UserManager) app.getSystemService(Context.USER_SERVICE);
         mPhone = app.phone;  // TODO: better style to use mCM.getDefaultPhone() everywhere instead
-        mCM = app.mCM;
         statusBarHelper = new StatusBarHelper();
 
         mDefaultNotificationColor = mContext.getResources().getColor(
@@ -200,8 +182,6 @@ public class NotificationMgr {
         synchronized (NotificationMgr.class) {
             if (sInstance == null) {
                 sInstance = new NotificationMgr(app);
-                // Update the notifications that need to be touched at startup.
-                sInstance.updateNotificationsAtStartup();
             } else {
                 Log.wtf(LOG_TAG, "init() called multiple times!  sInstance = " + sInstance);
             }
@@ -302,31 +282,6 @@ public class NotificationMgr {
             if (DBG) log("updateStatusBar: state = 0x" + Integer.toHexString(state));
             mStatusBarManager.disable(state);
         }
-    }
-
-    /**
-     * Makes sure phone-related notifications are up to date on a
-     * freshly-booted device.
-     */
-    private void updateNotificationsAtStartup() {
-        if (DBG) log("updateNotificationsAtStartup()...");
-
-        // instantiate query handler
-        mQueryHandler = new QueryHandler(mContext.getContentResolver());
-
-        // setup query spec, look for all Missed calls that are new.
-        StringBuilder where = new StringBuilder("type=");
-        where.append(Calls.MISSED_TYPE);
-        where.append(" AND new=1");
-
-        // start the query
-        if (DBG) log("- start call log query...");
-        mQueryHandler.startQuery(CALL_LOG_TOKEN, null, Calls.CONTENT_URI,  CALL_LOG_PROJECTION,
-                where.toString(), null, Calls.DEFAULT_SORT_ORDER);
-
-        // Depend on android.app.StatusBarManager to be set to
-        // disable(DISABLE_NONE) upon startup.  This will be the
-        // case even if the phone app crashes.
     }
 
     /** The projection to use when querying the phones table */
@@ -1027,7 +982,7 @@ public class NotificationMgr {
             }
 
             Intent intent = new Intent(Intent.ACTION_CALL,
-                    Uri.fromParts(Constants.SCHEME_VOICEMAIL, "", null));
+                    Uri.fromParts(PhoneAccount.SCHEME_VOICEMAIL, "", null));
             PendingIntent pendingIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
 
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
@@ -1046,19 +1001,34 @@ public class NotificationMgr {
                     .setContentTitle(notificationTitle)
                     .setContentText(notificationText)
                     .setContentIntent(pendingIntent)
-                    .setSound(ringtoneUri);
-            Notification notification = builder.getNotification();
+                    .setSound(ringtoneUri)
+                    .setColor(mContext.getResources().getColor(R.color.dialer_theme_color))
+                    .setOngoing(true);
 
             CallFeaturesSetting.migrateVoicemailVibrationSettingsIfNeeded(prefs);
             final boolean vibrate = prefs.getBoolean(
                     CallFeaturesSetting.BUTTON_VOICEMAIL_NOTIFICATION_VIBRATE_KEY, false);
             if (vibrate) {
-                notification.defaults |= Notification.DEFAULT_VIBRATE;
+                builder.setDefaults(Notification.DEFAULT_VIBRATE);
+            }
+
+            final Notification notification = builder.build();
+            List<UserInfo> users = mUserManager.getUsers(true);
+            for (int i = 0; i < users.size(); i++) {
+                final UserInfo user = users.get(i);
+                final UserHandle userHandle = user.getUserHandle();
+                if (!mUserManager.hasUserRestriction(
+                        UserManager.DISALLOW_OUTGOING_CALLS, userHandle)
+                            && !user.isManagedProfile()) {
+                    mNotificationManager.notifyAsUser(
+                            null /* tag */, VOICEMAIL_NOTIFICATION, notification, userHandle);
+                }
             }
             configureLedNotification(mContext, VOICEMAIL_NOTIFICATION, notification);
             mNotificationManager.notify(VOICEMAIL_NOTIFICATION, notification);
         } else {
-            mNotificationManager.cancel(VOICEMAIL_NOTIFICATION);
+            mNotificationManager.cancelAsUser(
+                    null /* tag */, VOICEMAIL_NOTIFICATION, UserHandle.ALL);
         }
     }
 
@@ -1081,39 +1051,28 @@ public class NotificationMgr {
             // effort though, since there are multiple layers of messages that
             // will need to propagate that information.
 
-            Notification notification;
-            final boolean showExpandedNotification = true;
-            if (showExpandedNotification) {
-                Intent intent = new Intent(Intent.ACTION_MAIN);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                intent.setClassName("com.android.phone",
-                        "com.android.phone.CallFeaturesSetting");
+            Notification.Builder builder = new Notification.Builder(mContext)
+                    .setSmallIcon(R.drawable.stat_sys_phone_call_forward)
+                    .setContentTitle(mContext.getString(R.string.labelCF))
+                    .setContentText(mContext.getString(R.string.sum_cfu_enabled_indicator))
+                    .setShowWhen(false)
+                    .setOngoing(true);
 
-                notification = new Notification(
-                        R.drawable.stat_sys_phone_call_forward,  // icon
-                        null, // tickerText
-                        0); // The "timestamp" of this notification is meaningless;
-                            // we only care about whether CFI is currently on or not.
-                notification.setLatestEventInfo(
-                        mContext, // context
-                        mContext.getString(R.string.labelCF), // expandedTitle
-                        mContext.getString(R.string.sum_cfu_enabled_indicator), // expandedText
-                        PendingIntent.getActivity(mContext, 0, intent, 0)); // contentIntent
-            } else {
-                notification = new Notification(
-                        R.drawable.stat_sys_phone_call_forward,  // icon
-                        null,  // tickerText
-                        System.currentTimeMillis()  // when
-                        );
+            Intent intent = new Intent(Intent.ACTION_MAIN);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.setClassName("com.android.phone", "com.android.phone.CallFeaturesSetting");
+            PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
+
+            List<UserInfo> users = mUserManager.getUsers(true);
+            for (int i = 0; i < users.size(); i++) {
+                UserHandle userHandle = users.get(i).getUserHandle();
+                builder.setContentIntent(userHandle.isOwner() ? contentIntent : null);
+                    mNotificationManager.notifyAsUser(
+                            null /* tag */, CALL_FORWARD_NOTIFICATION, builder.build(), userHandle);
             }
-
-            notification.flags |= Notification.FLAG_ONGOING_EVENT;  // also implies FLAG_NO_CLEAR
-
-            mNotificationManager.notify(
-                    CALL_FORWARD_NOTIFICATION,
-                    notification);
         } else {
-            mNotificationManager.cancel(CALL_FORWARD_NOTIFICATION);
+            mNotificationManager.cancelAsUser(
+                    null /* tag */, CALL_FORWARD_NOTIFICATION, UserHandle.ALL);
         }
     }
 
@@ -1127,19 +1086,25 @@ public class NotificationMgr {
 
         // "Mobile network settings" screen / dialog
         Intent intent = new Intent(mContext, com.android.phone.MobileNetworkSettings.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
 
         final CharSequence contentText = mContext.getText(R.string.roaming_reenable_message);
 
-        final Notification.Builder builder = new Notification.Builder(mContext);
-        builder.setSmallIcon(android.R.drawable.stat_sys_warning);
-        builder.setContentTitle(mContext.getText(R.string.roaming));
-        builder.setContentText(contentText);
-        builder.setContentIntent(PendingIntent.getActivity(mContext, 0, intent, 0));
+        final Notification.Builder builder = new Notification.Builder(mContext)
+                .setSmallIcon(android.R.drawable.stat_sys_warning)
+                .setContentTitle(mContext.getText(R.string.roaming))
+                .setColor(mContext.getResources().getColor(R.color.dialer_theme_color))
+                .setContentText(contentText);
 
-        final Notification notif = new Notification.BigTextStyle(builder).bigText(contentText)
-                .build();
-
-        mNotificationManager.notify(DATA_DISCONNECTED_ROAMING_NOTIFICATION, notif);
+        List<UserInfo> users = mUserManager.getUsers(true);
+        for (int i = 0; i < users.size(); i++) {
+            UserHandle userHandle = users.get(i).getUserHandle();
+            builder.setContentIntent(userHandle.isOwner() ? contentIntent : null);
+            final Notification notif =
+                    new Notification.BigTextStyle(builder).bigText(contentText).build();
+            mNotificationManager.notifyAsUser(
+                    null /* tag */, DATA_DISCONNECTED_ROAMING_NOTIFICATION, notif, userHandle);
+        }
     }
 
     /**
@@ -1157,16 +1122,13 @@ public class NotificationMgr {
     private void showNetworkSelection(String operator) {
         if (DBG) log("showNetworkSelection(" + operator + ")...");
 
-        String titleText = mContext.getString(
-                R.string.notification_network_selection_title);
-        String expandedText = mContext.getString(
-                R.string.notification_network_selection_text, operator);
-
-        Notification notification = new Notification();
-        notification.icon = android.R.drawable.stat_sys_warning;
-        notification.when = 0;
-        notification.flags = Notification.FLAG_ONGOING_EVENT;
-        notification.tickerText = null;
+        Notification.Builder builder = new Notification.Builder(mContext)
+                .setSmallIcon(android.R.drawable.stat_sys_warning)
+                .setContentTitle(mContext.getString(R.string.notification_network_selection_title))
+                .setContentText(
+                        mContext.getString(R.string.notification_network_selection_text, operator))
+                .setShowWhen(false)
+                .setOngoing(true);
 
         // create the target network operators settings intent
         Intent intent = new Intent(Intent.ACTION_MAIN);
@@ -1175,11 +1137,18 @@ public class NotificationMgr {
         // Use NetworkSetting to handle the selection intent
         intent.setComponent(new ComponentName("com.android.phone",
                 "com.android.phone.NetworkSetting"));
-        PendingIntent pi = PendingIntent.getActivity(mContext, 0, intent, 0);
+        PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
 
-        notification.setLatestEventInfo(mContext, titleText, expandedText, pi);
-
-        mNotificationManager.notify(SELECTED_OPERATOR_FAIL_NOTIFICATION, notification);
+        List<UserInfo> users = mUserManager.getUsers(true);
+        for (int i = 0; i < users.size(); i++) {
+            UserHandle userHandle = users.get(i).getUserHandle();
+            builder.setContentIntent(userHandle.isOwner() ? contentIntent : null);
+            mNotificationManager.notifyAsUser(
+                    null /* tag */,
+                    SELECTED_OPERATOR_FAIL_NOTIFICATION,
+                    builder.build(),
+                    userHandle);
+        }
     }
 
     /**
@@ -1187,7 +1156,8 @@ public class NotificationMgr {
      */
     private void cancelNetworkSelection() {
         if (DBG) log("cancelNetworkSelection()...");
-        mNotificationManager.cancel(SELECTED_OPERATOR_FAIL_NOTIFICATION);
+        mNotificationManager.cancelAsUser(
+                null /* tag */, SELECTED_OPERATOR_FAIL_NOTIFICATION, UserHandle.ALL);
     }
 
     /**

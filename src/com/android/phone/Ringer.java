@@ -18,6 +18,7 @@ package com.android.phone;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -36,6 +37,8 @@ import android.provider.Settings;
 import android.util.Log;
 
 import com.android.internal.telephony.Phone;
+import com.android.phone.common.util.SettingsUtil;
+
 /**
  * Ringer manager for the Phone app.
  */
@@ -50,6 +53,11 @@ public class Ringer {
 
     private static final int VIBRATE_LENGTH = 1000; // ms
     private static final int PAUSE_LENGTH = 1000; // ms
+
+    private static final AudioAttributes VIBRATION_ATTRIBUTES = new AudioAttributes.Builder()
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+            .build();
 
     /** The singleton instance. */
     private static Ringer sInstance;
@@ -234,8 +242,9 @@ public class Ringer {
     }
 
     boolean shouldVibrate() {
-        int ringerMode = mAudioManager.getRingerMode();
-        if (CallFeaturesSetting.getVibrateWhenRinging(mContext)) {
+        AudioManager audioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+        int ringerMode = audioManager.getRingerMode();
+        if (SettingsUtil.getVibrateWhenRingingSetting(mContext)) {
             return ringerMode != AudioManager.RINGER_MODE_SILENT;
         } else {
             return ringerMode == AudioManager.RINGER_MODE_VIBRATE;
@@ -293,7 +302,7 @@ public class Ringer {
     private class VibratorThread extends Thread {
         public void run() {
             while (mContinueVibrating) {
-                mVibrator.vibrate(VIBRATE_LENGTH);
+                mVibrator.vibrate(VIBRATE_LENGTH, VIBRATION_ATTRIBUTES);
                 SystemClock.sleep(VIBRATE_LENGTH + PAUSE_LENGTH);
             }
         }

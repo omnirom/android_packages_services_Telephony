@@ -61,9 +61,6 @@
          apps/Contacts. -->
     <bool name="config_enable_dialer_key_vibration">true</bool>
 
-    <!-- Flag indicating if the tty is enabled -->
-    <bool name="tty_enabled">false</bool>
-
     <!-- Flag indicating if hac is enabled -->
     <bool name="hac_enabled">false</bool>
 
@@ -139,14 +136,16 @@
     <!-- Package name for the default in-call UI and dialer [DO NOT TRANSLATE] -->
     <string name="ui_default_package" translatable="false">com.android.dialer</string>
 
-    <!-- Class name for the default in-call UI Service [DO NOT TRANSLATE] -->
-    <string name="incall_default_class" translatable="false">com.android.incallui.CallHandlerService</string>
-
     <!-- Class name for the default main Dialer activity [DO NOT TRANSLATE] -->
     <string name="dialer_default_class" translatable="false">com.android.dialer.DialtactsActivity</string>
 
-    <!-- CDMA activation goes through HFA [DO NOT TRANSLATE] -->
-    <bool name="config_use_hfa_for_provisioning" translatable="false">false</bool>
+    <!-- CDMA activation goes through HFA -->
+    <bool name="config_use_hfa_for_provisioning">false</bool>
+
+    <!-- CDMA activation goes through OTASP.
+        TODO: This should be combined with config_use_hfa_for_provisioning and implemented
+        as an enum (NONE, HFA, OTASP). -->
+    <bool name="config_use_otasp_for_provisioning">false</bool>
 
     <!-- Display carrier settings menu if true -->
     <bool name="config_carrier_settings_enable">false</bool>
@@ -160,4 +159,13 @@
          for the "Phantom Voicemail" issue where notifications that are
          impossible to dismiss on the Sprint network. -->
     <bool name="sprint_mwi_quirk">false</bool>
+
+    <!-- Does not display additional call seting for IMS phone based on GSM Phone -->
+    <bool name="config_additional_call_setting">true</bool>
+
+    <!-- Show APN Settings for some CDMA carriers -->
+    <bool name="config_show_apn_setting_cdma">false</bool>
+
+    <!-- Allows the telephony HFA logic to run even if we're not in setup wizard. -->
+    <bool name="config_allow_hfa_outside_of_setup_wizard">true</bool>
 </resources>

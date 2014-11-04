@@ -28,20 +28,19 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.net.Uri;
-import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.SystemProperties;
 import android.os.UserHandle;
+import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 
-import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyCapabilities;
 
@@ -82,6 +81,8 @@ public class OutgoingCallBroadcaster extends Activity
     public static final String EXTRA_SIP_PHONE_URI = "android.phone.extra.SIP_PHONE_URI";
     public static final String EXTRA_ACTUAL_NUMBER_TO_DIAL =
             "android.phone.extra.ACTUAL_NUMBER_TO_DIAL";
+    public static final String EXTRA_THIRD_PARTY_CALL_COMPONENT =
+            "android.phone.extra.THIRD_PARTY_CALL_COMPONENT";
 
     /**
      * Identifier for intent extra for sending an empty Flash message for
@@ -238,7 +239,7 @@ public class OutgoingCallBroadcaster extends Activity
                     && (app.phone.isOtaSpNumber(number))) {
                 if (DBG) Log.v(TAG, "Call is active, a 2nd OTA call cancelled -- returning.");
                 return false;
-            } else if (PhoneNumberUtils.isPotentialLocalEmergencyNumber(number, context)) {
+            } else if (PhoneNumberUtils.isPotentialLocalEmergencyNumber(context, number)) {
                 // Just like 3rd-party apps aren't allowed to place emergency
                 // calls via the ACTION_CALL intent, we also don't allow 3rd
                 // party apps to use the NEW_OUTGOING_CALL broadcast to rewrite
@@ -307,35 +308,7 @@ public class OutgoingCallBroadcaster extends Activity
      */
     private void startSipCallOptionHandler(Context context, Intent intent,
             Uri uri, String number) {
-        if (VDBG) {
-            Log.i(TAG, "startSipCallOptionHandler...");
-            Log.i(TAG, "- intent: " + intent);
-            Log.i(TAG, "- uri: " + uri);
-            Log.i(TAG, "- number: " + number);
-        }
-
-        // Create a copy of the original CALL intent that started the whole
-        // outgoing-call sequence.  This intent will ultimately be passed to
-        // CallController.placeCall() after the SipCallOptionHandler step.
-
-        Intent newIntent = new Intent(Intent.ACTION_CALL, uri);
-        newIntent.putExtra(EXTRA_ACTUAL_NUMBER_TO_DIAL, number);
-        CallGatewayManager.checkAndCopyPhoneProviderExtras(intent, newIntent);
-
-        // Finally, launch the SipCallOptionHandler, with the copy of the
-        // original CALL intent stashed away in the EXTRA_NEW_CALL_INTENT
-        // extra.
-
-        Intent selectPhoneIntent = new Intent(ACTION_SIP_SELECT_PHONE, uri);
-        selectPhoneIntent.setClass(context, SipCallOptionHandler.class);
-        selectPhoneIntent.putExtra(EXTRA_NEW_CALL_INTENT, newIntent);
-        selectPhoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        if (DBG) {
-            Log.v(TAG, "startSipCallOptionHandler(): " +
-                    "calling startActivity: " + selectPhoneIntent);
-        }
-        context.startActivity(selectPhoneIntent);
-        // ...and see SipCallOptionHandler.onCreate() for the next step of the sequence.
+        // TODO: Remove this code.
     }
 
     /**
@@ -500,9 +473,9 @@ public class OutgoingCallBroadcaster extends Activity
         // emergency number but might still result in an emergency call
         // with some networks.)
         final boolean isExactEmergencyNumber =
-                (number != null) && PhoneNumberUtils.isLocalEmergencyNumber(number, this);
+                (number != null) && PhoneNumberUtils.isLocalEmergencyNumber(this, number);
         final boolean isPotentialEmergencyNumber =
-                (number != null) && PhoneNumberUtils.isPotentialLocalEmergencyNumber(number, this);
+                (number != null) && PhoneNumberUtils.isPotentialLocalEmergencyNumber(this, number);
         if (VDBG) {
             Log.v(TAG, " - Checking restrictions for number '" + number + "':");
             Log.v(TAG, "     isExactEmergencyNumber     = " + isExactEmergencyNumber);
@@ -633,7 +606,7 @@ public class OutgoingCallBroadcaster extends Activity
         // a plain address, whether it could be a tel: URI, etc.)
         Uri uri = intent.getData();
         String scheme = uri.getScheme();
-        if (Constants.SCHEME_SIP.equals(scheme) || PhoneNumberUtils.isUriNumber(number)) {
+        if (PhoneAccount.SCHEME_SIP.equals(scheme) || PhoneNumberUtils.isUriNumber(number)) {
             Log.i(TAG, "The requested number was detected as SIP call.");
             startSipCallOptionHandler(this, intent, uri, number);
             finish();

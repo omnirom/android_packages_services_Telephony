@@ -18,12 +18,12 @@ package com.android.phone;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.internal.telephony.Connection;
-import com.google.android.collect.Maps;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,8 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>When an outgoing call is finally placed in PhoneUtils.placeCall, it uses this class to get the
  * proper number to dial. It also saves an association between the connection object and the gateway
- * data into this class.  This association is later used in CallModeler when building Call objects
- * to send to the UI which require the gateway data to show an alert to users.
+ * data into this class.
  */
 public class CallGatewayManager {
     private static final String LOG_TAG = CallGatewayManager.class.getSimpleName();
@@ -98,8 +97,7 @@ public class CallGatewayManager {
     }
 
     /**
-     * This function sets the current mapping from connection to gatewayInfo so that CallModeler
-     * can request this data when creating Call objects.
+     * This function sets the current mapping from connection to gatewayInfo.
      * @param connection The connection object for the placed outgoing call.
      * @param gatewayInfo Gateway info gathered using getRawGatewayInfo.
      */
@@ -187,7 +185,7 @@ public class CallGatewayManager {
      */
     public static String formatProviderUri(Uri uri) {
         if (uri != null) {
-            if (Constants.SCHEME_TEL.equals(uri.getScheme())) {
+            if (PhoneAccount.SCHEME_TEL.equals(uri.getScheme())) {
                 return PhoneNumberUtils.formatNumber(uri.getSchemeSpecificPart());
             } else {
                 return uri.toString();

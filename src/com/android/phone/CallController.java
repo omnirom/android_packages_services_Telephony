@@ -22,14 +22,15 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.phone.CallGatewayManager.RawGatewayInfo;
 import com.android.phone.Constants.CallStatusCode;
-import com.android.phone.ErrorDialogActivity;
 
+import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemProperties;
 import android.provider.CallLog.Calls;
+import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.ServiceState;
 import android.util.Log;
@@ -139,7 +140,8 @@ public class CallController extends Handler {
                     // Reset the mThreeWayCallOrigStateDialing state
                     mApp.cdmaPhoneCallState.setThreeWayCallOrigState(false);
 
-                    mApp.getCallModeler().setCdmaOutgoing3WayCall(null);
+                    // TODO: Remove this code.
+                    //mApp.getCallModeler().setCdmaOutgoing3WayCall(null);
                 }
                 break;
 
@@ -320,7 +322,10 @@ public class CallController extends Handler {
             // or any of combinations
             String sipPhoneUri = intent.getStringExtra(
                     OutgoingCallBroadcaster.EXTRA_SIP_PHONE_URI);
-            phone = PhoneUtils.pickPhoneBasedOnNumber(mCM, scheme, number, sipPhoneUri);
+            ComponentName thirdPartyCallComponent = (ComponentName) intent.getParcelableExtra(
+                    OutgoingCallBroadcaster.EXTRA_THIRD_PARTY_CALL_COMPONENT);
+            phone = PhoneUtils.pickPhoneBasedOnNumber(mCM, scheme, number, sipPhoneUri,
+                    thirdPartyCallComponent);
             if (VDBG) log("- got Phone instance: " + phone + ", class = " + phone.getClass());
 
             // update okToCallStatus based on new phone
@@ -351,9 +356,9 @@ public class CallController extends Handler {
         // (This is just a sanity-check; this policy *should* really be
         // enforced in OutgoingCallBroadcaster.onCreate(), which is the
         // main entry point for the CALL and CALL_* intents.)
-        boolean isEmergencyNumber = PhoneNumberUtils.isLocalEmergencyNumber(number, mApp);
+        boolean isEmergencyNumber = PhoneNumberUtils.isLocalEmergencyNumber(mApp, number);
         boolean isPotentialEmergencyNumber =
-                PhoneNumberUtils.isPotentialLocalEmergencyNumber(number, mApp);
+                PhoneNumberUtils.isPotentialLocalEmergencyNumber(mApp, number);
         boolean isEmergencyIntent = Intent.ACTION_CALL_EMERGENCY.equals(intent.getAction());
 
         if (isPotentialEmergencyNumber && !isEmergencyIntent) {
@@ -417,7 +422,7 @@ public class CallController extends Handler {
                 // Note: Normally, many of these values we gather from the Connection object but
                 // since no such object is created for unconnected calls, we have to build them
                 // manually.
-                // TODO(santoscordon): Try to restructure code so that we can handle failure-
+                // TODO: Try to restructure code so that we can handle failure-
                 // condition call logging in a single place (placeCall()) that also has access to
                 // the number we attempted to dial (not placeCall()).
                 mCallLogger.logCall(null /* callerInfo */, number, 0 /* presentation */,
@@ -460,7 +465,8 @@ public class CallController extends Handler {
                 //   app.cdmaOtaInCallScreenUiState.state are redundant.
                 //   Combine them.
 
-                boolean voicemailUriSpecified = scheme != null && scheme.equals("voicemail");
+                boolean voicemailUriSpecified = scheme != null &&
+                    scheme.equals(PhoneAccount.SCHEME_VOICEMAIL);
                 // Check for an obscure ECM-related scenario: If the phone
                 // is currently in ECM (Emergency callback mode) and we
                 // dial a non-emergency number, that automatically
@@ -476,8 +482,6 @@ public class CallController extends Handler {
                     // Start the timer for 3 Way CallerInfo
                     if (mApp.cdmaPhoneCallState.getCurrentCallState()
                             == CdmaPhoneCallState.PhoneCallState.THRWAY_ACTIVE) {
-                        //Unmute for the second MO call
-                        PhoneUtils.setMute(false);
 
                         // This is a "CDMA 3-way call", which means that you're dialing a
                         // 2nd outgoing call while a previous call is already in progress.

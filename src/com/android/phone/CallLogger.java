@@ -26,6 +26,7 @@ import com.android.phone.common.CallLogAsync;
 import android.net.Uri;
 import android.os.SystemProperties;
 import android.provider.CallLog.Calls;
+import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.util.Log;
@@ -87,13 +88,13 @@ class CallLogger {
      * Came as logCall(Connection,int) but calculates the call type from the connection object.
      */
     public void logCall(Connection c) {
-        final Connection.DisconnectCause cause = c.getDisconnectCause();
+        final int cause = c.getDisconnectCause();
 
         // Set the "type" to be displayed in the call log (see constants in CallLog.Calls)
         final int callLogType;
 
         if (c.isIncoming()) {
-            callLogType = (cause == Connection.DisconnectCause.INCOMING_MISSED ?
+            callLogType = (cause == DisconnectCause.INCOMING_MISSED ?
                            Calls.MISSED_TYPE : Calls.INCOMING_TYPE);
         } else {
             callLogType = Calls.OUTGOING_TYPE;
@@ -108,30 +109,7 @@ class CallLogger {
      */
     public void logCall(CallerInfo ci, String number, int presentation, int callType, long start,
                         long duration) {
-        final boolean isEmergencyNumber = PhoneNumberUtils.isLocalEmergencyNumber(number,
-                mApplication);
-
-        // On some devices, to avoid accidental redialing of
-        // emergency numbers, we *never* log emergency calls to
-        // the Call Log.  (This behavior is set on a per-product
-        // basis, based on carrier requirements.)
-        final boolean okToLogEmergencyNumber =
-            mApplication.getResources().getBoolean(
-                        R.bool.allow_emergency_numbers_in_call_log);
-
-        // Don't log emergency numbers if the device doesn't allow it,
-        boolean isOkToLogThisCall = !isEmergencyNumber || okToLogEmergencyNumber;
-
-        if (isOkToLogThisCall) {
-            if (DBG) {
-                log("sending Calllog entry: " + ci + ", " + PhoneUtils.toLogSafePhoneNumber(number)
-                    + "," + presentation + ", " + callType + ", " + start + ", " + duration);
-            }
-
-            CallLogAsync.AddCallArgs args = new CallLogAsync.AddCallArgs(mApplication, ci, number,
-                    presentation, callType, start, duration);
-            mCallLog.addCall(args);
-        }
+        // no-op
     }
 
     /**
