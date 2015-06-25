@@ -16,6 +16,8 @@
 
 package com.android.services.telephony;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.net.Uri;
 import android.os.AsyncResult;
 import android.os.Handler;
@@ -24,12 +26,14 @@ import android.telecom.AudioState;
 import android.telecom.ConferenceParticipant;
 import android.telecom.Connection;
 import android.telecom.PhoneAccount;
+import android.telecom.StatusHints;
 
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.Connection.PostDialListener;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.imsphone.ImsPhoneConnection;
+import com.android.phone.R;
 
 import java.lang.Override;
 import java.util.Collections;
@@ -46,6 +50,7 @@ abstract class TelephonyConnection extends Connection {
     private static final int MSG_RINGBACK_TONE = 2;
     private static final int MSG_HANDOVER_STATE_CHANGED = 3;
     private static final int MSG_DISCONNECT = 4;
+    private static final int MSG_MULTIPARTY_STATE_CHANGED = 5;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -82,6 +87,14 @@ abstract class TelephonyConnection extends Connection {
                     break;
                 case MSG_DISCONNECT:
                     updateState();
+                    break;
+                case MSG_MULTIPARTY_STATE_CHANGED:
+                    boolean isMultiParty = (Boolean) msg.obj;
+                    Log.i(this, "Update multiparty state to %s", isMultiParty ? "Y" : "N");
+                    mIsMultiParty = isMultiParty;
+                    if (isMultiParty) {
+                        notifyConferenceStarted();
+                    }
                     break;
             }
         }
@@ -158,6 +171,17 @@ abstract class TelephonyConnection extends Connection {
         }
 
         /**
+         * Used by {@link com.android.internal.telephony.Connection} to report a change in whether
+         * the call is being made over a wifi network.
+         *
+         * @param isWifi True if call is made over wifi.
+         */
+        @Override
+        public void onWifiChanged(boolean isWifi) {
+            setWifi(isWifi);
+        }
+
+        /**
          * Used by the {@link com.android.internal.telephony.Connection} to report a change in the
          * audio quality for the current call.
          *
@@ -177,6 +201,17 @@ abstract class TelephonyConnection extends Connection {
         @Override
         public void onConferenceParticipantsChanged(List<ConferenceParticipant> participants) {
             updateConferenceParticipants(participants);
+        }
+
+        /**
+         * Handles a change to the multiparty state for this connection.
+         *
+         * @param isMultiParty {@code true} if the call became multiparty, {@code false}
+         *      otherwise.
+         */
+        @Override
+        public void onMultipartyStateChanged(boolean isMultiParty) {
+            handleMultipartyStateChange(isMultiParty);
         }
     };
 
@@ -210,11 +245,18 @@ abstract class TelephonyConnection extends Connection {
     private boolean mRemoteVideoCapable;
 
     /**
-     * Determines the current audio quality for the {@link TelephonyConnection}.
+     * Determines if the {@link TelephonyConnection} is using wifi.
+     * This is used when {@link TelephonyConnection#updateConnectionCapabilities} is called to
+     * indicate wheter a call has the {@link Connection#CAPABILITY_WIFI} capability.
+     */
+    private boolean mIsWifi;
+
+    /**
+     * Determines the audio quality is high for the {@link TelephonyConnection}.
      * This is used when {@link TelephonyConnection#updateConnectionCapabilities}} is called to
      * indicate whether a call has the {@link Connection#CAPABILITY_HIGH_DEF_AUDIO} capability.
      */
-    private int mAudioQuality;
+    private boolean mHasHighDefAudio;
 
     /**
      * Listeners to our TelephonyConnection specific callbacks
@@ -246,6 +288,7 @@ abstract class TelephonyConnection extends Connection {
     @Override
     public void onStateChanged(int state) {
         Log.v(this, "onStateChanged, state: " + Connection.stateToString(state));
+        updateStatusHints();
     }
 
     @Override
@@ -433,8 +476,15 @@ abstract class TelephonyConnection extends Connection {
 
     protected final void updateConnectionCapabilities() {
         int newCapabilities = buildConnectionCapabilities();
-        newCapabilities = applyVideoCapabilities(newCapabilities);
-        newCapabilities = applyAudioQualityCapabilities(newCapabilities);
+
+        newCapabilities = changeCapability(newCapabilities,
+                CAPABILITY_SUPPORTS_VT_REMOTE, mRemoteVideoCapable);
+        newCapabilities = changeCapability(newCapabilities,
+                CAPABILITY_SUPPORTS_VT_LOCAL, mLocalVideoCapable);
+        newCapabilities = changeCapability(newCapabilities,
+                CAPABILITY_HIGH_DEF_AUDIO, mHasHighDefAudio);
+        newCapabilities = changeCapability(newCapabilities, CAPABILITY_WIFI, mIsWifi);
+
         newCapabilities = applyConferenceTerminationCapabilities(newCapabilities);
 
         if (getConnectionCapabilities() != newCapabilities) {
@@ -485,6 +535,7 @@ abstract class TelephonyConnection extends Connection {
         setVideoState(mOriginalConnection.getVideoState());
         setLocalVideoCapable(mOriginalConnection.isLocalVideoCapable());
         setRemoteVideoCapable(mOriginalConnection.isRemoteVideoCapable());
+        setWifi(mOriginalConnection.isWifi());
         setVideoProvider(mOriginalConnection.getVideoProvider());
         setAudioQuality(mOriginalConnection.getAudioQuality());
 
@@ -640,6 +691,7 @@ abstract class TelephonyConnection extends Connection {
                     break;
             }
         }
+        updateStatusHints();
         updateConnectionCapabilities();
         updateAddress();
         updateMultiparty();
@@ -660,6 +712,24 @@ abstract class TelephonyConnection extends Connection {
                 notifyConferenceStarted();
             }
         }
+    }
+
+    /**
+     * Handles requests to update the multiparty state received via the
+     * {@link com.android.internal.telephony.Connection.Listener#onMultipartyStateChanged(boolean)}
+     * listener.
+     * <p>
+     * Note: We post this to the mHandler to ensure that if a conference must be created as a
+     * result of the multiparty state change, the conference creation happens on the correct
+     * thread.  This ensures that the thread check in
+     * {@link com.android.internal.telephony.PhoneBase#checkCorrectThread(android.os.Handler)}
+     * does not fire.
+     *
+     * @param isMultiParty {@code true} if this connection is multiparty, {@code false} otherwise.
+     */
+    private void handleMultipartyStateChange(boolean isMultiParty) {
+        Log.i(this, "Update multiparty state to %s", isMultiParty ? "Y" : "N");
+        mHandler.obtainMessage(MSG_MULTIPARTY_STATE_CHANGED, isMultiParty).sendToTarget();
     }
 
     private void setActiveInternal() {
@@ -696,52 +766,6 @@ abstract class TelephonyConnection extends Connection {
         }
         mOriginalConnection = null;
         destroy();
-    }
-
-    /**
-     * Applies the video capability states to the CallCapabilities bit-mask.
-     *
-     * @param capabilities The CallCapabilities bit-mask.
-     * @return The capabilities with video capabilities applied.
-     */
-    private int applyVideoCapabilities(int capabilities) {
-        int currentCapabilities = capabilities;
-        if (mRemoteVideoCapable) {
-            currentCapabilities = applyCapability(currentCapabilities,
-                    CAPABILITY_SUPPORTS_VT_REMOTE);
-        } else {
-            currentCapabilities = removeCapability(currentCapabilities,
-                    CAPABILITY_SUPPORTS_VT_REMOTE);
-        }
-
-        if (mLocalVideoCapable) {
-            currentCapabilities = applyCapability(currentCapabilities,
-                    CAPABILITY_SUPPORTS_VT_LOCAL);
-        } else {
-            currentCapabilities = removeCapability(currentCapabilities,
-                    CAPABILITY_SUPPORTS_VT_LOCAL);
-        }
-        return currentCapabilities;
-    }
-
-    /**
-     * Applies the audio capabilities to the {@code CallCapabilities} bit-mask.  A call with high
-     * definition audio is considered to have the {@code HIGH_DEF_AUDIO} call capability.
-     *
-     * @param capabilities The {@code CallCapabilities} bit-mask.
-     * @return The capabilities with the audio capabilities applied.
-     */
-    private int applyAudioQualityCapabilities(int capabilities) {
-        int currentCapabilities = capabilities;
-
-        if (mAudioQuality ==
-                com.android.internal.telephony.Connection.AUDIO_QUALITY_HIGH_DEFINITION) {
-            currentCapabilities = applyCapability(currentCapabilities, CAPABILITY_HIGH_DEF_AUDIO);
-        } else {
-            currentCapabilities = removeCapability(currentCapabilities, CAPABILITY_HIGH_DEF_AUDIO);
-        }
-
-        return currentCapabilities;
     }
 
     /**
@@ -805,21 +829,32 @@ abstract class TelephonyConnection extends Connection {
     }
 
     /**
-     * Sets the current call audio quality.  Used during rebuild of the capabilities
+     * Sets whether the call is using wifi. Used when rebuilding the capabilities to set or unset
+     * the {@link Connection#CAPABILITY_WIFI} capability.
+     */
+    public void setWifi(boolean isWifi) {
+        mIsWifi = isWifi;
+        updateConnectionCapabilities();
+        updateStatusHints();
+    }
+
+    /**
+     * Whether the call is using wifi.
+     */
+    boolean isWifi() {
+        return mIsWifi;
+    }
+
+    /**
+     * Sets the current call audio quality. Used during rebuild of the capabilities
      * to set or unset the {@link Connection#CAPABILITY_HIGH_DEF_AUDIO} capability.
      *
      * @param audioQuality The audio quality.
      */
     public void setAudioQuality(int audioQuality) {
-        mAudioQuality = audioQuality;
+        mHasHighDefAudio = audioQuality ==
+                com.android.internal.telephony.Connection.AUDIO_QUALITY_HIGH_DEFINITION;
         updateConnectionCapabilities();
-    }
-
-    /**
-     * Obtains the current call audio quality.
-     */
-    public int getAudioQuality() {
-        return mAudioQuality;
     }
 
     void resetStateForConference() {
@@ -865,27 +900,37 @@ abstract class TelephonyConnection extends Connection {
     }
 
     /**
-     * Applies a capability to a capabilities bit-mask.
+     * Changes a capabilities bit-mask to add or remove a capability.
      *
      * @param capabilities The capabilities bit-mask.
-     * @param capability The capability to apply.
-     * @return The capabilities bit-mask with the capability applied.
+     * @param capability The capability to change.
+     * @param enabled Whether the capability should be set or removed.
+     * @return The capabilities bit-mask with the capability changed.
      */
-    private int applyCapability(int capabilities, int capability) {
-        int newCapabilities = capabilities | capability;
-        return newCapabilities;
+    private int changeCapability(int capabilities, int capability, boolean enabled) {
+        if (enabled) {
+            return capabilities | capability;
+        } else {
+            return capabilities & ~capability;
+        }
     }
 
-    /**
-     * Removes a capability from a capabilities bit-mask.
-     *
-     * @param capabilities The capabilities bit-mask.
-     * @param capability The capability to remove.
-     * @return The capabilities bit-mask with the capability removed.
-     */
-    private int removeCapability(int capabilities, int capability) {
-        int newCapabilities = capabilities & ~capability;
-        return newCapabilities;
+    private void updateStatusHints() {
+        boolean isIncoming = isValidRingingCall();
+        if (mIsWifi && (isIncoming || getState() == STATE_ACTIVE)) {
+            int labelId = isIncoming
+                    ? R.string.status_hint_label_incoming_wifi_call
+                    : R.string.status_hint_label_wifi_call;
+
+            Context context = getPhone().getContext();
+            setStatusHints(new StatusHints(
+                    new ComponentName(context, TelephonyConnectionService.class),
+                    context.getString(labelId),
+                    R.drawable.ic_signal_wifi_4_bar_24dp,
+                    null /* extras */));
+        } else {
+            setStatusHints(null);
+        }
     }
 
     /**

@@ -49,6 +49,7 @@ import android.view.MenuItem;
 import android.widget.ListAdapter;
 import android.widget.Toast;
 
+import com.android.ims.ImsConfig;
 import com.android.ims.ImsManager;
 import com.android.internal.telephony.CallForwardInfo;
 import com.android.internal.telephony.Phone;
@@ -1336,6 +1337,31 @@ public class CallFeaturesSetting extends PreferenceActivity
                         com.android.internal.R.bool.config_carrier_volte_tty_supported)) {
             TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
             tm.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
+        }
+
+        Preference wifiCallingSettings = findPreference(
+                getResources().getString(R.string.wifi_calling_settings_key));
+        if (!ImsManager.isWfcEnabledByPlatform(mPhone.getContext())) {
+            prefSet.removePreference(wifiCallingSettings);
+        } else {
+            int resId = com.android.internal.R.string.wifi_calling_off_summary;
+            if (ImsManager.isWfcEnabledByUser(mPhone.getContext())) {
+                int wfcMode = ImsManager.getWfcMode(mPhone.getContext());
+                switch (wfcMode) {
+                    case ImsConfig.WfcModeFeatureValueConstants.WIFI_ONLY:
+                        resId = com.android.internal.R.string.wfc_mode_wifi_only_summary;
+                        break;
+                    case ImsConfig.WfcModeFeatureValueConstants.CELLULAR_PREFERRED:
+                        resId = com.android.internal.R.string.wfc_mode_cellular_preferred_summary;
+                        break;
+                    case ImsConfig.WfcModeFeatureValueConstants.WIFI_PREFERRED:
+                        resId = com.android.internal.R.string.wfc_mode_wifi_preferred_summary;
+                        break;
+                    default:
+                        if (DBG) log("Unexpected WFC mode value: " + wfcMode);
+                }
+            }
+            wifiCallingSettings.setSummary(resId);
         }
     }
 

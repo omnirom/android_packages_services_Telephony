@@ -17,7 +17,10 @@
 package com.android.services.telephony;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.net.Uri;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
@@ -26,6 +29,8 @@ import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.ServiceState;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
@@ -38,21 +43,29 @@ import com.android.internal.telephony.PhoneProxy;
 import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.cdma.CDMAPhone;
 import com.android.phone.MMIDialogActivity;
+import com.android.phone.R;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * Service for making GSM and CDMA connections.
  */
 public class TelephonyConnectionService extends ConnectionService {
+
+    // If configured, reject attempts to dial numbers matching this pattern.
+    private static final Pattern CDMA_ACTIVATION_CODE_REGEX_PATTERN =
+            Pattern.compile("\\*228[0-9]{0,2}");
+
     private final TelephonyConferenceController mTelephonyConferenceController =
             new TelephonyConferenceController(this);
     private final CdmaConferenceController mCdmaConferenceController =
             new CdmaConferenceController(this);
     private final ImsConferenceController mImsConferenceController =
             new ImsConferenceController(this);
+
     private ComponentName mExpectedComponentName = null;
     private EmergencyCallHelper mEmergencyCallHelper;
     private EmergencyTonePlayer mEmergencyTonePlayer;
@@ -132,6 +145,51 @@ public class TelephonyConnectionService extends ConnectionService {
                                 android.telephony.DisconnectCause.INVALID_NUMBER,
                                 "Unable to parse number"));
             }
+
+            final Phone phone = getPhoneForAccount(request.getAccountHandle(), false);
+            if (phone != null && CDMA_ACTIVATION_CODE_REGEX_PATTERN.matcher(number).matches()) {
+                // Obtain the configuration for the outgoing phone's SIM. If the outgoing number
+                // matches the *228 regex pattern, fail the call. This number is used for OTASP, and
+                // when dialed could lock LTE SIMs to 3G if not prohibited..
+                SubscriptionManager subManager = SubscriptionManager.from(phone.getContext());
+                SubscriptionInfo subInfo = subManager.getActiveSubscriptionInfo(phone.getSubId());
+                if (subInfo != null) {
+                    Configuration config = new Configuration();
+                    config.mcc = subInfo.getMcc();
+                    config.mnc = subInfo.getMnc();
+                    Context subContext = phone.getContext().createConfigurationContext(config);
+
+                    // Get the resources specific to the subscription in question.
+                    Resources res = subContext.getResources();
+                    if (res != null) {
+                        boolean disableActivation = false;
+                        String configValue =
+                                res.getString(R.string.config_disable_cdma_activation_code);
+
+                        // Set disableActivation based on the configuration value.
+                        if (!TextUtils.isEmpty(configValue)) {
+                            String [] valueArray = configValue.split(";");
+
+                            if (valueArray.length == 1) {
+                                // If the configuration says just "true" disable it.
+                                disableActivation = valueArray[0].equalsIgnoreCase("true");
+                            } else if (valueArray.length == 2) {
+                                // If the configuration is split by a semicolon, make sure the
+                                // second half is equal to the group ID for the phone.
+                                disableActivation = valueArray[0].equalsIgnoreCase("true") &&
+                                        valueArray[1].equalsIgnoreCase(phone.getGroupIdLevel1());
+                            }
+                        }
+
+                        if (disableActivation) {
+                            return Connection.createFailedConnection(
+                                    DisconnectCauseUtil.toTelecomDisconnectCause(
+                                            android.telephony.DisconnectCause.INVALID_NUMBER,
+                                            "Tried to dial *228"));
+                        }
+                    }
+                }
+            }
         }
 
         boolean isEmergencyNumber = PhoneNumberUtils.isPotentialEmergencyNumber(number);
@@ -154,7 +212,7 @@ public class TelephonyConnectionService extends ConnectionService {
         boolean useEmergencyCallHelper = false;
 
         if (isEmergencyNumber) {
-            if (state == ServiceState.STATE_POWER_OFF) {
+            if (!phone.isRadioOn()) {
                 useEmergencyCallHelper = true;
             }
         } else {
@@ -334,9 +392,12 @@ public class TelephonyConnectionService extends ConnectionService {
             originalConnection = phone.dial(number, request.getVideoState());
         } catch (CallStateException e) {
             Log.e(this, e, "placeOutgoingConnection, phone.dial exception: " + e);
+            int cause = android.telephony.DisconnectCause.OUTGOING_FAILURE;
+            if (e.getError() == CallStateException.ERROR_DISCONNECTED) {
+                cause = android.telephony.DisconnectCause.OUT_OF_SERVICE;
+            }
             connection.setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                    android.telephony.DisconnectCause.OUTGOING_FAILURE,
-                    e.getMessage()));
+                    cause, e.getMessage()));
             return;
         }
 
