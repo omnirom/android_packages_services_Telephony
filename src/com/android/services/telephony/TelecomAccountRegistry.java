@@ -27,6 +27,8 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.PersistableBundle;
+import android.os.ServiceManager;
+import android.os.RemoteException;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -39,6 +41,7 @@ import android.telephony.SubscriptionManager.OnSubscriptionsChangedListener;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
+import com.android.internal.telephony.IExtTelephony;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.PhoneProxy;
@@ -452,17 +455,40 @@ final class TelecomAccountRegistry {
         Phone[] phones = PhoneFactory.getPhones();
         Log.d(this, "Found %d phones.  Attempting to register.", phones.length);
 
-        final boolean phoneAccountsEnabled = mContext.getResources().getBoolean(
-                R.bool.config_pstn_phone_accounts_enabled);
+        // states we are interested in from what
+        // IExtTelephony.getCurrentUiccCardProvisioningStatus()can return
+        final int PROVISIONED = 1;
+        final int INVALID_STATE = -1;
 
-        if (phoneAccountsEnabled) {
-            for (Phone phone : phones) {
-                int subscriptionId = phone.getSubId();
-                Log.d(this, "Phone with subscription id %d", subscriptionId);
-                if (subscriptionId >= 0) {
-                    mAccounts.add(new AccountEntry(phone, false /* emergency */,
-                            false /* isDummy */));
-                }
+        IExtTelephony mExtTelephony =
+            IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+
+        for (Phone phone : phones) {
+            int provisionStatus = INVALID_STATE;
+            int subscriptionId = phone.getSubId();
+            SubscriptionInfo record =
+                    mSubscriptionManager.getActiveSubscriptionInfo(subscriptionId);
+
+            if (record == null) {
+                Log.d(this, "Record not created for dummy subscription id %d", subscriptionId);
+                continue;
+            }
+
+            int slotId = record.getSimSlotIndex();
+
+            try {
+                //get current provision state of the SIM.
+               provisionStatus =
+                        mExtTelephony.getCurrentUiccCardProvisioningStatus(slotId);
+            } catch (RemoteException ex) {
+                Log.w(this, "Failed to get status for, slotId: "+ slotId +" Exception: " + ex);
+            } catch (NullPointerException ex) {
+                Log.w(this, "Failed to get status for, slotId: "+ slotId +" Exception: " + ex);
+            }
+            Log.d(this, "Phone with subscription id: " + subscriptionId +
+                            " slotId: " + slotId + " provisionStatus: " + provisionStatus);
+            if ((subscriptionId >= 0) && (provisionStatus == PROVISIONED)){
+                mAccounts.add(new AccountEntry(phone, false /* emergency */, false /* isDummy */));
             }
         }
 
