@@ -18,11 +18,12 @@ package com.android.services.telephony;
 
 import android.content.ComponentName;
 import android.content.Context;
+import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.AsyncResult;
 import android.os.Handler;
 import android.os.Message;
-import android.telecom.AudioState;
+import android.telecom.CallAudioState;
 import android.telecom.ConferenceParticipant;
 import android.telecom.Connection;
 import android.telecom.PhoneAccount;
@@ -51,6 +52,7 @@ abstract class TelephonyConnection extends Connection {
     private static final int MSG_HANDOVER_STATE_CHANGED = 3;
     private static final int MSG_DISCONNECT = 4;
     private static final int MSG_MULTIPARTY_STATE_CHANGED = 5;
+    private static final int MSG_CONFERENCE_MERGE_FAILED = 6;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -65,13 +67,21 @@ abstract class TelephonyConnection extends Connection {
                     AsyncResult ar = (AsyncResult) msg.obj;
                     com.android.internal.telephony.Connection connection =
                          (com.android.internal.telephony.Connection) ar.result;
-                    if ((connection.getAddress() != null &&
-                                    mOriginalConnection.getAddress() != null &&
+                    if (mOriginalConnection != null) {
+                        if (connection != null &&
+                            ((connection.getAddress() != null &&
+                            mOriginalConnection.getAddress() != null &&
                             mOriginalConnection.getAddress().contains(connection.getAddress())) ||
-                            connection.getStateBeforeHandover() == mOriginalConnection.getState()) {
-                        Log.d(TelephonyConnection.this, "SettingOriginalConnection " +
-                                mOriginalConnection.toString() + " with " + connection.toString());
-                        setOriginalConnection(connection);
+                            connection.getStateBeforeHandover() == mOriginalConnection.getState())) {
+                            Log.d(TelephonyConnection.this,
+                                    "SettingOriginalConnection " + mOriginalConnection.toString()
+                                            + " with " + connection.toString());
+                            setOriginalConnection(connection);
+                            mWasImsConnection = false;
+                        }
+                    } else {
+                        Log.w(TelephonyConnection.this,
+                                "MSG_HANDOVER_STATE_CHANGED: mOriginalConnection==null - invalid state (not cleaned up)");
                     }
                     break;
                 case MSG_RINGBACK_TONE:
@@ -95,6 +105,8 @@ abstract class TelephonyConnection extends Connection {
                     if (isMultiParty) {
                         notifyConferenceStarted();
                     }
+                case MSG_CONFERENCE_MERGE_FAILED:
+                    notifyConferenceMergeFailed();
                     break;
             }
         }
@@ -122,7 +134,7 @@ abstract class TelephonyConnection extends Connection {
         public void onPostDialChar(char c) {
             Log.v(TelephonyConnection.this, "onPostDialChar: %s", c);
             if (mOriginalConnection != null) {
-                setNextPostDialWaitChar(c);
+                setNextPostDialChar(c);
             }
         }
     };
@@ -191,7 +203,6 @@ abstract class TelephonyConnection extends Connection {
         public void onAudioQualityChanged(int audioQuality) {
             setAudioQuality(audioQuality);
         }
-
         /**
          * Handles a change in the state of conference participant(s), as reported by the
          * {@link com.android.internal.telephony.Connection}.
@@ -203,7 +214,7 @@ abstract class TelephonyConnection extends Connection {
             updateConferenceParticipants(participants);
         }
 
-        /**
+        /*
          * Handles a change to the multiparty state for this connection.
          *
          * @param isMultiParty {@code true} if the call became multiparty, {@code false}
@@ -212,6 +223,14 @@ abstract class TelephonyConnection extends Connection {
         @Override
         public void onMultipartyStateChanged(boolean isMultiParty) {
             handleMultipartyStateChange(isMultiParty);
+        }
+
+        /**
+         * Handles the event that the request to merge calls failed.
+         */
+        @Override
+        public void onConferenceMergedFailed() {
+            handleConferenceMergeFailed();
         }
     };
 
@@ -259,6 +278,12 @@ abstract class TelephonyConnection extends Connection {
     private boolean mHasHighDefAudio;
 
     /**
+     * For video calls, indicates whether the outgoing video for the call can be paused using
+     * the {@link android.telecom.VideoProfile#STATE_PAUSED} VideoState.
+     */
+    private boolean mIsVideoPauseSupported;
+
+    /**
      * Listeners to our TelephonyConnection specific callbacks
      */
     private final Set<TelephonyConnectionListener> mTelephonyListeners = Collections.newSetFromMap(
@@ -278,7 +303,7 @@ abstract class TelephonyConnection extends Connection {
     public abstract TelephonyConnection cloneConnection();
 
     @Override
-    public void onAudioStateChanged(AudioState audioState) {
+    public void onCallAudioStateChanged(CallAudioState audioState) {
         // TODO: update TTY mode.
         if (getPhone() != null) {
             getPhone().setEchoSuppressionEnabled();
@@ -471,6 +496,13 @@ abstract class TelephonyConnection extends Connection {
                 callCapabilities |= CAPABILITY_HOLD;
             }
         }
+
+        // If the phone is in ECM mode, mark the call to indicate that the callback number should be
+        // shown.
+        Phone phone = getPhone();
+        if (phone != null && phone.isInEcm()) {
+            callCapabilities |= CAPABILITY_SHOW_CALLBACK_NUMBER;
+        }
         return callCapabilities;
     }
 
@@ -478,12 +510,14 @@ abstract class TelephonyConnection extends Connection {
         int newCapabilities = buildConnectionCapabilities();
 
         newCapabilities = changeCapability(newCapabilities,
-                CAPABILITY_SUPPORTS_VT_REMOTE, mRemoteVideoCapable);
+                CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL, mRemoteVideoCapable);
         newCapabilities = changeCapability(newCapabilities,
-                CAPABILITY_SUPPORTS_VT_LOCAL, mLocalVideoCapable);
+                CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL, mLocalVideoCapable);
         newCapabilities = changeCapability(newCapabilities,
                 CAPABILITY_HIGH_DEF_AUDIO, mHasHighDefAudio);
         newCapabilities = changeCapability(newCapabilities, CAPABILITY_WIFI, mIsWifi);
+        newCapabilities = changeCapability(newCapabilities, CAPABILITY_CAN_PAUSE_VIDEO,
+                mIsVideoPauseSupported && mRemoteVideoCapable && mLocalVideoCapable);
 
         newCapabilities = applyConferenceTerminationCapabilities(newCapabilities);
 
@@ -533,6 +567,7 @@ abstract class TelephonyConnection extends Connection {
 
         // Set video state and capabilities
         setVideoState(mOriginalConnection.getVideoState());
+        updateState();
         setLocalVideoCapable(mOriginalConnection.isLocalVideoCapable());
         setRemoteVideoCapable(mOriginalConnection.isRemoteVideoCapable());
         setWifi(mOriginalConnection.isWifi());
@@ -553,10 +588,14 @@ abstract class TelephonyConnection extends Connection {
      */
     void clearOriginalConnection() {
         if (mOriginalConnection != null) {
-            getPhone().unregisterForPreciseCallStateChanged(mHandler);
-            getPhone().unregisterForRingbackTone(mHandler);
-            getPhone().unregisterForHandoverStateChanged(mHandler);
-            getPhone().unregisterForDisconnect(mHandler);
+            if (getPhone() != null) {
+                getPhone().unregisterForPreciseCallStateChanged(mHandler);
+                getPhone().unregisterForRingbackTone(mHandler);
+                getPhone().unregisterForHandoverStateChanged(mHandler);
+                getPhone().unregisterForDisconnect(mHandler);
+            }
+            mOriginalConnection.removePostDialListener(mPostDialListener);
+            mOriginalConnection.removeListener(mOriginalConnectionListener);
             mOriginalConnection = null;
         }
     }
@@ -630,6 +669,18 @@ abstract class TelephonyConnection extends Connection {
         return null;
     }
 
+     /**
+     * Checks for and returns the list of conference participants
+     * associated with this connection.
+     */
+    public List<ConferenceParticipant> getConferenceParticipants() {
+        if (mOriginalConnection == null) {
+            Log.v(this, "Null mOriginalConnection, cannot get conf participants.");
+            return null;
+        }
+        return mOriginalConnection.getConferenceParticipants();
+    }
+
     /**
      * Checks to see the original connection corresponds to an active incoming call. Returns false
      * if there is no such actual call, or if the associated call is not incoming (See
@@ -657,13 +708,17 @@ abstract class TelephonyConnection extends Connection {
     }
 
     void updateState() {
+       updateState(false);
+    }
+
+    void updateState(boolean force) {
         if (mOriginalConnection == null) {
             return;
         }
 
         Call.State newState = mOriginalConnection.getState();
         Log.v(this, "Update state from %s to %s for %s", mOriginalConnectionState, newState, this);
-        if (mOriginalConnectionState != newState) {
+        if (mOriginalConnectionState != newState || force) {
             mOriginalConnectionState = newState;
             switch (newState) {
                 case IDLE:
@@ -684,7 +739,8 @@ abstract class TelephonyConnection extends Connection {
                     break;
                 case DISCONNECTED:
                     setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                            mOriginalConnection.getDisconnectCause()));
+                            mOriginalConnection.getDisconnectCause(),
+                            mOriginalConnection.getVendorDisconnectCause()));
                     close();
                     break;
                 case DISCONNECTING:
@@ -712,6 +768,15 @@ abstract class TelephonyConnection extends Connection {
                 notifyConferenceStarted();
             }
         }
+    }
+
+    /**
+     * Handles a failure when merging calls into a conference.
+     * {@link com.android.internal.telephony.Connection.Listener#onConferenceMergedFailed()}
+     * listener.
+     */
+    private void handleConferenceMergeFailed(){
+        mHandler.obtainMessage(MSG_CONFERENCE_MERGE_FAILED).sendToTarget();
     }
 
     /**
@@ -759,12 +824,7 @@ abstract class TelephonyConnection extends Connection {
 
     private void close() {
         Log.v(this, "close");
-        if (getPhone() != null) {
-            getPhone().unregisterForPreciseCallStateChanged(mHandler);
-            getPhone().unregisterForRingbackTone(mHandler);
-            getPhone().unregisterForHandoverStateChanged(mHandler);
-        }
-        mOriginalConnection = null;
+        clearOriginalConnection();
         destroy();
     }
 
@@ -874,6 +934,16 @@ abstract class TelephonyConnection extends Connection {
     }
 
     /**
+     * For video calls, sets whether this connection supports pausing the outgoing video for the
+     * call using the {@link android.telecom.VideoProfile#STATE_PAUSED} VideoState.
+     *
+     * @param isVideoPauseSupported {@code true} if pause state supported, {@code false} otherwise.
+     */
+    public void setVideoPauseSupported(boolean isVideoPauseSupported) {
+        mIsVideoPauseSupported = isVideoPauseSupported;
+    }
+
+    /**
      * Whether the original connection is an IMS connection.
      * @return {@code True} if the original connection is an IMS connection, {@code false}
      *     otherwise.
@@ -924,9 +994,10 @@ abstract class TelephonyConnection extends Connection {
 
             Context context = getPhone().getContext();
             setStatusHints(new StatusHints(
-                    new ComponentName(context, TelephonyConnectionService.class),
                     context.getString(labelId),
-                    R.drawable.ic_signal_wifi_4_bar_24dp,
+                    Icon.createWithResource(
+                            context.getResources(),
+                            R.drawable.ic_signal_wifi_4_bar_24dp),
                     null /* extras */));
         } else {
             setStatusHints(null);
