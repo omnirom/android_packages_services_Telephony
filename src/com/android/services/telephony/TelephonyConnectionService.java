@@ -19,8 +19,6 @@ package com.android.services.telephony;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
-import android.content.res.Resources;
 import android.net.Uri;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
@@ -28,9 +26,9 @@ import android.telecom.ConnectionService;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.CarrierConfigManager;
+import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.ServiceState;
-import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -49,7 +47,6 @@ import com.android.phone.R;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -192,6 +189,26 @@ public class TelephonyConnectionService extends ConnectionService {
         }
         boolean useEmergencyCallHelper = false;
 
+        // If we're dialing a non-emergency number and the phone is in ECM mode, reject the call if
+        // carrier configuration specifies that we cannot make non-emergency calls in ECM mode.
+        if (!isEmergencyNumber && phone.isInEcm()) {
+            boolean allowNonEmergencyCalls = true;
+            CarrierConfigManager cfgManager = (CarrierConfigManager)
+                    phone.getContext().getSystemService(Context.CARRIER_CONFIG_SERVICE);
+            if (cfgManager != null) {
+                allowNonEmergencyCalls = cfgManager.getConfigForSubId(phone.getSubId())
+                        .getBoolean(CarrierConfigManager.KEY_ALLOW_NON_EMERGENCY_CALLS_IN_ECM_BOOL);
+            }
+
+            if (!allowNonEmergencyCalls) {
+                return Connection.createFailedConnection(
+                        DisconnectCauseUtil.toTelecomDisconnectCause(
+                                DisconnectCause.CDMA_NOT_EMERGENCY,
+                                "Cannot make non-emergency call in ECM mode."
+                        ));
+            }
+        }
+
         if (isEmergencyNumber) {
             if (!phone.isRadioOn()) {
                 useEmergencyCallHelper = true;
@@ -202,10 +219,15 @@ public class TelephonyConnectionService extends ConnectionService {
                 case ServiceState.STATE_EMERGENCY_ONLY:
                     break;
                 case ServiceState.STATE_OUT_OF_SERVICE:
-                    return Connection.createFailedConnection(
-                            DisconnectCauseUtil.toTelecomDisconnectCause(
-                                    android.telephony.DisconnectCause.OUT_OF_SERVICE,
-                                    "ServiceState.STATE_OUT_OF_SERVICE"));
+                    if (phone.isUtEnabled() && number.endsWith("#")) {
+                        Log.d(this, "onCreateOutgoingConnection dial for UT");
+                        break;
+                    } else {
+                        return Connection.createFailedConnection(
+                                DisconnectCauseUtil.toTelecomDisconnectCause(
+                                        android.telephony.DisconnectCause.OUT_OF_SERVICE,
+                                        "ServiceState.STATE_OUT_OF_SERVICE"));
+                    }
                 case ServiceState.STATE_POWER_OFF:
                     return Connection.createFailedConnection(
                             DisconnectCauseUtil.toTelecomDisconnectCause(
@@ -305,6 +327,13 @@ public class TelephonyConnectionService extends ConnectionService {
     }
 
     @Override
+    public void triggerConferenceRecalculate() {
+        if (mTelephonyConferenceController.shouldRecalculate()) {
+            mTelephonyConferenceController.recalculate();
+        }
+    }
+
+    @Override
     public Connection onCreateUnknownConnection(PhoneAccountHandle connectionManagerPhoneAccount,
             ConnectionRequest request) {
         Log.i(this, "onCreateUnknownConnection, request: " + request);
@@ -323,8 +352,15 @@ public class TelephonyConnectionService extends ConnectionService {
             allConnections.addAll(ringingCall.getConnections());
         }
         final Call foregroundCall = phone.getForegroundCall();
-        if (foregroundCall.hasConnections()) {
+        if ((foregroundCall.getState() != Call.State.DISCONNECTED)
+                && (foregroundCall.hasConnections())) {
             allConnections.addAll(foregroundCall.getConnections());
+        }
+        if (phone.getImsPhone() != null) {
+            final Call imsFgCall = phone.getImsPhone().getForegroundCall();
+            if ((imsFgCall.getState() != Call.State.DISCONNECTED) && imsFgCall.hasConnections()) {
+                allConnections.addAll(imsFgCall.getConnections());
+            }
         }
         final Call backgroundCall = phone.getBackgroundCall();
         if (backgroundCall.hasConnections()) {
@@ -335,6 +371,7 @@ public class TelephonyConnectionService extends ConnectionService {
         for (com.android.internal.telephony.Connection telephonyConnection : allConnections) {
             if (!isOriginalConnectionKnown(telephonyConnection)) {
                 unknownConnection = telephonyConnection;
+                Log.d(this, "onCreateUnknownConnection: conn = " + unknownConnection);
                 break;
             }
         }
@@ -424,6 +461,9 @@ public class TelephonyConnectionService extends ConnectionService {
             returnConnection.addTelephonyConnectionListener(mTelephonyConnectionListener);
             returnConnection.setVideoPauseSupported(
                     TelecomAccountRegistry.getInstance(this).isVideoPauseSupported(
+                            phoneAccountHandle));
+            returnConnection.setConferenceSupported(
+                    TelecomAccountRegistry.getInstance(this).isMergeCallSupported(
                             phoneAccountHandle));
         }
         return returnConnection;

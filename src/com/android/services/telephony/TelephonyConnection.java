@@ -16,11 +16,11 @@
 
 package com.android.services.telephony;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.AsyncResult;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.telecom.CallAudioState;
@@ -29,16 +29,23 @@ import android.telecom.Connection;
 import android.telecom.PhoneAccount;
 import android.telecom.StatusHints;
 
+import com.android.ims.ImsCallProfile;
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.Connection.PostDialListener;
+import com.android.internal.telephony.gsm.SuppServiceNotification;
+
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.imsphone.ImsPhoneConnection;
 import com.android.phone.R;
 
 import java.lang.Override;
+import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,6 +60,16 @@ abstract class TelephonyConnection extends Connection {
     private static final int MSG_DISCONNECT = 4;
     private static final int MSG_MULTIPARTY_STATE_CHANGED = 5;
     private static final int MSG_CONFERENCE_MERGE_FAILED = 6;
+    private static final int MSG_SUPP_SERVICE_NOTIFY = 7;
+    private static final int MSG_CONNECTION_EXTRAS_CHANGED = 8;
+
+    /**
+     * Mappings from {@link com.android.internal.telephony.Connection} extras keys to their
+     * equivalents defined in {@link android.telecom.Connection}.
+     */
+    private static final Map<String, String> sExtrasMap = createExtrasMap();
+
+    private SuppServiceNotification mSsNotification = null;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -72,7 +89,7 @@ abstract class TelephonyConnection extends Connection {
                             ((connection.getAddress() != null &&
                             mOriginalConnection.getAddress() != null &&
                             mOriginalConnection.getAddress().contains(connection.getAddress())) ||
-                            connection.getStateBeforeHandover() == mOriginalConnection.getState())) {
+                            connection.getState() == mOriginalConnection.getStateBeforeHandover())) {
                             Log.d(TelephonyConnection.this,
                                     "SettingOriginalConnection " + mOriginalConnection.toString()
                                             + " with " + connection.toString());
@@ -107,6 +124,28 @@ abstract class TelephonyConnection extends Connection {
                     }
                 case MSG_CONFERENCE_MERGE_FAILED:
                     notifyConferenceMergeFailed();
+                    break;
+                case MSG_SUPP_SERVICE_NOTIFY:
+                    Log.v(TelephonyConnection.this, "MSG_SUPP_SERVICE_NOTIFY on phoneId : "
+                            +getPhone().getPhoneId());
+                    if (msg.obj != null && ((AsyncResult) msg.obj).result != null) {
+                        mSsNotification =
+                                (SuppServiceNotification)((AsyncResult) msg.obj).result;
+                        if (mOriginalConnection != null && mSsNotification.history != null) {
+                            Bundle extras = getExtras();
+                            if (extras != null) {
+                                Log.v(TelephonyConnection.this,
+                                        "Updating call history info in extras.");
+                                extras.putStringArrayList(Connection.EXTRA_LAST_FORWARDED_NUMBER,
+                                        new ArrayList(Arrays.asList(mSsNotification.history)));
+                                setExtras(extras);
+                            }
+                        }
+                    }
+                    break;
+                case MSG_CONNECTION_EXTRAS_CHANGED:
+                    final Bundle extras = (Bundle) msg.obj;
+                    updateExtras(extras);
                     break;
             }
         }
@@ -232,10 +271,16 @@ abstract class TelephonyConnection extends Connection {
         public void onConferenceMergedFailed() {
             handleConferenceMergeFailed();
         }
+
+        @Override
+        public void onExtrasChanged(Bundle extras) {
+            mHandler.obtainMessage(MSG_CONNECTION_EXTRAS_CHANGED, extras).sendToTarget();
+        }
     };
 
     private com.android.internal.telephony.Connection mOriginalConnection;
     private Call.State mOriginalConnectionState = Call.State.IDLE;
+    private Bundle mOriginalConnectionExtras = new Bundle();
 
     private boolean mWasImsConnection;
 
@@ -282,6 +327,11 @@ abstract class TelephonyConnection extends Connection {
      * the {@link android.telecom.VideoProfile#STATE_PAUSED} VideoState.
      */
     private boolean mIsVideoPauseSupported;
+
+    /**
+     * Indicates whether this connection supports being a part of a conference..
+     */
+    private boolean mIsConferenceSupported;
 
     /**
      * Listeners to our TelephonyConnection specific callbacks
@@ -554,7 +604,7 @@ abstract class TelephonyConnection extends Connection {
     void setOriginalConnection(com.android.internal.telephony.Connection originalConnection) {
         Log.v(this, "new TelephonyConnection, originalConnection: " + originalConnection);
         clearOriginalConnection();
-
+        mOriginalConnectionExtras.clear();
         mOriginalConnection = originalConnection;
         getPhone().registerForPreciseCallStateChanged(
                 mHandler, MSG_PRECISE_CALL_STATE_CHANGED, null);
@@ -562,6 +612,7 @@ abstract class TelephonyConnection extends Connection {
                 mHandler, MSG_HANDOVER_STATE_CHANGED, null);
         getPhone().registerForRingbackTone(mHandler, MSG_RINGBACK_TONE, null);
         getPhone().registerForDisconnect(mHandler, MSG_DISCONNECT, null);
+        getPhone().registerForSuppServiceNotification(mHandler, MSG_SUPP_SERVICE_NOTIFY, null);
         mOriginalConnection.addPostDialListener(mPostDialListener);
         mOriginalConnection.addListener(mOriginalConnectionListener);
 
@@ -593,6 +644,7 @@ abstract class TelephonyConnection extends Connection {
                 getPhone().unregisterForRingbackTone(mHandler);
                 getPhone().unregisterForHandoverStateChanged(mHandler);
                 getPhone().unregisterForDisconnect(mHandler);
+                getPhone().unregisterForSuppServiceNotification(mHandler);
             }
             mOriginalConnection.removePostDialListener(mPostDialListener);
             mOriginalConnection.removeListener(mOriginalConnectionListener);
@@ -704,6 +756,71 @@ abstract class TelephonyConnection extends Connection {
         }
 
         Log.v(this, "isValidRingingCall, returning true");
+        return true;
+    }
+
+    protected void updateExtras(Bundle extras) {
+        if (mOriginalConnection != null) {
+            if (extras != null) {
+                // Check if extras have changed and need updating.
+                if (!areBundlesEqual(mOriginalConnectionExtras, extras)) {
+                    if (Log.DEBUG) {
+                        Log.d(TelephonyConnection.this, "Updating extras:");
+                        for (String key : extras.keySet()) {
+                            Object value = extras.get(key);
+                            if (value instanceof String) {
+                                Log.d(this, "updateExtras Key=" + Log.pii(key) +
+                                             " value=" + Log.pii((String)value));
+                            }
+                        }
+                    }
+                    mOriginalConnectionExtras.clear();
+
+                    mOriginalConnectionExtras.putAll(extras);
+
+                    // Remap any string extras that have a remapping defined.
+                    for (String key : mOriginalConnectionExtras.keySet()) {
+                        if (sExtrasMap.containsKey(key)) {
+                            String newKey = sExtrasMap.get(key);
+                            mOriginalConnectionExtras.putString(newKey, extras.getString(key));
+                            mOriginalConnectionExtras.remove(key);
+                        }
+                    }
+
+                    // Ensure extras are propagated to Telecom.
+                    Bundle connectionExtras = getExtras();
+                    if (connectionExtras == null) {
+                        connectionExtras = new Bundle();
+                    }
+                    connectionExtras.putAll(mOriginalConnectionExtras);
+                    setExtras(connectionExtras);
+                } else {
+                    Log.d(this, "Extras update not required");
+                }
+            } else {
+                Log.d(this, "updateExtras extras: " + Log.pii(extras));
+            }
+        }
+    }
+
+    private static boolean areBundlesEqual(Bundle extras, Bundle newExtras) {
+        if (extras == null || newExtras == null) {
+            return extras == newExtras;
+        }
+
+        if (extras.size() != newExtras.size()) {
+            return false;
+        }
+
+        for(String key : extras.keySet()) {
+            if (key != null) {
+                final Object value = extras.get(key);
+                final Object newValue = newExtras.get(key);
+                if (!Objects.equals(value, newValue)) {
+                    return false;
+                }
+            }
+        }
         return true;
     }
 
@@ -944,6 +1061,22 @@ abstract class TelephonyConnection extends Connection {
     }
 
     /**
+     * Sets whether this connection supports conference calling.
+     * @param isConferenceSupported {@code true} if conference calling is supported by this
+     *                                         connection, {@code false} otherwise.
+     */
+    public void setConferenceSupported(boolean isConferenceSupported) {
+        mIsConferenceSupported = isConferenceSupported;
+    }
+
+    /**
+     * @return {@code true} if this connection supports merging calls into a conference.
+     */
+    public boolean isConferenceSupported() {
+        return mIsConferenceSupported;
+    }
+
+    /**
      * Whether the original connection is an IMS connection.
      * @return {@code True} if the original connection is an IMS connection, {@code false}
      *     otherwise.
@@ -1040,6 +1173,23 @@ abstract class TelephonyConnection extends Connection {
         for (TelephonyConnectionListener l : mTelephonyListeners) {
             l.onOriginalConnectionConfigured(this);
         }
+    }
+
+
+    /**
+     * Provides a mapping from extras keys which may be found in the
+     * {@link com.android.internal.telephony.Connection} to their equivalents defined in
+     * {@link android.telecom.Connection}.
+     *
+     * @return Map containing key mappings.
+     */
+    private static Map<String, String> createExtrasMap() {
+        Map<String, String> result = new HashMap<String, String>();
+        result.put(ImsCallProfile.EXTRA_CHILD_NUMBER,
+                android.telecom.Connection.EXTRA_CHILD_ADDRESS);
+        result.put(ImsCallProfile.EXTRA_DISPLAY_TEXT,
+                android.telecom.Connection.EXTRA_CALL_SUBJECT);
+        return Collections.unmodifiableMap(result);
     }
 
     /**
