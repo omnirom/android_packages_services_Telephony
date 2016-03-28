@@ -43,6 +43,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.PhoneProxy;
 import com.android.internal.telephony.SubscriptionController;
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.cdma.CDMAPhone;
 import com.android.phone.MMIDialogActivity;
 import com.android.phone.PhoneUtils;
@@ -50,6 +51,8 @@ import com.android.phone.R;
 
 import java.util.ArrayList;
 import java.util.List;
+import android.os.Bundle;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
