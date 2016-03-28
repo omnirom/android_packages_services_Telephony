@@ -75,7 +75,6 @@ public class TelephonyConnectionService extends ConnectionService {
     private EmergencyTonePlayer mEmergencyTonePlayer;
     private static boolean [] sLchState = new
             boolean[sPhoneCount];
-    private ConnectionRequest mRequest;
 
     /**
      * A listener to actionable events specific to the TelephonyConnection.
@@ -85,44 +84,6 @@ public class TelephonyConnectionService extends ConnectionService {
         @Override
         public void onOriginalConnectionConfigured(TelephonyConnection c) {
             addConnectionToConferenceController(c);
-        }
-
-        @Override
-        public void onEmergencyRedial(
-                TelephonyConnection connection, PhoneAccountHandle redialPhoneAccount,
-                        int phoneId) {
-            Log.d(this,"onEmergencyRedial");
-            String number = connection.getAddress().getSchemeSpecificPart();
-            Phone phone = PhoneFactory.getPhone(phoneId);
-
-            Log.i(this, "setPhoneAccountHandle, account = " + redialPhoneAccount);
-            Bundle connExtras = connection.getExtras();
-            if (connExtras == null) {
-                connExtras = new Bundle();
-            }
-            connExtras.putParcelable(TelephonyManager.EMR_DIAL_ACCOUNT, redialPhoneAccount);
-            connection.setExtras(connExtras);
-
-            Bundle bundle = mRequest.getExtras();
-            com.android.internal.telephony.Connection originalConnection;
-            try {
-                originalConnection = phone.dial(number, null, mRequest.getVideoState(), bundle);
-            } catch (CallStateException e) {
-                Log.e(this, e, "onEmergencyRedial, phone.dial exception: " + e);
-                connection.setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                        android.telephony.DisconnectCause.OUTGOING_FAILURE,
-                        e.getMessage()));
-                return;
-            }
-
-            if (originalConnection == null) {
-                int telephonyDisconnectCause = android.telephony.DisconnectCause.OUTGOING_FAILURE;
-                Log.d(this, "onEmergencyRedial, phone.dial returned null");
-                connection.setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                        telephonyDisconnectCause, "Connection is null"));
-            } else {
-                connection.setOriginalConnection(originalConnection);
-            }
         }
     };
 
@@ -294,9 +255,7 @@ public class TelephonyConnectionService extends ConnectionService {
         }
 
         if (isEmergencyNumber) {
-            mRequest = request;
             if (!phone.isRadioOn()) {
-                mRequest = request;
                 useEmergencyCallHelper = true;
             }
         } else {

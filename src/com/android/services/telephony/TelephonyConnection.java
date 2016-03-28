@@ -28,13 +28,6 @@ import android.telecom.ConferenceParticipant;
 import android.telecom.Connection;
 import android.telecom.PhoneAccount;
 import android.telecom.StatusHints;
-import android.telecom.TelecomManager;
-import android.telecom.VideoProfile;
-import android.telephony.PhoneNumberUtils;
-import android.telephony.SubscriptionManager;
-import android.telephony.PhoneNumberUtils;
-import android.telephony.TelephonyManager;
-import android.telephony.PhoneNumberUtils;
 
 import com.android.ims.ImsCallProfile;
 import com.android.internal.telephony.Call;
@@ -43,7 +36,6 @@ import com.android.internal.telephony.Connection.PostDialListener;
 import com.android.internal.telephony.gsm.SuppServiceNotification;
 
 import com.android.internal.telephony.Phone;
-import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.imsphone.ImsPhoneConnection;
 import com.android.phone.R;
 import com.android.internal.telephony.PhoneConstants;
@@ -79,11 +71,6 @@ abstract class TelephonyConnection extends Connection {
     private static final Map<String, String> sExtrasMap = createExtrasMap();
 
     private SuppServiceNotification mSsNotification = null;
-    private String[] mSubName = {"SIM1", "SIM2", "SIM3"};
-    private String mDisplayName;
-    private boolean mIsEmergencyNumber = false;
-    private boolean[] mIsPermDiscCauseReceived = new
-            boolean[TelephonyManager.getDefault().getPhoneCount()];
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -172,8 +159,6 @@ abstract class TelephonyConnection extends Connection {
      */
     public abstract static class TelephonyConnectionListener {
         public void onOriginalConnectionConfigured(TelephonyConnection c) {}
-        public void onEmergencyRedial(TelephonyConnection c, PhoneAccountHandle pHandle,
-                int phoneId) {}
     }
 
     private final PostDialListener mPostDialListener = new PostDialListener() {
@@ -866,14 +851,7 @@ abstract class TelephonyConnection extends Connection {
             return;
         }
 
-        final String number = mOriginalConnection.getAddress();
-        final Phone phone = mOriginalConnection.getCall().getPhone();
-        int cause = mOriginalConnection.getDisconnectCause();
-        final boolean isEmergencyNumber =
-                    PhoneNumberUtils.isLocalEmergencyNumber(TelephonyGlobals.
-                    getApplicationContext(), number);
         Call.State newState = mOriginalConnection.getState();
-
         Log.v(this, "Update state from %s to %s for %s", mOriginalConnectionState, newState, this);
         if (mOriginalConnectionState != newState || force) {
             mOriginalConnectionState = newState;
@@ -895,29 +873,9 @@ abstract class TelephonyConnection extends Connection {
                     setRinging();
                     break;
                 case DISCONNECTED:
-                    if(isEmergencyNumber &&
-                            (TelephonyManager.getDefault().getPhoneCount() > 1) &&
-                            ((cause == android.telephony.DisconnectCause.EMERGENCY_TEMP_FAILURE) ||
-                            (cause == android.telephony.DisconnectCause.EMERGENCY_PERM_FAILURE))) {
-                        // If emergency call failure is received with cause codes
-                        // EMERGENCY_TEMP_FAILURE & EMERGENCY_PERM_FAILURE, then redial on other sub.
-                        emergencyRedial(cause, phone);
-                        break;
-                    } else if (mSsNotification != null) {
-                        setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                                mOriginalConnection.getDisconnectCause(),
-                                mOriginalConnection.getVendorDisconnectCause(),
-                                mSsNotification.notificationType,
-                                mSsNotification.code));
-                        mSsNotification = null;
-                        DisconnectCauseUtil.mNotificationCode = 0xFF;
-                        DisconnectCauseUtil.mNotificationType = 0xFF;
-                    } else {
-                        setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                                mOriginalConnection.getDisconnectCause(),
-                                mOriginalConnection.getVendorDisconnectCause()));
-                    }
-                    resetDisconnectCause();
+                    setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
+                            mOriginalConnection.getDisconnectCause(),
+                            mOriginalConnection.getVendorDisconnectCause()));
                     close();
                     break;
                 case DISCONNECTING:
@@ -972,67 +930,6 @@ abstract class TelephonyConnection extends Connection {
     private void handleMultipartyStateChange(boolean isMultiParty) {
         Log.i(this, "Update multiparty state to %s", isMultiParty ? "Y" : "N");
         mHandler.obtainMessage(MSG_MULTIPARTY_STATE_CHANGED, isMultiParty).sendToTarget();
-    }
-
-    private void emergencyRedial(int cause, Phone phone) {
-        int PhoneIdToCall = phone.getPhoneId();
-        if (cause == android.telephony.DisconnectCause.EMERGENCY_PERM_FAILURE) {
-            Log.d(this,"EMERGENCY_PERM_FAILURE received on sub:" + PhoneIdToCall);
-            // update mIsPermDiscCauseReceived so that next redial doesn't occur
-            // on this sub
-            mIsPermDiscCauseReceived[phone.getPhoneId()] = true;
-            PhoneIdToCall = SubscriptionManager.INVALID_PHONE_INDEX;
-        }
-        // Check for any subscription on which EMERGENCY_PERM_FAILURE is received
-        // if no such sub, then redial should be stopped.
-        for (int i = getNextPhoneId(phone.getPhoneId()); i != phone.getPhoneId();
-                i = getNextPhoneId(i)) {
-            if (mIsPermDiscCauseReceived[i] == false) {
-                PhoneIdToCall = i;
-                break;
-            }
-        }
-
-        long subId = SubscriptionController.getInstance().getSubIdUsingPhoneId(PhoneIdToCall);
-        if (PhoneIdToCall == SubscriptionManager.INVALID_PHONE_INDEX) {
-            Log.d(this,"EMERGENCY_PERM_FAILURE received on all subs, abort redial");
-            setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                    mOriginalConnection.getDisconnectCause(),
-                    mOriginalConnection.getVendorDisconnectCause()));
-            resetDisconnectCause();
-            close();
-        } else {
-            Log.d(this,"Redial emergency call on subscription " + PhoneIdToCall);
-            TelecomManager telecommMgr = (TelecomManager)
-            TelephonyGlobals.getApplicationContext().getSystemService(Context.TELECOM_SERVICE);
-            if (telecommMgr != null) {
-                List<PhoneAccountHandle> phoneAccountHandles =
-                        telecommMgr.getCallCapablePhoneAccounts();
-                for (PhoneAccountHandle handle : phoneAccountHandles) {
-                    String sub = handle.getId();
-                    if (Long.toString(subId).equals(sub)){
-                        Log.d(this,"EMERGENCY REDIAL");
-                        for (TelephonyConnectionListener l : mTelephonyListeners) {
-                            l.onEmergencyRedial(this, handle, PhoneIdToCall);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private int getNextPhoneId(int curId) {
-        int nextId =  curId + 1;
-        if (nextId >= TelephonyManager.getDefault().getPhoneCount()) {
-            nextId = 0;
-        }
-        return nextId;
-    }
-
-    private void resetDisconnectCause() {
-        for (int i = 0; i < TelephonyManager.getDefault().getPhoneCount(); i++) {
-            mIsPermDiscCauseReceived[i] = false;
-        }
     }
 
     private void setActiveInternal() {
