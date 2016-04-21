@@ -66,6 +66,7 @@ import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.TelephonyIntents;
+import com.android.internal.telephony.TelephonyPluginDelegate;
 import com.android.phone.common.CallLogAsync;
 import com.android.phone.settings.SettingsConstants;
 import com.android.server.sip.SipService;
@@ -153,6 +154,7 @@ public class PhoneGlobals extends ContextWrapper {
 
     private CallGatewayManager callGatewayManager;
     private CallStateMonitor callStateMonitor;
+    private Phone phoneInEcm;
 
     static boolean sVoiceCapable = true;
 
@@ -315,7 +317,9 @@ public class PhoneGlobals extends ContextWrapper {
 
         if (mCM == null) {
             // Initialize the telephony framework
-            PhoneFactory.makeDefaultPhones(this);
+            TelephonyPluginDelegate.init(this);
+
+            TelephonyPluginDelegate.getInstance().makeDefaultPhones(this);
 
             // Start TelephonyDebugService After the default phone is created.
             Intent intent = new Intent(this, TelephonyDebugService.class);
@@ -821,19 +825,24 @@ public class PhoneGlobals extends ContextWrapper {
             } else if (action.equals(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED)) {
                 handleServiceStateChanged(intent);
             } else if (action.equals(TelephonyIntents.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED)) {
-                if (TelephonyCapabilities.supportsEcm(mCM.getFgPhone())) {
+                int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY, 0);
+                phoneInEcm = getPhone(phoneId);
+                Log.d(LOG_TAG, "Emergency Callback Mode. phoneId:" + phoneId);
+                if (TelephonyCapabilities.supportsEcm(phoneInEcm)) {
                     Log.d(LOG_TAG, "Emergency Callback Mode arrived in PhoneApp.");
                     // Start Emergency Callback Mode service
                     if (intent.getBooleanExtra("phoneinECMState", false)) {
                         context.startService(new Intent(context,
                                 EmergencyCallbackModeService.class));
+                    } else {
+                        phoneInEcm = null;
                     }
                 } else {
                     // It doesn't make sense to get ACTION_EMERGENCY_CALLBACK_MODE_CHANGED
                     // on a device that doesn't support ECM in the first place.
                     Log.e(LOG_TAG, "Got ACTION_EMERGENCY_CALLBACK_MODE_CHANGED, "
-                            + "but ECM isn't supported for phone: "
-                            + mCM.getFgPhone().getPhoneName());
+                          + "but ECM isn't supported for phone: " + phoneInEcm.getPhoneName());
+                    phoneInEcm = null;
                 }
             }
         }
@@ -909,6 +918,10 @@ public class PhoneGlobals extends ContextWrapper {
             otaUtils.dismissAllOtaDialogs();
             if (DBG) Log.d(LOG_TAG, "  - dismissOtaDialogs clears OTA dialogs");
         }
+    }
+
+    public Phone getPhoneInEcm() {
+        return phoneInEcm;
     }
 
     /**

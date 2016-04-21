@@ -43,6 +43,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.PhoneProxy;
 import com.android.internal.telephony.SubscriptionController;
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.cdma.CDMAPhone;
 import com.android.phone.MMIDialogActivity;
 import com.android.phone.PhoneUtils;
@@ -50,6 +51,8 @@ import com.android.phone.R;
 
 import java.util.ArrayList;
 import java.util.List;
+import android.os.Bundle;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -61,16 +64,20 @@ public class TelephonyConnectionService extends ConnectionService {
     private static final Pattern CDMA_ACTIVATION_CODE_REGEX_PATTERN =
             Pattern.compile("\\*228[0-9]{0,2}");
 
-    private final TelephonyConferenceController mTelephonyConferenceController =
-            new TelephonyConferenceController(this);
-    private final CdmaConferenceController mCdmaConferenceController =
-            new CdmaConferenceController(this);
-    private final ImsConferenceController mImsConferenceController =
-            new ImsConferenceController(this);
+    private static final int sPhoneCount = TelephonyManager.getDefault().getPhoneCount();
+
+    private final TelephonyConferenceController[] mTelephonyConferenceController =
+            new TelephonyConferenceController[sPhoneCount];
+    private final CdmaConferenceController[] mCdmaConferenceController =
+            new CdmaConferenceController[sPhoneCount];
+    private final ImsConferenceController[] mImsConferenceController =
+            new ImsConferenceController[sPhoneCount];
 
     private ComponentName mExpectedComponentName = null;
     private EmergencyCallHelper mEmergencyCallHelper;
     private EmergencyTonePlayer mEmergencyTonePlayer;
+    private static boolean [] sLchState = new
+            boolean[sPhoneCount];
 
     /**
      * A listener to actionable events specific to the TelephonyConnection.
@@ -86,6 +93,12 @@ public class TelephonyConnectionService extends ConnectionService {
     @Override
     public void onCreate() {
         super.onCreate();
+        int size = sPhoneCount;
+        for (int i = 0; i < size; i++) {
+            mTelephonyConferenceController[i] = new TelephonyConferenceController(this);
+            mImsConferenceController[i] = new ImsConferenceController(this);
+            mCdmaConferenceController[i] = new CdmaConferenceController(this);
+        }
         mExpectedComponentName = new ComponentName(this, this.getClass());
         mEmergencyTonePlayer = new EmergencyTonePlayer(this);
         TelecomAccountRegistry.getInstance(this).setTelephonyConnectionService(this);
@@ -363,8 +376,11 @@ public class TelephonyConnectionService extends ConnectionService {
 
     @Override
     public void triggerConferenceRecalculate() {
-        if (mTelephonyConferenceController.shouldRecalculate()) {
-            mTelephonyConferenceController.recalculate();
+        int size = sPhoneCount;
+        for (int i = 0; i < size; i++) {
+            if (mTelephonyConferenceController[i].shouldRecalculate()) {
+                mTelephonyConferenceController[i].recalculate();
+            }
         }
     }
 
@@ -443,6 +459,16 @@ public class TelephonyConnectionService extends ConnectionService {
             TelephonyConnection connection, Phone phone, ConnectionRequest request) {
         String number = connection.getAddress().getSchemeSpecificPart();
 
+        PhoneAccountHandle pHandle = PhoneUtils.makePstnPhoneAccountHandle(phone);
+        // For ECall handling on MSIM, till the request reaches here(i.e PhoneApp)
+        // we dont know on which phone account ECall can be placed, once after deciding
+        // the phone account for ECall we should inform Telecomm so that
+        // the proper sub information will be displayed on InCallUI.
+        if (TelephonyManager.getDefault().isMultiSimEnabled() && !Objects.equals(pHandle,
+                request.getAccountHandle())) {
+            Log.i(this, "setPhoneAccountHandle, account = " + pHandle);
+            request.setAccountHandle(pHandle);
+        }
         com.android.internal.telephony.Connection originalConnection;
         try {
             originalConnection =
@@ -463,10 +489,15 @@ public class TelephonyConnectionService extends ConnectionService {
             // On GSM phones, null connection means that we dialed an MMI code
             if (phone.getPhoneType() == PhoneConstants.PHONE_TYPE_GSM) {
                 Log.d(this, "dialed MMI code");
+                int subId = phone.getSubId();
+                Log.d(this, "subId: " + subId);
                 telephonyDisconnectCause = android.telephony.DisconnectCause.DIALED_MMI;
                 final Intent intent = new Intent(this, MMIDialogActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+                if (SubscriptionManager.isValidSubscriptionId(subId)) {
+                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, subId);
+                }
                 startActivity(intent);
             }
             Log.d(this, "placeOutgoingConnection, phone.dial returned null");
@@ -610,21 +641,43 @@ public class TelephonyConnectionService extends ConnectionService {
         // and triggering this callback multiple times for the same connection?
         // If that is the case, we might want to remove this connection from all
         // conference controllers first before re-adding it.
+        int phoneId;
+        if (connection.getPhone()!= null) {
+            phoneId = connection.getPhone().getPhoneId();
+        } else {
+            Log.w(this, "getPhone() has returned null, return from here." + connection);
+            return;
+        }
+
         if (connection.isImsConnection()) {
             Log.d(this, "Adding IMS connection to conference controller: " + connection);
-            mImsConferenceController.add(connection);
+            mImsConferenceController[phoneId].add(connection);
         } else {
             int phoneType = connection.getCall().getPhone().getPhoneType();
             if (phoneType == TelephonyManager.PHONE_TYPE_GSM) {
                 Log.d(this, "Adding GSM connection to conference controller: " + connection);
-                mTelephonyConferenceController.add(connection);
+                mTelephonyConferenceController[phoneId].add(connection);
             } else if (phoneType == TelephonyManager.PHONE_TYPE_CDMA &&
                     connection instanceof CdmaConnection) {
                 Log.d(this, "Adding CDMA connection to conference controller: " + connection);
-                mCdmaConferenceController.add((CdmaConnection)connection);
+                mCdmaConferenceController[phoneId].add((CdmaConnection)connection);
             }
             Log.d(this, "Removing connection from IMS conference controller: " + connection);
-            mImsConferenceController.remove(connection);
+            mImsConferenceController[phoneId].remove(connection);
         }
+    }
+
+    public static void setLocalCallHold(Phone ph, boolean lchStatus) {
+        int phoneId = ph.getPhoneId();
+        Log.d("setLocalCallHold", "lchStatus:" + lchStatus + " phoneId:"
+                + phoneId + " sLchState:" + sLchState);
+        if (sLchState[phoneId] != lchStatus) {
+            ph.setLocalCallHold(lchStatus);
+            sLchState[phoneId] = lchStatus;
+        }
+    }
+
+    public static boolean isLchActive(int phoneId) {
+        return sLchState[phoneId];
     }
 }

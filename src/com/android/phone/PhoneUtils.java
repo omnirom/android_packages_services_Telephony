@@ -2406,7 +2406,7 @@ public class PhoneUtils {
             Phone phone, String prefix, boolean isEmergency) {
         // TODO: Should use some sort of special hidden flag to decorate this account as
         // an emergency-only account
-        String id = isEmergency ? "E" : prefix + String.valueOf(phone.getIccSerialNumber());
+        String id = isEmergency ? "E" : prefix + String.valueOf(phone.getSubId());
         return makePstnPhoneAccountHandleWithPrefix(id, prefix, isEmergency);
     }
 
@@ -2426,10 +2426,9 @@ public class PhoneUtils {
 
     public static int getSubIdForPhoneAccountHandle(PhoneAccountHandle handle) {
         if (handle != null && handle.getComponentName().equals(getPstnConnectionServiceName())) {
-            Phone phone = getPhoneFromIccId(handle.getId());
-            if (phone != null) {
-                return phone.getSubId();
-            }
+            try {
+                return Integer.parseInt(handle.getId());
+            } catch (NumberFormatException ex) {}
         }
         return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
     }
