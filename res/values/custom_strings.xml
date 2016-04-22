@@ -22,5 +22,10 @@
     <string name="national_roaming_enable">Connect to data services when nationally roaming</string>
     <!-- Mobile network settings screen, setting summary text when check box is clear -->
     <string name="national_roaming_disable">Do not connect to data services when nationally roaming</string>
+     <!-- XDivert Settings -->
+     <!-- Title for the XDivert Feature displayed in Call Settings -->
+     <string name="xdivert_title">X-Divert</string>
+     <!-- Summary for the XDivert Feature displayed in Call Settings -->
+     <string name="xdivert_summary">CFNRc Settings</string>
 
 </resources>
