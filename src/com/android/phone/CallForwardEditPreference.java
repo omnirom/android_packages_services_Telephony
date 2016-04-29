@@ -12,7 +12,9 @@ import android.content.res.TypedArray;
 import android.os.AsyncResult;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemProperties;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.ServiceState;
 import android.text.BidiFormatter;
 import android.text.SpannableString;
 import android.text.TextDirectionHeuristics;
@@ -20,6 +22,11 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+
+import org.codeaurora.ims.QtiImsException;
+import org.codeaurora.ims.QtiImsExtListenerBaseImpl;
+import org.codeaurora.ims.QtiImsExtManager;
+import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 import static com.android.phone.TimeConsumingPreferenceActivity.RESPONSE_ERROR;
 import static com.android.phone.TimeConsumingPreferenceActivity.EXCEPTION_ERROR;
@@ -45,10 +52,23 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
     CallForwardInfo callForwardInfo;
     private TimeConsumingPreferenceListener mTcpListener;
 
+    boolean isTimerEnabled;
+    boolean mAllowSetCallFwding = false;
+    /*Variables which holds CFUT response data*/
+    private int mStartHour;
+    private int mStartMinute;
+    private int mEndHour;
+    private int mEndMinute;
+    private int mStatus;
+    private String mNumber;
+    private QtiImsExtManager mQtiImsExtManager;
+    private Context mContext;
+
     public CallForwardEditPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         mSummaryOnTemplate = this.getSummaryOn();
+        mContext = context;
 
         TypedArray a = context.obtainStyledAttributes(attrs,
                 R.styleable.CallForwardEditPreference, 0, R.style.EditPhoneNumberPreference);
@@ -68,17 +88,38 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         mServiceClass = serviceClass;
         mPhone = phone;
         mTcpListener = listener;
-
+        isTimerEnabled = isTimerEnabled();
+        Log.d(LOG_TAG, "isTimerEnabled="+isTimerEnabled);
         if (!skipReading) {
-            mPhone.getCallForwardingOption(reason, mServiceClass,
-                    mHandler.obtainMessage(MyHandler.MESSAGE_GET_CF,
-                            // unused in this case
-                            CommandsInterface.CF_ACTION_DISABLE,
-                            MyHandler.MESSAGE_GET_CF, null));
+            if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL && isTimerEnabled) {
+                setTimeSettingVisibility(true);
+                try {
+                    mQtiImsExtManager = new QtiImsExtManager(mContext);
+                    mQtiImsExtManager.getCallForwardUncondTimer(mPhone.getPhoneId(),
+                            reason,
+                            mServiceClass,
+                            imsInterfaceListener);
+                } catch (QtiImsException e){
+                    Log.d(LOG_TAG, "getCallForwardUncondTimer failed. Exception = " + e);
+                }
+            } else {
+                mPhone.getCallForwardingOption(reason, mServiceClass,
+                        mHandler.obtainMessage(MyHandler.MESSAGE_GET_CF,
+                        // unused in this case
+                        CommandsInterface.CF_ACTION_DISABLE,
+                        MyHandler.MESSAGE_GET_CF, null));
+            }
             if (mTcpListener != null) {
                 mTcpListener.onStarted(this, true);
             }
         }
+    }
+
+    private boolean isTimerEnabled() {
+        //Timer is enabled only when UT services are enabled
+        return (SystemProperties.getBoolean("persist.radio.ims.cmcc", false)
+                || getContext().getResources().getBoolean(R.bool.config_enable_cfu_time))
+                && mPhone.isUtEnabled();
     }
 
     @Override
@@ -108,16 +149,35 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                     CommandsInterface.CF_ACTION_DISABLE;
             int time = (reason != CommandsInterface.CF_REASON_NO_REPLY) ? 0 : 20;
             final String number = getPhoneNumber();
-
+            final int editStartHour = isAllDayChecked()? 0 : getStartTimeHour();
+            final int editStartMinute = isAllDayChecked()? 0 : getStartTimeMinute();
+            final int editEndHour = isAllDayChecked()? 0 : getEndTimeHour();
+            final int editEndMinute = isAllDayChecked()? 0 : getEndTimeMinute();
             if (DBG) Log.d(LOG_TAG, "callForwardInfo=" + callForwardInfo);
 
+            boolean isCFSettingChanged = true;
             if (action == CommandsInterface.CF_ACTION_REGISTRATION
                     && callForwardInfo != null
                     && callForwardInfo.status == 1
                     && number.equals(callForwardInfo.number)) {
-                // no change, do nothing
-                if (DBG) Log.d(LOG_TAG, "no change, do nothing");
-            } else {
+                if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL){
+                    // need to check if the time period for CFUT is changed
+                    if (isAllDayChecked()){
+                        isCFSettingChanged = isTimerValid();
+                    } else {
+                        isCFSettingChanged = mStartHour != editStartHour
+                                || mStartMinute != editStartMinute
+                                || mEndHour != editEndHour
+                                || mEndMinute != editEndMinute;
+                    }
+                } else {
+                    // no change, do nothing
+                    if (DBG) Log.d(LOG_TAG, "no change, do nothing");
+                    isCFSettingChanged = false;
+                }
+            }
+            if (DBG) Log.d(LOG_TAG, "isCFSettingChanged = " + isCFSettingChanged);
+            if (isCFSettingChanged) {
                 // set to network
                 if (DBG) Log.d(LOG_TAG, "reason=" + reason + ", action=" + action
                         + ", number=" + number);
@@ -128,7 +188,31 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
 
                 // the interface of Phone.setCallForwardingOption has error:
                 // should be action, reason...
-                mPhone.setCallForwardingOption(action,
+                if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL
+                        && !isAllDayChecked() && isTimerEnabled
+                        && (action != CommandsInterface.CF_ACTION_DISABLE)) {
+
+                    if (true) Log.d(LOG_TAG, "setCallForwardingUncondTimerOption,"
+                                                +"starthour = " + editStartHour
+                                                + "startminute = " + editStartMinute
+                                                + "endhour = " + editEndHour
+                                                + "endminute = " + editEndMinute);
+                    try {
+                        mQtiImsExtManager.setCallForwardUncondTimer(mPhone.getPhoneId(),
+                                editStartHour,
+                                editStartMinute,
+                                editEndHour,
+                                editEndMinute,
+                                action,
+                                reason,
+                                mServiceClass,
+                                number,
+                                imsInterfaceListener);
+                    } catch (QtiImsException e) {
+                        Log.d(LOG_TAG, "setCallForwardUncondTimer exception!" +e);
+                    }
+                } else {
+                    mPhone.setCallForwardingOption(action,
                         reason,
                         number,
                         mServiceClass,
@@ -136,7 +220,7 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                         mHandler.obtainMessage(MyHandler.MESSAGE_SET_CF,
                                 action,
                                 MyHandler.MESSAGE_SET_CF));
-
+                }
                 if (mTcpListener != null) {
                     mTcpListener.onStarted(this, false);
                 }
@@ -144,17 +228,39 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         }
     }
 
+    void handleCallForwardTimerResult() {
+        if (DBG) Log.d(LOG_TAG, "handleCallForwardTimerResult: ");
+        setToggled(mStatus == 1);
+        setPhoneNumber(mNumber);
+        /*Setting Timer*/
+        if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL) {
+            setAllDayCheckBox(!(mStatus == 1 && isTimerValid()));
+            //set timer info even all be zero
+            setPhoneNumberWithTimePeriod(mNumber, mStartHour, mStartMinute, mEndHour, mEndMinute);
+        }
+    }
+
     void handleCallForwardResult(CallForwardInfo cf) {
         callForwardInfo = cf;
         if (DBG) Log.d(LOG_TAG, "handleGetCFResponse done, callForwardInfo=" + callForwardInfo);
-
+        if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL) {
+            mStartHour = 0;
+            mStartMinute = 0;
+            mEndHour = 0;
+            mEndMinute = 0;
+        }
         setToggled(callForwardInfo.status == 1);
         setPhoneNumber(callForwardInfo.number);
     }
 
     private void updateSummaryText() {
+        if (DBG) Log.d(LOG_TAG, "updateSummaryText, complete fetching for reason " + reason);
         if (isToggled()) {
-            final String number = getRawPhoneNumber();
+            String number = getRawPhoneNumber();
+            if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL
+                    && isTimerEnabled && isTimerValid()){
+                number = getRawPhoneNumberWithTime();
+            }
             if (number != null && number.length() > 0) {
                 // Wrap the number to preserve presentation in RTL languages.
                 String wrappedNumber = BidiFormatter.getInstance().unicodeWrap(
@@ -173,6 +279,67 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
             }
         }
 
+    }
+
+    private QtiImsExtListenerBaseImpl imsInterfaceListener =
+            new QtiImsExtListenerBaseImpl() {
+
+        @Override
+        public void onSetCallForwardUncondTimer(int phoneId, int status) {
+            if (DBG) Log.d(LOG_TAG, "onSetCallForwardTimer phoneId=" + phoneId +" status= "+status);
+
+            try {
+                mAllowSetCallFwding = true;
+                mQtiImsExtManager.getCallForwardUncondTimer(phoneId,
+                        reason,
+                        mServiceClass,
+                        imsInterfaceListener);
+            } catch (QtiImsException e) {
+                if (DBG) Log.d(LOG_TAG, "setCallForwardUncondTimer exception! ");
+            }
+        }
+
+        @Override
+        public void onGetCallForwardUncondTimer(int phoneId, int startHour, int endHour,
+                int startMinute, int endMinute, int reason, int status, String number,
+                int service) {
+            Log.d(LOG_TAG,"onGetCallForwardUncondTimer phoneId=" + phoneId + " startHour= "
+                    + startHour + " endHour = " + endHour + "endMinute = " + endMinute
+                    + "status = " + status + "number = " + number + "service= " +service);
+            mStartHour = startHour;
+            mStartMinute = startMinute;
+            mEndHour = endHour;
+            mEndMinute = endMinute;
+            mStatus = status;
+            mNumber = number;
+
+            handleGetCFTimerResponse();
+        }
+
+        @Override
+        public void onUTReqFailed(int phoneId, int errCode, String errString) {
+            if (DBG) Log.d(LOG_TAG, "onUTReqFailed phoneId=" + phoneId + " errCode= "
+                    +errCode + "errString ="+ errString);
+            mTcpListener.onFinished(CallForwardEditPreference.this, true);
+            mTcpListener.onError(CallForwardEditPreference.this, RESPONSE_ERROR);
+        }
+    };
+
+    private void handleGetCFTimerResponse() {
+        if (DBG) Log.d(LOG_TAG, "handleGetCFTimerResponse: done");
+        if (mAllowSetCallFwding) {
+            mTcpListener.onFinished(CallForwardEditPreference.this, false);
+            mAllowSetCallFwding = false;
+        } else {
+            mTcpListener.onFinished(CallForwardEditPreference.this, true);
+        }
+        handleCallForwardTimerResult();
+        updateSummaryText();
+    }
+
+    //used to check if timer infor is valid
+    private boolean isTimerValid() {
+        return mStartHour != 0 || mStartMinute != 0 || mEndHour != 0 || mEndMinute != 0;
     }
 
     // Message protocol:

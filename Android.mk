@@ -24,7 +24,8 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
         android-support-v14-preference \
         ims-ext-common \
         guava \
-        volley
+        volley \
+        ims-ext-common
 
 LOCAL_SRC_FILES := $(call all-java-files-under, $(src_dirs))
 LOCAL_SRC_FILES += \

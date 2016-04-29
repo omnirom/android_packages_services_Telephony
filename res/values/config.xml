@@ -225,4 +225,6 @@
 
     <!-- The package name for the platform carrier config app, bundled with system image. -->
     <string name="platform_carrier_config_package" translatable="false">com.android.carrierconfig</string>
+    <!-- To disable/enable CallForwardUnconditional Timer -->
+    <bool name="config_enable_cfu_time">false</bool>
 </resources>
