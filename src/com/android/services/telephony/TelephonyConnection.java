@@ -1018,7 +1018,24 @@ abstract class TelephonyConnection extends Connection
         updateConnectionCapabilities();
         updateConnectionProperties();
         if (mOriginalConnection != null) {
-            Uri address = getAddressFromNumber(mOriginalConnection.getAddress());
+            Uri address;
+            boolean showOrigDialString = false;
+            Phone phone = getPhone();
+            if (phone != null && (phone.getPhoneType() == TelephonyManager.PHONE_TYPE_CDMA)
+                    && !mOriginalConnection.isIncoming()) {
+                CarrierConfigManager configManager = (CarrierConfigManager)phone.getContext().
+                        getSystemService(Context.CARRIER_CONFIG_SERVICE);
+                PersistableBundle pb = configManager.getConfigForSubId(phone.getSubId());
+                if (pb != null) {
+                    showOrigDialString = pb.getBoolean("config_show_orig_dial_string_for_cdma");
+                    Log.d(this, "showOrigDialString: " + showOrigDialString);
+                }
+            }
+            if (showOrigDialString) {
+                address = getAddressFromNumber(mOriginalConnection.getOrigDialString());
+            } else {
+                address = getAddressFromNumber(mOriginalConnection.getAddress());
+            }
             int presentation = mOriginalConnection.getNumberPresentation();
             if (!Objects.equals(address, getAddress()) ||
                     presentation != getAddressPresentation()) {
