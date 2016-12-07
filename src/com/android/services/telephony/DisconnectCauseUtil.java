@@ -128,6 +128,7 @@ public class DisconnectCauseUtil {
             case android.telephony.DisconnectCause.MAXIMUM_NUMBER_OF_CALLS_REACHED:
             case android.telephony.DisconnectCause.DATA_DISABLED:
             case android.telephony.DisconnectCause.DATA_LIMIT_REACHED:
+            case android.telephony.DisconnectCause.DIALED_ON_WRONG_SLOT:
                 return DisconnectCause.ERROR;
 
             case android.telephony.DisconnectCause.DIALED_MMI:
@@ -377,7 +378,7 @@ public class DisconnectCauseUtil {
                 break;
 
             case android.telephony.DisconnectCause.DATA_LIMIT_REACHED:
-                resourceId = R.string.callFailed_data_limit_reached;
+                resourceId = R.string.callFailed_data_limit_reached_description;
                 break;
 
             default:
