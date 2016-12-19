@@ -223,6 +223,9 @@ abstract class TelephonyConnection extends Connection {
                    break;
 
                 case MSG_SUPP_SERVICE_NOTIFY:
+                    if (getPhone() == null) {
+                        break;
+                    }
                     int phoneId = getPhone().getPhoneId();
                     Log.v(TelephonyConnection.this, "MSG_SUPP_SERVICE_NOTIFY on phoneId : "
                             +phoneId);
@@ -1023,16 +1026,24 @@ abstract class TelephonyConnection extends Connection {
         mOriginalConnectionExtras.clear();
         mOriginalConnection = originalConnection;
         mOriginalConnection.setTelecomCallId(getTelecomCallId());
-        getPhone().registerForPreciseCallStateChanged(
-                mHandler, MSG_PRECISE_CALL_STATE_CHANGED, null);
-        getPhone().registerForHandoverStateChanged(
-                mHandler, MSG_HANDOVER_STATE_CHANGED, null);
-        getPhone().registerForRingbackTone(mHandler, MSG_RINGBACK_TONE, null);
-        getPhone().registerForDisconnect(mHandler, MSG_DISCONNECT, null);
-        getPhone().registerForSuppServiceNotification(mHandler, MSG_SUPP_SERVICE_NOTIFY, null);
-        getPhone().registerForOnHoldTone(mHandler, MSG_ON_HOLD_TONE, null);
-        getPhone().registerForInCallVoicePrivacyOn(mHandler, MSG_CDMA_VOICE_PRIVACY_ON, null);
-        getPhone().registerForInCallVoicePrivacyOff(mHandler, MSG_CDMA_VOICE_PRIVACY_OFF, null);
+
+        if (getPhone() != null) {
+            getPhone().registerForPreciseCallStateChanged(mHandler,
+                    MSG_PRECISE_CALL_STATE_CHANGED, null);
+            getPhone().registerForHandoverStateChanged(mHandler,
+                    MSG_HANDOVER_STATE_CHANGED, null);
+            getPhone().registerForRingbackTone(mHandler, MSG_RINGBACK_TONE,
+                    null);
+            getPhone().registerForDisconnect(mHandler, MSG_DISCONNECT, null);
+            getPhone().registerForSuppServiceNotification(mHandler,
+                    MSG_SUPP_SERVICE_NOTIFY, null);
+            getPhone().registerForOnHoldTone(mHandler, MSG_ON_HOLD_TONE, null);
+            getPhone().registerForInCallVoicePrivacyOn(mHandler,
+                    MSG_CDMA_VOICE_PRIVACY_ON, null);
+            getPhone().registerForInCallVoicePrivacyOff(mHandler,
+                    MSG_CDMA_VOICE_PRIVACY_OFF, null);
+        }
+
         mOriginalConnection.addPostDialListener(mPostDialListener);
         mOriginalConnection.addListener(mOriginalConnectionListener);
 
@@ -1140,6 +1151,10 @@ abstract class TelephonyConnection extends Connection {
     }
 
     private boolean shouldSetDisableAddCallExtra() {
+        if (mOriginalConnection == null) {
+            return false;
+        }
+
         boolean carrierShouldAllowAddCall = mOriginalConnection.shouldAllowAddCallDuringVideoCall();
         if (carrierShouldAllowAddCall) {
             return false;
@@ -1907,7 +1922,8 @@ abstract class TelephonyConnection extends Connection {
 
     private void updateStatusHints() {
         boolean isIncoming = isValidRingingCall();
-        if (mIsWifi && (isIncoming || getState() == STATE_ACTIVE)) {
+        if (mIsWifi && (isIncoming || getState() == STATE_ACTIVE) &&
+                (getPhone() != null)) {
             int labelId = isIncoming
                     ? R.string.status_hint_label_incoming_wifi_call
                     : R.string.status_hint_label_wifi_call;
@@ -1992,6 +2008,10 @@ abstract class TelephonyConnection extends Connection {
     private void refreshConferenceSupported() {
         boolean isVideoCall = VideoProfile.isVideo(getVideoState());
         Phone phone = getPhone();
+        if (phone == null) {
+            return;
+        }
+
         boolean isIms = phone.getPhoneType() == PhoneConstants.PHONE_TYPE_IMS;
         boolean isVoWifiEnabled = false;
         if (isIms) {
