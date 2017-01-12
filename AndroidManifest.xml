@@ -73,6 +73,10 @@
     <protected-broadcast android:name= "com.android.intent.action.IMS_CONFIG_CHANGED" />
     <protected-broadcast android:name= "com.android.ims.REGISTRATION_ERROR" />
     <protected-broadcast android:name= "com.android.phone.vvm.omtp.sms.REQUEST_SENT" />
+    <protected-broadcast android:name= "org.codeaurora.VOIP_VOPS_SSAC_STATUS" />
+    <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_UICC_MANUAL_PROVISION_STATUS_CHANGED" />
+    <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_RADIO_CAPABILITY_UPDATED" />
+    <protected-broadcast android:name= "org.codeaurora.intent.action.SUBSCRIPTION_INFO_RECORD_ADDED" />
 
     <uses-permission android:name="android.permission.BROADCAST_STICKY" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
