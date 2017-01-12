@@ -221,4 +221,38 @@
 
     <!-- Whether the emergency only account can make emergency calls -->
     <bool name="config_pstnCanPlaceEmergencyCalls">true</bool>
+
+    <!-- To disable/enable CallForwardUnconditional Timer -->
+    <bool name="config_enable_cfu_time">false</bool>
+
+    <!-- Whether to set voicemail address editable-->
+    <bool name="config_regional_voicemail_address_editable">false</bool>
+
+    <!-- enable network checking for ut interface-->
+    <bool name="check_mobile_data_for_cf">false</bool>
+    <!-- Config to show/hide toast for ims srvcc -->
+    <bool name="config_show_srvcc_toast">false</bool>
+
+    <!-- Flag indicating if SIP settings ennbled -->
+    <bool name="sip_settings_on">true</bool>
+
+    <!-- If false, removes the X-Divert option from Call Settings -->
+    <bool name="config_xdivert_enable">true</bool>
+
+    <bool name="config_regional_ussd_hide_error_from_network_enable">false</bool>
+
+    <!-- the number which the video conference call max supported for TMO -->
+    <integer name="conference_call_max_participants_supported">4</integer>
+
+    <!-- Flag indicating whether to allow limit video confernece call max supported -->
+    <bool name="config_enable_video_conference_call_limit">false</bool>
+    <!-- To  show VMNotification always until user reads it-->
+    <bool name="config_show_vm_notification_always" translatable="false">false</bool>
+    <!-- Disable filter out conference host-->
+    <bool name="disable_filter_out_conference_host">false</bool>
+
+    <!-- Config to set Speed Dial to make an Emergency Call
+         This needs to be re designed as the same config is
+         used by Dialer also to make a speed dial from Dialer-->
+    <integer name="speed_dial_emergency_number_assigned_key">9</integer>
 </resources>

@@ -88,6 +88,7 @@ public class PhoneGlobals extends ContextWrapper {
     private static final boolean DBG =
             (PhoneGlobals.DBG_LEVEL >= 1) && (SystemProperties.getInt("ro.debuggable", 0) == 1);
     private static final boolean VDBG = (PhoneGlobals.DBG_LEVEL >= 2);
+    private static final String PROPERTY_AIRPLANE_MODE_ON = "persist.radio.airplane_mode_on";
 
     // Message codes; see mHandler below.
     private static final int EVENT_SIM_NETWORK_LOCKED = 3;
@@ -198,8 +199,9 @@ public class PhoneGlobals extends ContextWrapper {
                         // Normal case: show the "SIM network unlock" PIN entry screen.
                         // The user won't be able to do anything else until
                         // they enter a valid SIM network PIN.
+                        int subType = (Integer)((AsyncResult)msg.obj).result;
                         Log.i(LOG_TAG, "show sim depersonal panel");
-                        IccNetworkDepersonalizationPanel.showDialog();
+                        IccNetworkDepersonalizationPanel.showDialog(subType);
                     }
                     break;
 
@@ -355,6 +357,7 @@ public class PhoneGlobals extends ContextWrapper {
             intentFilter.addAction(TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED);
             intentFilter.addAction(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED);
             intentFilter.addAction(TelephonyIntents.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED);
+            intentFilter.addAction(TelephonyIntents.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED);
             registerReceiver(mReceiver, intentFilter);
 
             //set the default values for the preferences in the phone.
@@ -685,6 +688,7 @@ public class PhoneGlobals extends ContextWrapper {
             // emergency calls.  If there are, switch airplane mode back to off.
             if (PhoneUtils.isInEmergencyCall(mCM)) {
                 // Switch airplane mode back to off.
+                SystemProperties.set(PROPERTY_AIRPLANE_MODE_ON, "0");
                 ConnectivityManager.from(this).setAirplaneMode(false);
                 Toast.makeText(this, R.string.radio_off_during_emergency_call, Toast.LENGTH_LONG)
                         .show();
@@ -718,13 +722,14 @@ public class PhoneGlobals extends ContextWrapper {
                     airplaneMode = AIRPLANE_ON;
                 }
                 handleAirplaneModeChange(context, airplaneMode);
-            } else if (action.equals(TelephonyIntents.ACTION_ANY_DATA_CONNECTION_STATE_CHANGED)) {
+            } else if (action.equals(TelephonyIntents.ACTION_ANY_DATA_CONNECTION_STATE_CHANGED) ||
+                    action.equals(TelephonyIntents.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED)) {
                 int subId = intent.getIntExtra(PhoneConstants.SUBSCRIPTION_KEY,
                         SubscriptionManager.INVALID_SUBSCRIPTION_ID);
                 int phoneId = SubscriptionManager.getPhoneId(subId);
                 String state = intent.getStringExtra(PhoneConstants.STATE_KEY);
                 if (VDBG) {
-                    Log.d(LOG_TAG, "mReceiver: ACTION_ANY_DATA_CONNECTION_STATE_CHANGED");
+                    Log.d(LOG_TAG, "mReceiver: " + action);
                     Log.d(LOG_TAG, "- state: " + state);
                     Log.d(LOG_TAG, "- reason: "
                     + intent.getStringExtra(PhoneConstants.STATE_CHANGE_REASON_KEY));
@@ -736,12 +741,35 @@ public class PhoneGlobals extends ContextWrapper {
 
                 // The "data disconnected due to roaming" notification is shown
                 // if (a) you have the "data roaming" feature turned off, and
-                // (b) you just lost data connectivity because you're roaming.
-                boolean disconnectedDueToRoaming =
-                        !phone.getDataRoamingEnabled()
-                        && PhoneConstants.DataState.DISCONNECTED.equals(state)
+                // (b) your registered to roaming network and
+                // (c) you just lost data connectivity because you're roaming
+                //       OR
+                // (d) DDS was changed to a SIM card where (a) and (b) are true
+                boolean disconnectReasonRoaming =
+                        PhoneConstants.DataState.DISCONNECTED.name().equals(state)
                         && Phone.REASON_ROAMING_ON.equals(
                             intent.getStringExtra(PhoneConstants.STATE_CHANGE_REASON_KEY));
+                Phone ddsPhone = getPhone(SubscriptionManager.getDefaultDataSubscriptionId());
+                if (ddsPhone == null) ddsPhone = getPhone();
+                boolean isRoaming = ddsPhone.getServiceState().getDataRoaming();
+                boolean isRoamingDataEnabled = ddsPhone.getDataRoamingEnabled();
+                boolean isDdsSwitch = action.equals(
+                        TelephonyIntents.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED);
+
+                boolean disconnectedDueToRoaming = mDataDisconnectedDueToRoaming;
+                if ((disconnectReasonRoaming || isDdsSwitch)
+                        && !isRoamingDataEnabled && isRoaming) {
+                    disconnectedDueToRoaming = true;
+                } else if (!isRoaming || isRoamingDataEnabled) {
+                    // Dismiss pop up only if phone is not roaming or dataonroaming is enabled
+                    disconnectedDueToRoaming = false;
+                }
+
+                if (VDBG) Log.d(LOG_TAG, "isRoaming = " + isRoaming + " isRoamingDataEnabled = "
+                        + isRoamingDataEnabled + "disconnectReasonRoaming = "
+                        + disconnectReasonRoaming + " mDataDisconnectedDueToRoaming = "
+                        + mDataDisconnectedDueToRoaming);
+
                 if (mDataDisconnectedDueToRoaming != disconnectedDueToRoaming) {
                     mDataDisconnectedDueToRoaming = disconnectedDueToRoaming;
                     mHandler.sendEmptyMessage(disconnectedDueToRoaming
@@ -766,7 +794,7 @@ public class PhoneGlobals extends ContextWrapper {
                 handleServiceStateChanged(intent);
             } else if (action.equals(TelephonyIntents.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED)) {
                 int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY, 0);
-                phoneInEcm = getPhone(phoneId);
+                phoneInEcm = PhoneFactory.getPhone(phoneId);
                 Log.d(LOG_TAG, "Emergency Callback Mode. phoneId:" + phoneId);
                 if (phoneInEcm != null) {
                     if (TelephonyCapabilities.supportsEcm(phoneInEcm)) {

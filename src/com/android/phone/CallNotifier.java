@@ -21,6 +21,7 @@ import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.Connection;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.cdma.CdmaInformationRecords.CdmaDisplayInfoRec;
 import com.android.internal.telephony.cdma.CdmaInformationRecords.CdmaSignalInfoRec;
@@ -30,6 +31,9 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
+import android.content.BroadcastReceiver;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
@@ -71,9 +75,15 @@ public class CallNotifier extends Handler {
     /** The singleton instance. */
     private static CallNotifier sInstance;
 
+    private static final String ACTION_UICC_MANUAL_PROVISION_STATUS_CHANGED =
+            "org.codeaurora.intent.action.ACTION_UICC_MANUAL_PROVISION_STATUS_CHANGED";
+    private static final String EXTRA_NEW_PROVISION_STATE = "newProvisionState";
+    private static final int NOT_PROVISIONED = 0;
+
     private Map<Integer, CallNotifierPhoneStateListener> mPhoneStateListeners =
             new ArrayMap<Integer, CallNotifierPhoneStateListener>();
-
+    private Map<Integer, Boolean> mCFIStatus = new ArrayMap<Integer, Boolean>();
+    private Map<Integer, Boolean> mMWIStatus = new ArrayMap<Integer, Boolean>();
     private PhoneGlobals mApplication;
     private CallManager mCM;
     private BluetoothHeadset mBluetoothHeadset;
@@ -105,6 +115,34 @@ public class CallNotifier extends Handler {
     public static final int INTERNAL_SHOW_MESSAGE_NOTIFICATION_DONE = 22;
     // Other events from call manager
     public static final int EVENT_OTA_PROVISION_CHANGE = 20;
+
+    private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            Log.d(LOG_TAG, "Intent received: " + action);
+            if (ACTION_UICC_MANUAL_PROVISION_STATUS_CHANGED.equals(action)) {
+                int slotId = intent.getIntExtra(PhoneConstants.PHONE_KEY,
+                        SubscriptionManager.INVALID_SIM_SLOT_INDEX);
+                int newProvisionedState = intent.getIntExtra(EXTRA_NEW_PROVISION_STATE,
+                        NOT_PROVISIONED);
+                 Log.d(LOG_TAG, "Received ACTION_UICC_MANUAL_PROVISION_STATUS_CHANGED on slotId: "
+                         + slotId + " new sub state " + newProvisionedState);
+                int subId[] = SubscriptionController.getInstance().getSubIdUsingSlotId(slotId);
+                if (mCFIStatus.containsKey(subId[0]) && (mCFIStatus.get(subId[0]) == true) &&
+                    newProvisionedState == NOT_PROVISIONED) {
+                    Log.d(LOG_TAG, "SubId: for updateCfi" +subId[0]+" "+"NOT_PROVISIONED");
+                    mApplication.notificationMgr.updateCfi(subId[0], false);
+                }
+                if (mMWIStatus.containsKey(subId[0]) && (mMWIStatus.get(subId[0]) == true) &&
+                    newProvisionedState == NOT_PROVISIONED) {
+                    Log.d(LOG_TAG, "SubId: for updateMwi" +subId[0]+" "+"NOT_PROVISIONED");
+                    mApplication.notificationMgr.updateMwi(subId[0], false);
+                }
+
+            }
+        }
+    };
 
     /**
      * Initialize the singleton CallNotifier instance.
@@ -150,6 +188,8 @@ public class CallNotifier extends Handler {
                         updatePhoneStateListeners();
                     }
                 });
+        IntentFilter intentFilter = new IntentFilter(ACTION_UICC_MANUAL_PROVISION_STATUS_CHANGED);
+        mApplication.getApplicationContext().registerReceiver(mReceiver, intentFilter);
     }
 
     private void createSignalInfoToneGenerator() {
@@ -553,28 +593,69 @@ public class CallNotifier extends Handler {
     /**
      * Displays a notification when the phone receives a notice that a supplemental
      * service has failed.
-     * TODO: This is a NOOP if it isn't for conferences or resuming call failures right now.
      */
     private void onSuppServiceFailed(AsyncResult r) {
-        if (r.result != Phone.SuppService.CONFERENCE && r.result != Phone.SuppService.RESUME) {
-            if (DBG) log("onSuppServiceFailed: not a merge or resume failure event");
-            return;
-        }
-
-        String mergeFailedString = "";
-        if (r.result == Phone.SuppService.CONFERENCE) {
-            if (DBG) log("onSuppServiceFailed: displaying merge failure message");
-            mergeFailedString = mApplication.getResources().getString(
-                    R.string.incall_error_supp_service_conference);
-        } else if (r.result == Phone.SuppService.RESUME) {
-            if (DBG) log("onSuppServiceFailed: displaying merge failure message");
-            mergeFailedString = mApplication.getResources().getString(
+        Phone.SuppService service = (Phone.SuppService) r.result;
+        Log.d(LOG_TAG, "onSuppServiceFailed: " + service);
+        String errorMessageString;
+        switch (service) {
+            case SWITCH:
+            case RESUME:
+                // Attempt to switch foreground and background/incoming calls failed
+                // ("Failed to switch calls")
+                errorMessageString = mApplication.getResources().getString(
                     R.string.incall_error_supp_service_switch);
-        } else if (r.result == Phone.SuppService.HOLD) {
-            mergeFailedString = mApplication.getResources().getString(
+                break;
+
+            case SEPARATE:
+                // Attempt to separate a call from a conference call
+                // failed ("Failed to separate out call")
+                errorMessageString = mApplication.getResources().getString(
+                    R.string.incall_error_supp_service_separate);
+                break;
+
+            case TRANSFER:
+                // Attempt to connect foreground and background calls to
+                // each other (and hanging up user's line) failed ("Call
+                // transfer failed")
+                errorMessageString = mApplication.getResources().getString(
+                    R.string.incall_error_supp_service_transfer);
+                break;
+
+            case CONFERENCE:
+                // Attempt to add a call to conference call failed
+                // ("Conference call failed")
+                errorMessageString = mApplication.getResources().getString(
+                    R.string.incall_error_supp_service_conference);
+                break;
+
+            case REJECT:
+                // Attempt to reject an incoming call failed
+                // ("Call rejection failed")
+                errorMessageString = mApplication.getResources().getString(
+                    R.string.incall_error_supp_service_reject);
+                break;
+
+            case HANGUP:
+                // Attempt to release a call failed ("Failed to release call(s)")
+                errorMessageString = mApplication.getResources().getString(
+                    R.string.incall_error_supp_service_hangup);
+                break;
+
+            case HOLD:
+                errorMessageString = mApplication.getResources().getString(
                     R.string.incall_error_supp_service_hold);
+                break;
+
+            case UNKNOWN:
+            default:
+                // Attempt to use a service we don't recognize or support
+                // ("Unsupported service" or "Selected service failed")
+                errorMessageString = mApplication.getResources().getString(
+                    R.string.incall_error_supp_service_unknown);
+                break;
         }
-        PhoneDisplayMessage.displayErrorMessage(mApplication, mergeFailedString);
+        PhoneDisplayMessage.displayErrorMessage(mApplication, errorMessageString);
 
         // start a timer that kills the dialog
         sendEmptyMessageDelayed(INTERNAL_SHOW_MESSAGE_NOTIFICATION_DONE,
@@ -589,6 +670,7 @@ public class CallNotifier extends Handler {
         while (itr.hasNext()) {
             int subId = itr.next();
             if (subInfos == null || !containsSubId(subInfos, subId)) {
+                Log.d(LOG_TAG, "updatePhoneStateListeners: Hide the outstanding notifications.");
                 // Hide the outstanding notifications.
                 mApplication.notificationMgr.updateMwi(subId, false);
                 mApplication.notificationMgr.updateCfi(subId, false);
@@ -597,6 +679,15 @@ public class CallNotifier extends Handler {
                 mTelephonyManager.listen(
                         mPhoneStateListeners.get(subId), PhoneStateListener.LISTEN_NONE);
                 itr.remove();
+            } else {
+                Log.d(LOG_TAG, "updatePhoneStateListeners: update CF notifications.");
+
+                if (mCFIStatus.containsKey(subId)) {
+                    mApplication.notificationMgr.updateCfi(subId, mCFIStatus.get(subId));
+                }
+                if (mMWIStatus.containsKey(subId)) {
+                    mApplication.notificationMgr.updateMwi(subId, mMWIStatus.get(subId));
+                }
             }
         }
 
@@ -767,12 +858,14 @@ public class CallNotifier extends Handler {
         @Override
         public void onMessageWaitingIndicatorChanged(boolean visible) {
             if (VDBG) log("onMessageWaitingIndicatorChanged(): " + this.mSubId + " " + visible);
+            mMWIStatus.put(this.mSubId, visible);
             mApplication.notificationMgr.updateMwi(this.mSubId, visible);
         }
 
         @Override
         public void onCallForwardingIndicatorChanged(boolean visible) {
             if (VDBG) log("onCallForwardingIndicatorChanged(): " + this.mSubId + " " + visible);
+            mCFIStatus.put(this.mSubId, visible);
             mApplication.notificationMgr.updateCfi(this.mSubId, visible);
         }
     };

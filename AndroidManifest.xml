@@ -178,7 +178,9 @@
         <activity android:name="EmergencyDialer"
             android:label="@string/emergencyDialerIconLabel"
             android:theme="@style/EmergencyDialerTheme"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustNothing">
+
             <intent-filter>
                 <action android:name="com.android.phone.EmergencyDialer.DIAL" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -403,9 +405,19 @@
             </intent-filter>
         </activity>
 
+        <activity android:name="CallForwardType"
+                android:label="@string/call_forward_option"
+                android:configChanges="orientation|screenSize|keyboardHidden"
+                android:theme="@style/SettingsLight">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
+
         <!-- fdn setting -->
         <activity android:name="com.android.phone.settings.fdn.FdnSetting"
                 android:label="@string/fdn"
+                android:configChanges="orientation|keyboard|keyboardHidden|screenSize"
                 android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -584,6 +596,7 @@
         </activity>
 
         <activity android:name="com.android.phone.settings.VoicemailSettingsActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/voicemail"
             android:theme="@style/DialerSettingsLight">
             <intent-filter >
