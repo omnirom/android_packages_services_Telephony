@@ -113,9 +113,6 @@ public class NotificationMgr {
     // used to track whether the message waiting indicator is visible, per subscription id.
     private ArrayMap<Integer, Boolean> mMwiVisible = new ArrayMap<Integer, Boolean>();
 
-    private IExtTelephony mExtTelephony = IExtTelephony.Stub.
-            asInterface(ServiceManager.getService("extphone"));
-
     /**
      * Private constructor (this is a singleton).
      * @see #init(PhoneGlobals)
@@ -682,14 +679,20 @@ public class NotificationMgr {
                         serviceState + " new network " + networkSelection);
 
                 try {
-                    //get current provision state of the SIM.
-                    provisionStatus = mExtTelephony.getCurrentUiccCardProvisioningStatus(slotId);
+                    IExtTelephony mExtTelephony = IExtTelephony.Stub.
+                            asInterface(ServiceManager.getService("extphone"));
+                    Log.d("maxwen", "mExtTelephony=" + mExtTelephony);
+                    if (mExtTelephony != null) {
+                        //get current provision state of the SIM.
+                        provisionStatus = mExtTelephony.getCurrentUiccCardProvisioningStatus(slotId);
+                    } else {
+                        provisionStatus = PROVISIONED;
+                    }
                 } catch (RemoteException ex) {
                     provisionStatus = INVALID_STATE;
                     if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
-                } catch (NullPointerException ex) {
-                    provisionStatus = INVALID_STATE;
-                    if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
+                } catch (NoClassDefFoundError ex) {
+                    provisionStatus = PROVISIONED;
                 }
 
                 if (serviceState == ServiceState.STATE_OUT_OF_SERVICE
