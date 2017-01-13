@@ -714,16 +714,18 @@ public class NotificationMgr {
         int provisionStatus = INVALID_STATE;
         IExtTelephony mExtTelephony = IExtTelephony.Stub
                 .asInterface(ServiceManager.getService("extphone"));
-        int slotId = SubscriptionController.getInstance().getSlotIndex(subId);
-        try {
-            //get current provision state of the SIM.
-            provisionStatus = mExtTelephony.getCurrentUiccCardProvisioningStatus(slotId);
-        } catch (RemoteException ex) {
-            provisionStatus = INVALID_STATE;
-            if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
-        } catch (NullPointerException ex) {
-            provisionStatus = INVALID_STATE;
-            if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
+        if (mExtTelephony != null) {
+            int slotId = SubscriptionController.getInstance().getSlotIndex(subId);
+            try {
+                //get current provision state of the SIM.
+                provisionStatus = mExtTelephony.getCurrentUiccCardProvisioningStatus(slotId);
+            } catch (RemoteException ex) {
+                provisionStatus = INVALID_STATE;
+                if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
+            } catch (NullPointerException ex) {
+                provisionStatus = INVALID_STATE;
+                if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
+            }
         }
         return provisionStatus == PROVISIONED;
    }
