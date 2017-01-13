@@ -439,7 +439,8 @@
     <string name="notification_voicemail_no_vm_number" msgid="760963466895609716">"Неизвестен номер за гласова поща"</string>
     <string name="notification_network_selection_title" msgid="4224455487793492772">"Няма покритие"</string>
     <string name="notification_network_selection_text" msgid="2607085729661923269">"Избраната мрежа (<xliff:g id="OPERATOR_NAME">%s</xliff:g>) не е налична"</string>
-    <string name="incall_error_power_off" msgid="2947938060513306698">"Изключете самолетния режим, за да осъществите обаждане."</string>
+    <string name="incall_error_power_off" product="watch" msgid="772302793483607711">"Изключете самолетния режим или режима за запазване на батерията, за да се обадите."</string>
+    <string name="incall_error_power_off" product="default" msgid="2947938060513306698">"Изключете самолетния режим, за да осъществите обаждане."</string>
     <string name="incall_error_power_off_wfc" msgid="8711428920632416575">"Изключете самолетния режим или се свържете с безжична мрежа, за да осъществите обаждане."</string>
     <string name="incall_error_ecm_emergency_only" msgid="738708660612388692">"Излезте от режима на обратно обаждане при спешност, за да можете да извършвате обаждания, които не са спешни."</string>
     <string name="incall_error_emergency_only" msgid="4678640422710818317">"Няма регистрация в мрежата."</string>
@@ -572,6 +573,8 @@
     <string name="message_decode_error" msgid="3456481534066924855">"При декодирането на съобщението възникна грешка."</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"SIM картата е активирала клетъчните ви услуги и е актуализирала възможностите за роуминг на телефона ви."</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Активните обаждания са твърде много. Моля, завършете или обединете съществуващи обаждания, преди да започнете ново."</string>
+    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
+    <skip />
     <string name="change_pin_title" msgid="7790232089699034029">"Промяна на ПИН за гласовата поща"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Напред"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Отказ"</string>

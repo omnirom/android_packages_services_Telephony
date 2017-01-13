@@ -439,7 +439,8 @@
     <string name="notification_voicemail_no_vm_number" msgid="760963466895609716">"Talhólfsnúmer ekki þekkt"</string>
     <string name="notification_network_selection_title" msgid="4224455487793492772">"Ekkert símasamband"</string>
     <string name="notification_network_selection_text" msgid="2607085729661923269">"Valið símkerfi (<xliff:g id="OPERATOR_NAME">%s</xliff:g>) er ekki tiltækt"</string>
-    <string name="incall_error_power_off" msgid="2947938060513306698">"Slökktu á flugstillingu til að hringja."</string>
+    <string name="incall_error_power_off" product="watch" msgid="772302793483607711">"Slökktu á flugstillingu eða rafhlöðusparnaði til að hringja."</string>
+    <string name="incall_error_power_off" product="default" msgid="2947938060513306698">"Slökktu á flugstillingu til að hringja."</string>
     <string name="incall_error_power_off_wfc" msgid="8711428920632416575">"Slökktu á flugstillingu eða tengstu þráðlausu neti til að hringja."</string>
     <string name="incall_error_ecm_emergency_only" msgid="738708660612388692">"Hætta í stillingu fyrir svarhringingu neyðarsímtala til að hringja símtal sem ekki er neyðarsímtal."</string>
     <string name="incall_error_emergency_only" msgid="4678640422710818317">"Ekki skráð á símkerfi."</string>
@@ -572,6 +573,8 @@
     <string name="message_decode_error" msgid="3456481534066924855">"Villa kom upp við að afkóða skeytið."</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"SIM-kort hefur virkjað þjónustuna þína og uppfært reikigetu símans."</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Of mörg símtöl eru virk. Ljúktu eða sameinaðu fyrirliggjandi símtöl áður en þú hringir nýtt."</string>
+    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
+    <skip />
     <string name="change_pin_title" msgid="7790232089699034029">"Breyta PIN-númeri talhólfs"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Halda áfram"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Hætta við"</string>

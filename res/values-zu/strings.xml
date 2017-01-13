@@ -443,7 +443,8 @@
     <string name="notification_voicemail_no_vm_number" msgid="760963466895609716">"Inombolo yevoyisimeyili ayaziwa"</string>
     <string name="notification_network_selection_title" msgid="4224455487793492772">"Ayikho isevisi"</string>
     <string name="notification_network_selection_text" msgid="2607085729661923269">"Inethiwekhi ekhethiwe <xliff:g id="OPERATOR_NAME">%s</xliff:g> ayitholakali"</string>
-    <string name="incall_error_power_off" msgid="2947938060513306698">"Vala imodi yendiza ukuze wenze ikholi."</string>
+    <string name="incall_error_power_off" product="watch" msgid="772302793483607711">"Vala imodi yendiza noma imodi yokulondoloza ibhethri ukuze wenze ikholi."</string>
+    <string name="incall_error_power_off" product="default" msgid="2947938060513306698">"Vala imodi yendiza ukuze wenze ikholi."</string>
     <string name="incall_error_power_off_wfc" msgid="8711428920632416575">"Vala imodi yendiza noma xhumeka kunethiwekhi engenantambo ukuze wenze ikholi."</string>
     <string name="incall_error_ecm_emergency_only" msgid="738708660612388692">"Phuma kwimodi yokushayela emuva yesiko esiphuthumayo ukuze wenze ikholi yemodi engaphuthumi."</string>
     <string name="incall_error_emergency_only" msgid="4678640422710818317">"Ayibhalisiwe kwinethiwekhi."</string>
@@ -576,6 +577,8 @@
     <string name="message_decode_error" msgid="3456481534066924855">"Kube nephutha ngenkathi kukhishwa ikhodi kumlayezo."</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"Ikhadi le-SIM lenze kwasebenza isevisi yakho laphinde labuyekeza amakhono okuzula wefoni yakho."</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Kunamakholi amaningi asebenzayo. Sicela uphelise noma uhlanganise amakholi akhona ngaphambi kokubeka eyodwa."</string>
+    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
+    <skip />
     <string name="change_pin_title" msgid="7790232089699034029">"Shintsha IPHINI yevoyisimeyili"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Qhubeka"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Khansela"</string>

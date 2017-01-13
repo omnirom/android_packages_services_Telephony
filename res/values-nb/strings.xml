@@ -445,7 +445,8 @@
     <string name="notification_voicemail_no_vm_number" msgid="760963466895609716">"Mangler nummer til talepostkasse"</string>
     <string name="notification_network_selection_title" msgid="4224455487793492772">"Ingen tjeneste"</string>
     <string name="notification_network_selection_text" msgid="2607085729661923269">"Valgt nettverk (<xliff:g id="OPERATOR_NAME">%s</xliff:g>) er ikke tilgjengelig"</string>
-    <string name="incall_error_power_off" msgid="2947938060513306698">"Slå av flymodus for å ringe."</string>
+    <string name="incall_error_power_off" product="watch" msgid="772302793483607711">"Slå av flymodus eller batterisparing for å ringe."</string>
+    <string name="incall_error_power_off" product="default" msgid="2947938060513306698">"Slå av flymodus for å ringe."</string>
     <string name="incall_error_power_off_wfc" msgid="8711428920632416575">"Slå av flymodus eller koble til et trådløst nettverk for å ringe."</string>
     <string name="incall_error_ecm_emergency_only" msgid="738708660612388692">"Avslutt modusen for nødanrop for å gjøre et vanlig anrop."</string>
     <string name="incall_error_emergency_only" msgid="4678640422710818317">"Ikke registrert på nettverket."</string>
@@ -578,6 +579,8 @@
     <string name="message_decode_error" msgid="3456481534066924855">"Det oppsto en feil under dekoding av meldingen."</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"Et SIM-kort har aktivert tjenesten din og oppdatert roamingfunksjonene for telefonen din."</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Du har for mange aktive samtaler. Avslutt eller slå sammen eksisterende samtaler før du starter en ny samtale."</string>
+    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
+    <skip />
     <string name="change_pin_title" msgid="7790232089699034029">"Endre PIN-kode for talemeldinger"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Fortsett"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Avbryt"</string>

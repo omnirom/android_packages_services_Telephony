@@ -439,7 +439,8 @@
     <string name="notification_voicemail_no_vm_number" msgid="760963466895609716">"Nambari ya ujumbe wa sauti haijulikani."</string>
     <string name="notification_network_selection_title" msgid="4224455487793492772">"Hakuna huduma"</string>
     <string name="notification_network_selection_text" msgid="2607085729661923269">"Mtandao uliochaguliwa <xliff:g id="OPERATOR_NAME">%s</xliff:g> haupatikani"</string>
-    <string name="incall_error_power_off" msgid="2947938060513306698">"Zima hali ya ndegeni ili upige simu."</string>
+    <string name="incall_error_power_off" product="watch" msgid="772302793483607711">"Zima hali ya ndegeni au kiokoa betri ili upige simu."</string>
+    <string name="incall_error_power_off" product="default" msgid="2947938060513306698">"Zima hali ya ndegeni ili upige simu."</string>
     <string name="incall_error_power_off_wfc" msgid="8711428920632416575">"Zima hali ya ndegeni au uunganishe kwenye mtandao pasiwaya ili upige simu."</string>
     <string name="incall_error_ecm_emergency_only" msgid="738708660612388692">"Ondoka kwenye hali ya kupiga simu za dharura ili upige simu zisizokuwa za dharura."</string>
     <string name="incall_error_emergency_only" msgid="4678640422710818317">"Haijasajiliwa kwa mitandao"</string>
@@ -572,6 +573,8 @@
     <string name="message_decode_error" msgid="3456481534066924855">"Hitilafu imetokea wakati wa usimbuaji wa ujumbe."</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"SIM kadi yako imeanzisha huduma yako na kusasisha uwezo wa simu yako wa kutumia mitandao mingine."</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Kuna simu nyingi mno zinazoendelea. Tafadhali kata au uunganishe simu zinazoendelea kabla hujapiga nyingine."</string>
+    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
+    <skip />
     <string name="change_pin_title" msgid="7790232089699034029">"Badilisha PIN ya Ujumbe wa Sauti"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Endelea"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Ghairi"</string>

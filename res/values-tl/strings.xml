@@ -439,7 +439,8 @@
     <string name="notification_voicemail_no_vm_number" msgid="760963466895609716">"Hindi kilala ang numero ng voicemail"</string>
     <string name="notification_network_selection_title" msgid="4224455487793492772">"Walang serbisyo"</string>
     <string name="notification_network_selection_text" msgid="2607085729661923269">"Hindi available ang mga piniling network (<xliff:g id="OPERATOR_NAME">%s</xliff:g>)"</string>
-    <string name="incall_error_power_off" msgid="2947938060513306698">"I-off ang airplane mode upang makatawag."</string>
+    <string name="incall_error_power_off" product="watch" msgid="772302793483607711">"I-off ang airplane mode o battery saver mode upang tumawag."</string>
+    <string name="incall_error_power_off" product="default" msgid="2947938060513306698">"I-off ang airplane mode upang makatawag."</string>
     <string name="incall_error_power_off_wfc" msgid="8711428920632416575">"I-off ang airplane mode o kumonekta sa isang wireless network upang makatawag."</string>
     <string name="incall_error_ecm_emergency_only" msgid="738708660612388692">"Lumabas sa emergency callback mode upang makapagsagawa ng hindi pang-emergency na pagtawag."</string>
     <string name="incall_error_emergency_only" msgid="4678640422710818317">"Hindi nakarehistro sa network."</string>
@@ -572,6 +573,8 @@
     <string name="message_decode_error" msgid="3456481534066924855">"Nagkaroon ng error habang dine-decode ang mensahe."</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"Na-activate ng isang SIM card ang iyong serbisyo at na-update ang mga kakayahang roaming ng iyong telepono."</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Masyadong maraming aktibong tawag. Mangyaring tapusin o pagsamahin ang mga umiiral na tawag bago gumawa ng bago."</string>
+    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
+    <skip />
     <string name="change_pin_title" msgid="7790232089699034029">"Baguhin ang PIN sa Voicemail"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Magpatuloy"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Kanselahin"</string>
