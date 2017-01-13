@@ -91,8 +91,14 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
         SUCCESS
     }
 
-    private IExtTelephony mExtTelephony = IExtTelephony.Stub.
-            asInterface(ServiceManager.getService("extphone"));
+    private  IExtTelephony getIExtTelephony() {
+        try {
+            IExtTelephony ex = IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+            return ex;
+        } catch (NoClassDefFoundError ex) {
+            return null;
+        }
+    }
 
     /**
      * Shows the network depersonalization dialog, but only if it is not already visible.
@@ -253,17 +259,22 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
                 return;
             }
 
-            int persoState = mPersoSubState.getState();
-            log("Requesting De-Personalization for subtype " + mPersoSubtype
-                    + " subtype val " + persoState);
-
-            try {
-                mExtTelephony.supplyIccDepersonalization(pin, Integer.toString(persoState),
-                        mCallback, mPhone.getPhoneId());
-            } catch (RemoteException ex) {
-                log("RemoteException @supplyIccDepersonalization" + ex);
-            } catch (NullPointerException ex) {
-                log("NullPointerException @supplyIccDepersonalization" + ex);
+            IExtTelephony mExtTelephony = getIExtTelephony();
+            if (mExtTelephony != null) {
+                int persoState = mPersoSubState.getState();
+                log("Requesting De-Personalization for subtype " + mPersoSubtype
+                        + " subtype val " + persoState);
+                try {
+                    mExtTelephony.supplyIccDepersonalization(pin, Integer.toString(persoState),
+                            mCallback, mPhone.getPhoneId());
+                } catch (RemoteException ex) {
+                    log("RemoteException @supplyIccDepersonalization" + ex);
+                } catch (NullPointerException ex) {
+                    log("NullPointerException @supplyIccDepersonalization" + ex);
+                }
+            } else {
+                mPhone.getIccCard().supplyNetworkDepersonalization(pin,
+                        Message.obtain(mHandler, EVENT_ICC_NTWRK_DEPERSONALIZATION_RESULT));
             }
             displayStatus(statusType.IN_PROGRESS.name());
         }
