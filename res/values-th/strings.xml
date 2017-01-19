@@ -368,6 +368,8 @@
     <string name="menu_add" msgid="1882023737425114762">"เพิ่มรายชื่อติดต่อ"</string>
     <string name="menu_edit" msgid="7143003705504672374">"แก้ไขรายชื่อติดต่อ"</string>
     <string name="menu_delete" msgid="3977150783449642851">"ลบรายชื่อติดต่อ"</string>
+    <!-- no translation found for menu_dial (3223106222819685808) -->
+    <skip />
     <string name="get_pin2" msgid="8204677063922225311">"พิมพ์ PIN2"</string>
     <string name="name" msgid="7329028332786872378">"ชื่อ"</string>
     <string name="number" msgid="7905950798349903858">"หมายเลข"</string>
@@ -573,8 +575,7 @@
     <string name="message_decode_error" msgid="3456481534066924855">"เกิดข้อผิดพลาดขณะถอดรหัสข้อความ"</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"ซิมการ์ดได้เปิดใช้บริการของคุณและอัปเดตความสามารถในการโรมมิ่งของโทรศัพท์"</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"มีสายที่ใช้งานอยู่มากเกินไป โปรดวางสายหรือรวมสายที่มีก่อนโทรออกครั้งใหม่"</string>
-    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
-    <skip />
+    <string name="callFailed_imei_not_accepted" msgid="132192626901238542">"ไม่สามารถเชื่อมต่อ โปรดใส่ซิมการ์ดที่ถูกต้อง"</string>
     <string name="change_pin_title" msgid="7790232089699034029">"เปลี่ยน PIN ข้อความเสียง"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"ดำเนินการต่อ"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"ยกเลิก"</string>

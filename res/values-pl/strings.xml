@@ -368,6 +368,8 @@
     <string name="menu_add" msgid="1882023737425114762">"Dodaj kontakt"</string>
     <string name="menu_edit" msgid="7143003705504672374">"Edytuj kontakt"</string>
     <string name="menu_delete" msgid="3977150783449642851">"Usuń kontakt"</string>
+    <!-- no translation found for menu_dial (3223106222819685808) -->
+    <skip />
     <string name="get_pin2" msgid="8204677063922225311">"Wpisz PIN2"</string>
     <string name="name" msgid="7329028332786872378">"Nazwa"</string>
     <string name="number" msgid="7905950798349903858">"Numer"</string>
@@ -579,8 +581,7 @@
     <string name="message_decode_error" msgid="3456481534066924855">"Podczas dekodowania wiadomości wystąpił błąd."</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"Karta SIM aktywowała usługę i zaktualizowała funkcje roamingowe telefonu."</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Masz za dużo aktywnych połączeń. Scal lub zakończ istniejące połączenia, aby nawiązać nowe."</string>
-    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
-    <skip />
+    <string name="callFailed_imei_not_accepted" msgid="132192626901238542">"Nie udało się nawiązać połączenia. Włóż prawidłową kartę SIM."</string>
     <string name="change_pin_title" msgid="7790232089699034029">"Zmień kod PIN poczty głosowej"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Dalej"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Anuluj"</string>

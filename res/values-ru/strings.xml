@@ -370,6 +370,8 @@
     <string name="menu_add" msgid="1882023737425114762">"Добавить контакт"</string>
     <string name="menu_edit" msgid="7143003705504672374">"Изменить контакт"</string>
     <string name="menu_delete" msgid="3977150783449642851">"Удалить контакт"</string>
+    <!-- no translation found for menu_dial (3223106222819685808) -->
+    <skip />
     <string name="get_pin2" msgid="8204677063922225311">"Тип кода PIN2"</string>
     <string name="name" msgid="7329028332786872378">"Имя"</string>
     <string name="number" msgid="7905950798349903858">"Номер"</string>
@@ -581,8 +583,7 @@
     <string name="message_decode_error" msgid="3456481534066924855">"При расшифровке сообщения произошла ошибка."</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"В вашем телефоне уже настроен роуминг и активирована SIM-карта."</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Слишком много активных вызовов. Чтобы выполнить новый вызов, завершите или объедините существующие."</string>
-    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
-    <skip />
+    <string name="callFailed_imei_not_accepted" msgid="132192626901238542">"Ошибка подключения. Вставьте поддерживаемую SIM-карту."</string>
     <string name="change_pin_title" msgid="7790232089699034029">"Сменить PIN-код голосовой почты"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Продолжить"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Отмена"</string>

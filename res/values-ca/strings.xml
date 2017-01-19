@@ -368,6 +368,8 @@
     <string name="menu_add" msgid="1882023737425114762">"Afegeix un contacte"</string>
     <string name="menu_edit" msgid="7143003705504672374">"Edita el contacte"</string>
     <string name="menu_delete" msgid="3977150783449642851">"Suprimeix el contacte"</string>
+    <!-- no translation found for menu_dial (3223106222819685808) -->
+    <skip />
     <string name="get_pin2" msgid="8204677063922225311">"Escriu el PIN2"</string>
     <string name="name" msgid="7329028332786872378">"Nom"</string>
     <string name="number" msgid="7905950798349903858">"Número"</string>
@@ -573,8 +575,7 @@
     <string name="message_decode_error" msgid="3456481534066924855">"S\'ha produït un error en descodificar el missatge."</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"Una targeta SIM ha activat el servei, i s\'ha actualitzat la funció d\'itinerància del telèfon."</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Hi ha massa trucades actives. Finalitza\'n alguna o combina-les abans de fer-ne una de nova."</string>
-    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
-    <skip />
+    <string name="callFailed_imei_not_accepted" msgid="132192626901238542">"No es pot establir la connexió. Insereix una targeta SIM vàlida."</string>
     <string name="change_pin_title" msgid="7790232089699034029">"Canvia el PIN per a la bústia de veu"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Continua"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Cancel·la"</string>

@@ -368,6 +368,8 @@
     <string name="menu_add" msgid="1882023737425114762">"Προσθήκη επαφής"</string>
     <string name="menu_edit" msgid="7143003705504672374">"Επεξεργασία επαφής"</string>
     <string name="menu_delete" msgid="3977150783449642851">"Διαγραφή επαφής"</string>
+    <!-- no translation found for menu_dial (3223106222819685808) -->
+    <skip />
     <string name="get_pin2" msgid="8204677063922225311">"Τύπος PIN2"</string>
     <string name="name" msgid="7329028332786872378">"Όνομα"</string>
     <string name="number" msgid="7905950798349903858">"Αριθμός"</string>
@@ -573,8 +575,7 @@
     <string name="message_decode_error" msgid="3456481534066924855">"Παρουσιάστηκε κάποιο σφάλμα κατά την αποκωδικοποίηση του μηνύματος."</string>
     <string name="callFailed_cdma_activation" msgid="2307989779233262164">"Μια κάρτα SIM ενεργοποίησε την υπηρεσία σας και ενημέρωσε τις δυνατότητες περιαγωγής του τηλεφώνου σας."</string>
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Υπάρχουν πάρα πολλές ενεργές κλήσεις. Τερματίστε ή να συγχωνεύστε τις υπάρχουσες κλήσεις πριν πραγματοποιήσετε νέα."</string>
-    <!-- no translation found for callFailed_imei_not_accepted (132192626901238542) -->
-    <skip />
+    <string name="callFailed_imei_not_accepted" msgid="132192626901238542">"Δεν είναι δυνατή η σύνδεση. Τοποθετήστε μια έγκυρη κάρτα SIM."</string>
     <string name="change_pin_title" msgid="7790232089699034029">"Αλλαγή PIN αυτόματου τηλεφωνητή"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Συνέχεια"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Ακύρωση"</string>
