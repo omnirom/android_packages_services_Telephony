@@ -19,6 +19,7 @@ package com.android.phone;
 import static com.android.internal.telephony.PhoneConstants.SUBSCRIPTION_KEY;
 
 import android.Manifest.permission;
+import android.annotation.Nullable;
 import android.app.ActivityManager;
 import android.app.AppOpsManager;
 import android.app.PendingIntent;
@@ -68,6 +69,8 @@ import android.util.Pair;
 import android.util.Slog;
 
 import com.android.ims.ImsManager;
+import com.android.ims.internal.IImsServiceController;
+import com.android.ims.internal.IImsServiceFeatureListener;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.CellNetworkScanResult;
 import com.android.internal.telephony.CommandException;
@@ -90,10 +93,10 @@ import com.android.internal.telephony.uicc.UiccController;
 import com.android.internal.util.HexDump;
 import com.android.phone.settings.VisualVoicemailSettingsUtil;
 import com.android.phone.settings.VoicemailNotificationSettingsUtil;
+import com.android.phone.vvm.RemoteVvmTaskManager;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1680,6 +1683,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public void setCellInfoListRate(int rateInMillis) {
+        enforceModifyPermission();
         WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
         mPhone.setCellInfoListRate(rateInMillis, workSource);
     }
@@ -1968,6 +1972,17 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
+    public String getVisualVoicemailPackageName(String callingPackage,
+            @Nullable PhoneAccountHandle phoneAccountHandle) {
+        mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
+        if (!canReadPhoneState(callingPackage, "getVisualVoicemailPackageName")) {
+            return null;
+        }
+        int subId = PhoneUtils.getSubIdForPhoneAccountHandle(phoneAccountHandle);
+        return RemoteVvmTaskManager.getRemotePackage(mPhone.getContext(), subId).getPackageName();
+    }
+
+    @Override
     public void enableVisualVoicemailSmsFilter(String callingPackage, int subId,
             VisualVoicemailSmsFilterSettings settings) {
         mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
@@ -2002,7 +2017,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public void sendVisualVoicemailSmsForSubscriber(String callingPackage, int subId,
             String number, int port, String text, PendingIntent sentIntent) {
         mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
-        enforceDefaultDialer(callingPackage);
+        enforceVisualVoicemailPackage(callingPackage, subId);
         enforceSendSmsPermission();
         // Make the calls as the phone process.
         final long identity = Binder.clearCallingIdentity();
@@ -2038,6 +2053,40 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         } else {
             return 0;
         }
+    }
+
+    /**
+      * returns true, if the device is in a state where both voice and data
+      * are supported simultaneously. This can change based on location or network condition.
+     */
+    @Override
+    public boolean isConcurrentVoiceAndDataAllowed(int subId) {
+        final Phone phone = getPhone(subId);
+        return (phone == null ? false : phone.isConcurrentVoiceAndDataAllowed());
+    }
+
+    /**
+     * Send the dialer code if called from the current default dialer and the input code follows the
+     * format of *#*#<code>#*#*
+     * <p>
+     * Requires Permission:
+     *   {@link android.Manifest.permission#MODIFY_PHONE_STATE MODIFY_PHONE_STATE}
+     *
+     * @param inputCode The dialer code to send
+     * @return true if successfully sent, false otherwise
+     */
+    @Override
+    public boolean sendDialerCode(String callingPackage, String inputCode) {
+        enforceModifyPermission();
+        mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
+        if (TextUtils.equals(callingPackage,
+                TelecomManager.from(mPhone.getContext()).getDefaultDialerPackage())) {
+            final Phone phone = getPhone(getDefaultSubscription());
+            if (phone != null) {
+                return phone.sendDialerCode(inputCode);
+            }
+        }
+        return false;
     }
 
     /**
@@ -2413,6 +2462,19 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
 
         return mPhone.getPcscfAddress(apnType);
+    }
+
+    /**
+     * Returns the {@link IImsServiceController} that corresponds to the given slot Id and IMS
+     * feature or {@link null} if the service is not available. If an ImsServiceController is
+     * available, the {@link IImsServiceFeatureListener} callback is registered as a listener for
+     * feature updates.
+     */
+    public IImsServiceController getImsServiceControllerAndListen(int slotId, int feature,
+            IImsServiceFeatureListener callback) {
+        enforceModifyPermission();
+        return PhoneFactory.getImsResolver().getImsServiceControllerAndListen(slotId, feature,
+                callback);
     }
 
     public void setImsRegistrationState(boolean registered) {
@@ -3278,14 +3340,16 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /**
-     * Make sure called from the default dialer
+     * Make sure called from the package in charge of visual voicemail.
      *
-     * @throws SecurityException if the caller is not the default dialer
+     * @throws SecurityException if the caller is not the visual voicemail package.
      */
-    private void enforceDefaultDialer(String callingPackage) {
-        TelecomManager telecomManager = mPhone.getContext().getSystemService(TelecomManager.class);
-        if (!callingPackage.equals(telecomManager.getDefaultDialerPackage())) {
-            throw new SecurityException("Caller not default dialer.");
+    private void enforceVisualVoicemailPackage(String callingPackage, int subId) {
+        String vvmPackage = RemoteVvmTaskManager.getRemotePackage(mPhone.getContext(), subId)
+                .getPackageName();
+        if (!callingPackage.equals(vvmPackage)) {
+            throw new SecurityException("Caller not current active visual voicemail package[" +
+                    vvmPackage + "]");
         }
     }
 
