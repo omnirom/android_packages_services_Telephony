@@ -58,9 +58,9 @@
     <protected-broadcast android:name= "android.intent.action.stk.session_end" />
     <protected-broadcast android:name= "android.intent.action.stk.icc_status_change" />
     <protected-broadcast android:name= "android.intent.action.stk.alpha_notify" />
-    <protected-broadcast android:name= "android.intent.action.CARRIER_SIGNAL_REDIRECTED" />
-    <protected-broadcast android:name= "android.intent.action.CARRIER_SIGNAL_REQUEST_NETWORK_FAILED" />
-    <protected-broadcast android:name= "android.intent.action.CARRIER_SIGNAL_PCO_VALUE" />
+    <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_SIGNAL_REDIRECTED" />
+    <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_SIGNAL_REQUEST_NETWORK_FAILED" />
+    <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_SIGNAL_PCO_VALUE" />
     <protected-broadcast android:name= "android.intent.action.VOICEMAIL_SMS_RECEIVED" />
     <protected-broadcast android:name= "com.android.intent.isim_refresh" />
     <protected-broadcast android:name= "com.android.ims.IMS_SERVICE_UP" />
@@ -317,18 +317,6 @@
             </intent-filter>
         </receiver>
 
-        <!-- Trampoline activity that handles the PERFORM_CDMA_PROVISIONING intent. -->
-        <activity android:name="InCallScreenShowActivation"
-            android:permission="android.permission.PERFORM_CDMA_PROVISIONING"
-            android:label="@string/phoneIconLabel"
-            android:theme="@android:style/Theme.NoDisplay"
-            android:excludeFromRecents="true">
-            <intent-filter>
-                <action android:name="com.android.phone.PERFORM_CDMA_PROVISIONING" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
         <!-- "Mobile network settings" screen, used on both
              non-voice-capable tablets and regular phone devices. -->
         <activity android:name="MobileNetworkSettings"
@@ -451,15 +439,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Broadcast Receiver that will process BOOT Complete and launch OTA -->
-        <!-- TODO http://b/23526250 Handle OTASP under system user -->
-        <receiver android:name="OtaStartupReceiver" android:exported="false"
-                androidprv:systemUserOnly="true">
-            <intent-filter android:priority="100">
-                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
-            </intent-filter>
-        </receiver>
-
         <!-- Activation service that trigger OTASP sim provisioning -->
         <service android:name=".otasp.OtaspActivationService" android:launchMode="singleInstance"
                  androidprv:systemUserOnly="true">
@@ -468,7 +447,8 @@
             </intent-filter>
         </service>
 
-        <receiver android:name=".otasp.OtaspSimStateReceiver" android:exported ="false">
+        <receiver android:name=".otasp.OtaspSimStateReceiver" androidprv:systemUserOnly="true"
+                  android:exported ="false">
             <intent-filter>
                 <action android:name="android.telephony.action.CARRIER_CONFIG_CHANGED" />
             </intent-filter>
@@ -572,13 +552,6 @@
                 android:theme="@style/Empty">
         </activity>
 
-        <activity android:name="HfaActivity"
-                android:configChanges="orientation|screenSize|keyboardHidden"
-                android:launchMode="singleInstance"
-                android:theme="@style/Empty"
-                android:exported="false">
-        </activity>
-
         <activity android:name="com.android.phone.settings.PhoneAccountSettingsActivity"
             android:label="@string/phone_accounts"
             android:theme="@style/DialerSettingsLight">
@@ -602,9 +575,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-
-        <!-- service to dump telephony information -->
-        <service android:name="HfaService" android:exported="false"/>
 
         <!-- Telecom integration -->
         <service

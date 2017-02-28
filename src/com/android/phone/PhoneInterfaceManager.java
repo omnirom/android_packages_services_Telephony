@@ -3363,6 +3363,34 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /**
+     * Sets the per-account voicemail ringtone.
+     *
+     * <p>Requires that the calling app is the default dialer, or has carrier privileges, or
+     * has permission {@link android.Manifest.permission#MODIFY_PHONE_STATE MODIFY_PHONE_STATE}.
+     *
+     * @param phoneAccountHandle The handle for the {@link PhoneAccount} for which to set the
+     * voicemail ringtone.
+     * @param uri The URI for the ringtone to play when receiving a voicemail from a specific
+     * PhoneAccount.
+     */
+    @Override
+    public void setVoicemailRingtoneUri(String callingPackage,
+            PhoneAccountHandle phoneAccountHandle, Uri uri) {
+        mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
+        if (!TextUtils.equals(callingPackage,
+                TelecomManager.from(mPhone.getContext()).getDefaultDialerPackage())) {
+            enforceModifyPermissionOrCarrierPrivilege(
+                    PhoneUtils.getSubIdForPhoneAccountHandle(phoneAccountHandle));
+        }
+        Phone phone = PhoneUtils.getPhoneForPhoneAccountHandle(phoneAccountHandle);
+        if (phone == null){
+            throw new IllegalArgumentException("The phoneAccountHandle does not correspond to an "
+                    + "active phone account.");
+        }
+        VoicemailNotificationSettingsUtil.setRingtoneUri(phone, uri);
+    }
+
+    /**
      * Returns whether vibration is set for voicemail notification in Phone settings.
      *
      * @param accountHandle The handle for the {@link PhoneAccount} for which to retrieve the
@@ -3377,6 +3405,35 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
 
         return VoicemailNotificationSettingsUtil.isVibrationEnabled(phone);
+    }
+
+    /**
+     * Sets the per-account voicemail vibration.
+     *
+     * <p>Requires that the calling app is the default dialer, or has carrier privileges, or
+     * has permission {@link android.Manifest.permission#MODIFY_PHONE_STATE MODIFY_PHONE_STATE}.
+     *
+     * @param phoneAccountHandle The handle for the {@link PhoneAccount} for which to set the
+     * voicemail vibration setting.
+     * @param enabled Whether to enable or disable vibration for voicemail notifications from a
+     * specific PhoneAccount.
+     */
+    @Override
+    public void setVoicemailVibrationEnabled(String callingPackage,
+            PhoneAccountHandle phoneAccountHandle, boolean enabled) {
+        mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
+        if (!TextUtils.equals(callingPackage,
+                TelecomManager.from(mPhone.getContext()).getDefaultDialerPackage())) {
+            enforceModifyPermissionOrCarrierPrivilege(
+                    PhoneUtils.getSubIdForPhoneAccountHandle(phoneAccountHandle));
+        }
+
+        Phone phone = PhoneUtils.getPhoneForPhoneAccountHandle(phoneAccountHandle);
+        if (phone == null){
+            throw new IllegalArgumentException("The phoneAccountHandle does not correspond to an "
+                    + "active phone account.");
+        }
+        VoicemailNotificationSettingsUtil.setVibrationEnabled(phone, enabled);
     }
 
     /**
@@ -3503,6 +3560,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public int setAllowedCarriers(int slotId, List<CarrierIdentifier> carriers) {
         enforceModifyPermission();
         int subId = SubscriptionManager.getSubId(slotId)[0];
+        if (carriers == null) {
+            throw new NullPointerException("carriers cannot be null");
+        }
         int[] retVal = (int[]) sendRequest(CMD_SET_ALLOWED_CARRIERS, carriers, subId);
         return retVal[0];
     }
@@ -3648,5 +3708,21 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         String packageName = mPhone.getContext().getPackageManager().getNameForUid(uid);
         workSource = new WorkSource(uid, packageName);
         return workSource;
+    }
+
+    /**
+     * Set SIM card power state. Request is equivalent to inserting or removing the card.
+     *
+     * @param slotId SIM slot id.
+     * @param powerUp True if powering up the SIM, otherwise powering down
+     *
+     **/
+    @Override
+    public void setSimPowerStateForSlot(int slotId, boolean powerUp) {
+        enforceModifyPermission();
+        Phone phone = PhoneFactory.getPhone(slotId);
+        if (phone != null) {
+            phone.setSimPowerState(powerUp);
+        }
     }
 }
