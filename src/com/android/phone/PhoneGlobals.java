@@ -87,6 +87,7 @@ public class PhoneGlobals extends ContextWrapper {
     private static final boolean DBG =
             (PhoneGlobals.DBG_LEVEL >= 1) && (SystemProperties.getInt("ro.debuggable", 0) == 1);
     private static final boolean VDBG = (PhoneGlobals.DBG_LEVEL >= 2);
+    private static final String PROPERTY_AIRPLANE_MODE_ON = "persist.radio.airplane_mode_on";
 
     // Message codes; see mHandler below.
     private static final int EVENT_SIM_NETWORK_LOCKED = 3;
@@ -594,6 +595,7 @@ public class PhoneGlobals extends ContextWrapper {
         Settings.Global.putInt(context.getContentResolver(), Settings.Global.CELL_ON,
                  PhoneConstants.CELL_OFF_DUE_TO_AIRPLANE_MODE_FLAG);
         Settings.Global.putInt(getContentResolver(), Settings.Global.ENABLE_CELLULAR_ON_BOOT, 0);
+        SystemProperties.set(PROPERTY_AIRPLANE_MODE_ON, "1");
         PhoneUtils.setRadioPower(false);
     }
 
@@ -603,6 +605,7 @@ public class PhoneGlobals extends ContextWrapper {
                 PhoneConstants.CELL_ON_FLAG);
         Settings.Global.putInt(getContentResolver(), Settings.Global.ENABLE_CELLULAR_ON_BOOT,
                 1);
+        SystemProperties.set(PROPERTY_AIRPLANE_MODE_ON, "0");
         PhoneUtils.setRadioPower(true);
     }
 
