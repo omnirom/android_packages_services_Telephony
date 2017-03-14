@@ -24,6 +24,7 @@ import android.os.AsyncResult;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.UserManager;
 import android.preference.CheckBoxPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
@@ -38,6 +39,8 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.ListAdapter;
+import android.widget.Toast;
+
 import com.android.internal.telephony.CallForwardInfo;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
@@ -215,7 +218,14 @@ public class VoicemailSettingsActivity extends PreferenceActivity
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
-
+        // Make sure we are running as the primary user only
+        UserManager userManager = getApplicationContext().getSystemService(UserManager.class);
+        if (!userManager.isPrimaryUser()) {
+           Toast.makeText(this, R.string.voice_number_setting_primary_user_only,
+                   Toast.LENGTH_SHORT).show();
+           finish();
+           return;
+        }
         // Show the voicemail preference in onResume if the calling intent specifies the
         // ACTION_ADD_VOICEMAIL action.
         mShowVoicemailPreference = (icicle == null) &&
@@ -228,6 +238,7 @@ public class VoicemailSettingsActivity extends PreferenceActivity
         mPhoneAccountHandle = PhoneUtils.makePstnPhoneAccountHandle(mPhone);
         mOmtpVvmCarrierConfigHelper = new OmtpVvmCarrierConfigHelper(
                 mPhone.getContext(), mPhone.getSubId());
+        addPreferencesFromResource(R.xml.voicemail_settings);
     }
 
     @Override
@@ -235,18 +246,16 @@ public class VoicemailSettingsActivity extends PreferenceActivity
         super.onResume();
         mForeground = true;
 
-        PreferenceScreen preferenceScreen = getPreferenceScreen();
-        if (preferenceScreen != null) {
-            preferenceScreen.removeAll();
-        }
-
-        addPreferencesFromResource(R.xml.voicemail_settings);
-
         PreferenceScreen prefSet = getPreferenceScreen();
 
         if (mSubMenuVoicemailSettings == null) {
             mSubMenuVoicemailSettings =
                     (EditPhoneNumberPreference) findPreference(BUTTON_VOICEMAIL_KEY);
+        }
+        if (mSubMenuVoicemailSettings != null) {
+            mSubMenuVoicemailSettings.setParentActivity(this, VOICEMAIL_PREF_ID, this);
+            mSubMenuVoicemailSettings.setDialogOnClosedListener(this);
+            mSubMenuVoicemailSettings.setDialogTitle(R.string.voicemail_settings_number_label);
         }
 
         mVoicemailProviders = (VoicemailProviderListPreference) findPreference(
@@ -271,31 +280,33 @@ public class VoicemailSettingsActivity extends PreferenceActivity
         mVoicemailVisualVoicemail = (SwitchPreference) findPreference(
                 getResources().getString(R.string.voicemail_visual_voicemail_key));
 
-        mVoicemailChangePinPreference = findPreference(
+        mVoicemailChangePinPreference = prefSet.findPreference(
                 getResources().getString(R.string.voicemail_change_pin_key));
-        Intent changePinIntent = new Intent(new Intent(this, VoicemailChangePinActivity.class));
-        changePinIntent.putExtra(VoicemailChangePinActivity.EXTRA_PHONE_ACCOUNT_HANDLE,
-                mPhoneAccountHandle);
+        if (mVoicemailChangePinPreference != null) {
+            Intent changePinIntent = new Intent(new Intent(this, VoicemailChangePinActivity.class));
+            changePinIntent.putExtra(VoicemailChangePinActivity.EXTRA_PHONE_ACCOUNT_HANDLE,
+                    mPhoneAccountHandle);
 
-        mVoicemailChangePinPreference.setIntent(changePinIntent);
-        if (VoicemailChangePinActivity.isDefaultOldPinSet(this, mPhoneAccountHandle)) {
-            mVoicemailChangePinPreference.setTitle(R.string.voicemail_set_pin_dialog_title);
-        } else {
-            mVoicemailChangePinPreference.setTitle(R.string.voicemail_change_pin_dialog_title);
+            mVoicemailChangePinPreference.setIntent(changePinIntent);
+            if (VoicemailChangePinActivity.isDefaultOldPinSet(this, mPhoneAccountHandle)) {
+                mVoicemailChangePinPreference.setTitle(R.string.voicemail_set_pin_dialog_title);
+            } else {
+                mVoicemailChangePinPreference.setTitle(R.string.voicemail_change_pin_dialog_title);
+            }
         }
-
-        if (mOmtpVvmCarrierConfigHelper.isValid()) {
-            mVoicemailVisualVoicemail.setOnPreferenceChangeListener(this);
-            mVoicemailVisualVoicemail.setChecked(
-                    VisualVoicemailSettingsUtil.isEnabled(this, mPhoneAccountHandle));
-            if (!isVisualVoicemailActivated()) {
+        if (mVoicemailVisualVoicemail != null) {
+            if (mOmtpVvmCarrierConfigHelper.isValid()) {
+                mVoicemailVisualVoicemail.setOnPreferenceChangeListener(this);
+                mVoicemailVisualVoicemail.setChecked(
+                        VisualVoicemailSettingsUtil.isEnabled(this, mPhoneAccountHandle));
+                if (!isVisualVoicemailActivated()) {
+                    prefSet.removePreference(mVoicemailChangePinPreference);
+                }
+            } else {
+                prefSet.removePreference(mVoicemailVisualVoicemail);
                 prefSet.removePreference(mVoicemailChangePinPreference);
             }
-        } else {
-            prefSet.removePreference(mVoicemailVisualVoicemail);
-            prefSet.removePreference(mVoicemailChangePinPreference);
         }
-
         updateVMPreferenceWidgets(mVoicemailProviders.getValue());
 
         // check the intent that started this activity and pop up the voicemail

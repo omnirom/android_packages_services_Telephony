@@ -45,6 +45,7 @@
     <string name="no_vm_number" msgid="4164780423805688336">"음성사서함 번호 없음"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM 카드에 저장된 음성사서함 번호가 없습니다."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"번호 추가"</string>
+    <string name="voice_number_setting_primary_user_only" msgid="8437804852649016239">"기본 사용자만 음성메일 통화 설정을 변경할 수 있습니다."</string>
     <string name="puk_unlocked" msgid="2284912838477558454">"SIM 카드의 잠금이 해제되었습니다. 휴대전화의 잠금해제 중..."</string>
     <string name="label_ndp" msgid="780479633159517250">"SIM 네트워크 잠금해제 PIN"</string>
     <string name="sim_ndp_unlock_text" msgid="683628237760543009">"잠금해제"</string>
@@ -115,7 +116,7 @@
     <string name="labelCFNRc" msgid="2614827454402079766">"전화를 받을 수 없는 경우"</string>
     <string name="messageCFNRc" msgid="6380695421020295119">"전화를 받을 수 없는 경우 착신전환할 번호"</string>
     <string name="sum_cfnrc_enabled" msgid="7010898346095497421">"<xliff:g id="PHONENUMBER">{0}</xliff:g>(으)로 착신전환"</string>
-    <string name="sum_cfnrc_disabled" msgid="7222141261321276464">"사용 중지됨"</string>
+    <string name="sum_cfnrc_disabled" msgid="2684474391807469832">"사용 안함"</string>
     <string name="disable_cfnrc_forbidden" msgid="5646361343094064333">"이동통신사에서 전화를 받을 수 없을 때 착신전환 사용 중지를 지원하지 않습니다."</string>
     <string name="updating_title" msgid="6146755386174019046">"통화 설정"</string>
     <string name="call_settings_admin_user_only" msgid="4526094783818216374">"관리자만 통화 설정을 변경할 수 있습니다."</string>
@@ -383,7 +384,8 @@
     <string name="deleting_fdn_contact" msgid="5669163206349319969">"발신 허용 번호를 삭제하는 중..."</string>
     <string name="fdn_contact_deleted" msgid="7154162327112259569">"발신 허용 번호가 삭제되었습니다."</string>
     <string name="pin2_invalid" msgid="5470854099230755944">"잘못된 PIN을 입력하여 FDN 업데이트 안됨"</string>
-    <string name="fdn_invalid_number" msgid="1494755047900009147">"숫자가 20자리를 초과할 수 없으므로 FDN을 업데이트하지 못했습니다."</string>
+    <!-- no translation found for fdn_invalid_number (8602417141715473998) -->
+    <skip />
     <string name="pin2_or_fdn_invalid" msgid="6025144083384701197">"FDN이 업데이트되지 않았습니다. PIN2가 잘못되었거나 전화번호가 거부되었습니다."</string>
     <string name="fdn_failed" msgid="540018079008319747">"FDN 작업이 실패했습니다."</string>
     <string name="simContacts_emptyLoading" msgid="2203331234764498011">"SIM 카드에서 읽는 중..."</string>

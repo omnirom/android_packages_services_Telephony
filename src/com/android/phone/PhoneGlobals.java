@@ -336,7 +336,7 @@ public class PhoneGlobals extends ContextWrapper {
             registerReceiver(mReceiver, intentFilter);
 
             //set the default values for the preferences in the phone.
-            PreferenceManager.setDefaultValues(this, R.xml.network_setting, false);
+            PreferenceManager.setDefaultValues(this, R.xml.network_setting_fragment, false);
 
             PreferenceManager.setDefaultValues(this, R.xml.call_feature_setting, false);
 
@@ -695,7 +695,7 @@ public class PhoneGlobals extends ContextWrapper {
                 handleServiceStateChanged(intent);
             } else if (action.equals(TelephonyIntents.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED)) {
                 int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY, 0);
-                phoneInEcm = getPhone(phoneId);
+                phoneInEcm = PhoneFactory.getPhone(phoneId);
                 Log.d(LOG_TAG, "Emergency Callback Mode. phoneId:" + phoneId);
                 if (phoneInEcm != null) {
                     if (TelephonyCapabilities.supportsEcm(phoneInEcm)) {
