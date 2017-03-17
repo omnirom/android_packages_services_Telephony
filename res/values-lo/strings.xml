@@ -45,6 +45,7 @@
     <string name="no_vm_number" msgid="4164780423805688336">"ບໍ່ມີເບີຂໍ້ຄວາມສຽງ"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"ບໍ່ມີເບີຂໍ້ຄວາມສຽງຖືກບັນທຶກໃນ SIM card."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"ເພີ່ມໝາຍເລກ"</string>
+    <string name="voice_number_setting_primary_user_only" msgid="8437804852649016239">"ຂໍ້ຄວາມສຽງສຳລັບການຕັ້ງຄ່າການໂທສາມາດປ່ຽນໄດ້ໂດຍຜູ້ໃຊ້ຫຼັກເທົ່ານັ້ນ."</string>
     <string name="puk_unlocked" msgid="2284912838477558454">"ຍົກເລີກການປິດກັ້ນ SIM card ຂອງທ່ານແລ້ວ. ໂທລະສັບຂອງທ່ານກຳລັງຖືກປົດລັອກ..."</string>
     <string name="label_ndp" msgid="780479633159517250">"PIN ປົດລັອກເຄືອຂ່າຍ SIM"</string>
     <string name="sim_ndp_unlock_text" msgid="683628237760543009">"ປົດລັອກ"</string>
@@ -115,7 +116,7 @@
     <string name="labelCFNRc" msgid="2614827454402079766">"ເມື່ອ​ບໍ່​ສາ​ມາດ​ຕິດ​ຕໍ່ໄດ້"</string>
     <string name="messageCFNRc" msgid="6380695421020295119">"ເບີໂທເມື່ອຕິດຕໍ່ບໍ່ໄດ້"</string>
     <string name="sum_cfnrc_enabled" msgid="7010898346095497421">"ໂອນສາຍໄປໃຫ້ <xliff:g id="PHONENUMBER">{0}</xliff:g>"</string>
-    <string name="sum_cfnrc_disabled" msgid="7222141261321276464">"ປິດການນຳໃຊ້ແລ້ວ"</string>
+    <string name="sum_cfnrc_disabled" msgid="2684474391807469832">"ປິດ"</string>
     <string name="disable_cfnrc_forbidden" msgid="5646361343094064333">"ຜູ່ໃຫ້ບໍລິການຂອງທ່ານ ບໍ່ຮອງຮັບການປິດການໂອນສາຍ ເມື່ອໂທລະສັບຂອງທ່ານບໍ່ມີສັນຍານ."</string>
     <string name="updating_title" msgid="6146755386174019046">"ການຕັ້ງຄ່າການໂທ"</string>
     <string name="call_settings_admin_user_only" msgid="4526094783818216374">"ມີ​ແຕ່​ຜູ້​ໃຊ້​ທີ່​ເປັນ​ຜູ້ດູແລລະບົບ​ເທົ່າ​ນັ້ນ​ທີ່​ສາ​ມາດ​ປ່ຽນການ​ຕັ້ງ​ຄ່າ​ການ​ໂທ​ໄດ້."</string>
@@ -383,7 +384,7 @@
     <string name="deleting_fdn_contact" msgid="5669163206349319969">"ກຳລັງລຶບເບີໂທຈຳກັດການໂທອອກ..."</string>
     <string name="fdn_contact_deleted" msgid="7154162327112259569">"ລຶບໝາຍເລກຈຳກັດການໂທອອກແລ້ວ."</string>
     <string name="pin2_invalid" msgid="5470854099230755944">"FDN ບໍ່ໄດ້ອັບເດດເທື່ອ ເນື່ອງຈາກທ່ານໃສ່ລະຫັດ PIN ບໍ່ຖືກຕ້ອງ."</string>
-    <string name="fdn_invalid_number" msgid="1494755047900009147">"FDN ບໍ່ໄດ້ອັບເດດເທື່ອ ເນື່ອງຈາກໂຕເລກບໍ່ສາມາດມີເກີນ 20​ ໂຕໄດ້."</string>
+    <string name="fdn_invalid_number" msgid="8602417141715473998">"ບໍ່ໄດ້ອັບເດດ FDN ເນື່ອງຈາກຈຳນວນຫວ່າງເປົ່າ ຫຼື ເກີນ 20 ຕົວເລກ."</string>
     <string name="pin2_or_fdn_invalid" msgid="6025144083384701197">"FDN ບໍ່ໄດ້ອັບເດດເທື່ອ. ລະຫັດ PIN2 ບໍ່ຖືກຕ້ອງ ຫຼືເບີໂທລະສັບຖືກປະຕິເສດ."</string>
     <string name="fdn_failed" msgid="540018079008319747">"FDN ເຮັດວຽກລົ້ມເຫຼວ!"</string>
     <string name="simContacts_emptyLoading" msgid="2203331234764498011">"ກຳລັງອ່ານຈາກ SIM card..."</string>

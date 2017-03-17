@@ -80,6 +80,7 @@ import com.android.internal.telephony.IccCard;
 import com.android.internal.telephony.MccTable;
 import com.android.internal.telephony.OperatorInfo;
 import com.android.internal.telephony.Phone;
+import com.android.internal.telephony.PhoneConstantConversions;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.ProxyController;
@@ -88,7 +89,9 @@ import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.uicc.IccIoResult;
 import com.android.internal.telephony.uicc.IccUtils;
+import com.android.internal.telephony.uicc.SIMRecords;
 import com.android.internal.telephony.uicc.UiccCard;
+import com.android.internal.telephony.uicc.UiccCardApplication;
 import com.android.internal.telephony.uicc.UiccController;
 import com.android.internal.util.HexDump;
 import com.android.phone.settings.VisualVoicemailSettingsUtil;
@@ -160,6 +163,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private static final int CMD_GET_ALLOWED_CARRIERS = 45;
     private static final int EVENT_GET_ALLOWED_CARRIERS_DONE = 46;
     private static final int CMD_HANDLE_USSD_REQUEST = 47;
+    private static final int CMD_GET_FORBIDDEN_PLMNS = 48;
+    private static final int EVENT_GET_FORBIDDEN_PLMNS_DONE = 49;
 
     /** The singleton instance. */
     private static PhoneInterfaceManager sInstance;
@@ -860,6 +865,56 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     }
                     break;
 
+                case EVENT_GET_FORBIDDEN_PLMNS_DONE:
+                    ar = (AsyncResult) msg.obj;
+                    request = (MainThreadRequest) ar.userObj;
+                    if (ar.exception == null && ar.result != null) {
+                        request.result = ar.result;
+                    } else {
+                        request.result = new IllegalArgumentException(
+                                "Failed to retrieve Forbidden Plmns");
+                        if (ar.result == null) {
+                            loge("getForbiddenPlmns: Empty response");
+                        } else {
+                            loge("getForbiddenPlmns: Unknown exception");
+                        }
+                    }
+                    synchronized (request) {
+                        request.notifyAll();
+                    }
+                    break;
+
+                case CMD_GET_FORBIDDEN_PLMNS:
+                    request = (MainThreadRequest) msg.obj;
+                    uiccCard = getUiccCardFromRequest(request);
+                    if (uiccCard == null) {
+                        loge("getForbiddenPlmns() UiccCard is null");
+                        request.result = new IllegalArgumentException(
+                                "getForbiddenPlmns() UiccCard is null");
+                        synchronized (request) {
+                            request.notifyAll();
+                        }
+                        break;
+                    }
+                    Integer appType = (Integer) request.argument;
+                    UiccCardApplication uiccApp = uiccCard.getApplicationByType(appType);
+                    if (uiccApp == null) {
+                        loge("getForbiddenPlmns() no app with specified type -- "
+                                + appType);
+                        request.result = new IllegalArgumentException("Failed to get UICC App");
+                        synchronized (request) {
+                            request.notifyAll();
+                        }
+                        break;
+                    } else {
+                        if (DBG) logv("getForbiddenPlmns() found app " + uiccApp.getAid()
+                                + " specified type -- " + appType);
+                    }
+                    onCompleted = obtainMessage(EVENT_GET_FORBIDDEN_PLMNS_DONE, request);
+                    ((SIMRecords) uiccApp.getIccRecords()).getForbiddenPlmns(
+                              onCompleted);
+                    break;
+
                 default:
                     Log.w(LOG_TAG, "MainThreadHandler: unexpected message code: " + msg.what);
                     break;
@@ -1521,16 +1576,16 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public int getCallStateForSlot(int slotId) {
         Phone phone = PhoneFactory.getPhone(slotId);
         return phone == null ? TelephonyManager.CALL_STATE_IDLE :
-            DefaultPhoneNotifier.convertCallState(phone.getState());
+            PhoneConstantConversions.convertCallState(phone.getState());
     }
 
     @Override
     public int getDataState() {
         Phone phone = getPhone(mSubscriptionController.getDefaultDataSubId());
         if (phone != null) {
-            return DefaultPhoneNotifier.convertDataState(phone.getDataConnectionState());
+            return PhoneConstantConversions.convertDataState(phone.getDataConnectionState());
         } else {
-            return DefaultPhoneNotifier.convertDataState(PhoneConstants.DataState.DISCONNECTED);
+            return PhoneConstantConversions.convertDataState(PhoneConstants.DataState.DISCONNECTED);
         }
     }
 
@@ -1972,13 +2027,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public String getVisualVoicemailPackageName(String callingPackage,
-            @Nullable PhoneAccountHandle phoneAccountHandle) {
+    public String getVisualVoicemailPackageName(String callingPackage, int subId) {
         mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
         if (!canReadPhoneState(callingPackage, "getVisualVoicemailPackageName")) {
             return null;
         }
-        int subId = PhoneUtils.getSubIdForPhoneAccountHandle(phoneAccountHandle);
         return RemoteVvmTaskManager.getRemotePackage(mPhone.getContext(), subId).getPackageName();
     }
 
@@ -2423,6 +2476,26 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         result[length - 1] = (byte) response.sw2;
         result[length - 2] = (byte) response.sw1;
         return result;
+    }
+
+    /**
+     * Get the forbidden PLMN List from the given app type (ex APPTYPE_USIM)
+     * on a particular subscription
+     */
+    public String[] getForbiddenPlmns(int subId, int appType) {
+        mApp.enforceCallingOrSelfPermission(android.Manifest.permission.READ_PRIVILEGED_PHONE_STATE,
+                "Requires READ_PRIVILEGED_PHONE_STATE");
+        if (appType != TelephonyManager.APPTYPE_USIM && appType != TelephonyManager.APPTYPE_SIM) {
+            loge("getForbiddenPlmnList(): App Type must be USIM or SIM");
+            return null;
+        }
+        Object response = sendRequest(
+            CMD_GET_FORBIDDEN_PLMNS, new Integer(appType), subId);
+        if (response instanceof String[]) {
+            return (String[]) response;
+        }
+        // Response is an Exception of some kind, which is signalled to the user as a NULL retval
+        return null;
     }
 
     @Override
@@ -2986,6 +3059,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
+    @Deprecated
     public int invokeOemRilRequestRaw(byte[] oemReq, byte[] oemResp) {
         enforceModifyPermission();
 
@@ -3463,8 +3537,12 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @throws SecurityException if the caller is not the visual voicemail package.
      */
     private void enforceVisualVoicemailPackage(String callingPackage, int subId) {
-        String vvmPackage = RemoteVvmTaskManager.getRemotePackage(mPhone.getContext(), subId)
-                .getPackageName();
+        ComponentName componentName =
+                RemoteVvmTaskManager.getRemotePackage(mPhone.getContext(), subId);
+        if(componentName == null) {
+            throw new SecurityException("Caller not current active visual voicemail package[null]");
+        }
+        String vvmPackage = componentName.getPackageName();
         if (!callingPackage.equals(vvmPackage)) {
             throw new SecurityException("Caller not current active visual voicemail package[" +
                     vvmPackage + "]");

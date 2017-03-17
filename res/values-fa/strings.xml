@@ -45,6 +45,7 @@
     <string name="no_vm_number" msgid="4164780423805688336">"عدم وجود شماره پست صوتی"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"شماره پست صوتی در سیم کارت ذخیره نشده است."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"افزودن شماره"</string>
+    <string name="voice_number_setting_primary_user_only" msgid="8437804852649016239">"فقط کاربر اصلی می‌تواند تنظیمات پست صوتی را در تنظیمات تماس تغییر دهد."</string>
     <string name="puk_unlocked" msgid="2284912838477558454">"قفل سیم کارت شما باز شده است. قفل گوشی در حال باز شدن است..."</string>
     <string name="label_ndp" msgid="780479633159517250">"پین بازگشایی قفل شبکه سیم"</string>
     <string name="sim_ndp_unlock_text" msgid="683628237760543009">"بازگشایی قفل"</string>
@@ -115,7 +116,7 @@
     <string name="labelCFNRc" msgid="2614827454402079766">"هنگامی که در دسترس نیست"</string>
     <string name="messageCFNRc" msgid="6380695421020295119">"شماره در صورت عدم دسترسی"</string>
     <string name="sum_cfnrc_enabled" msgid="7010898346095497421">"هدایت به <xliff:g id="PHONENUMBER">{0}</xliff:g>"</string>
-    <string name="sum_cfnrc_disabled" msgid="7222141261321276464">"غیر فعال شد"</string>
+    <string name="sum_cfnrc_disabled" msgid="2684474391807469832">"خاموش"</string>
     <string name="disable_cfnrc_forbidden" msgid="5646361343094064333">"شرکت مخابراتی شما از غیرفعال کردن هدایت تماس هنگامی که تلفن شما در دسترس نیست پشتیبانی نمی‌کند."</string>
     <string name="updating_title" msgid="6146755386174019046">"تنظیمات تماس"</string>
     <string name="call_settings_admin_user_only" msgid="4526094783818216374">"فقط کاربر سرپرست می‌تواند تنظیمات تماس را تغییر دهد."</string>
@@ -383,7 +384,8 @@
     <string name="deleting_fdn_contact" msgid="5669163206349319969">"در حال حذف شماره شماره گیری ثابت..."</string>
     <string name="fdn_contact_deleted" msgid="7154162327112259569">"شماره شماره گیری ثابت حذف شد."</string>
     <string name="pin2_invalid" msgid="5470854099230755944">"‏FDN به‌روز نشد زیرا یک پین نادرست تایپ کردید."</string>
-    <string name="fdn_invalid_number" msgid="1494755047900009147">"‏FDN به‌روزرسانی نشد زیرا شماره نمی‌تواند بیشتر از 20 رقم باشد."</string>
+    <!-- no translation found for fdn_invalid_number (8602417141715473998) -->
+    <skip />
     <string name="pin2_or_fdn_invalid" msgid="6025144083384701197">"‏FDN به‌روز نشد. پین۲ اشتباه بود یا شماره تلفن رد شد."</string>
     <string name="fdn_failed" msgid="540018079008319747">"‏عملیات FDN ناموفق بود."</string>
     <string name="simContacts_emptyLoading" msgid="2203331234764498011">"در حال خواندن سیم کارت..."</string>
