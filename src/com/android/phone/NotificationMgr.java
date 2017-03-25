@@ -53,6 +53,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.android.internal.telephony.Phone;
+import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.phone.settings.VoicemailNotificationSettingsUtil;
 import com.android.phone.settings.VoicemailSettingsActivity;
@@ -279,6 +280,10 @@ public class NotificationMgr {
             }
 
             int resId = android.R.drawable.stat_notify_voicemail;
+            if (mTelephonyManager.getPhoneCount() > 1) {
+                resId = (phone.getPhoneId() == 0) ? R.drawable.stat_notify_voicemail_sub1
+                        : R.drawable.stat_notify_voicemail_sub2;
+            }
 
             // This Notification can get a lot fancier once we have more
             // information about the current voicemail messages.
@@ -506,14 +511,18 @@ public class NotificationMgr {
             }
 
             String notificationTitle;
+            int resId = R.drawable.stat_sys_phone_call_forward;
             if (mTelephonyManager.getPhoneCount() > 1) {
+                int mSlotId = SubscriptionController.getInstance().getSlotId(subId);
+                resId = (mSlotId == 0) ? R.drawable.stat_sys_phone_call_forward_sub1
+                                : R.drawable.stat_sys_phone_call_forward_sub2;
                 notificationTitle = subInfo.getDisplayName().toString();
             } else {
                 notificationTitle = mContext.getString(R.string.labelCF);
             }
 
             Notification.Builder builder = new Notification.Builder(mContext)
-                    .setSmallIcon(R.drawable.stat_sys_phone_call_forward)
+                    .setSmallIcon(resId)
                     .setColor(subInfo.getIconTint())
                     .setContentTitle(notificationTitle)
                     .setContentText(mContext.getString(R.string.sum_cfu_enabled_indicator))
@@ -543,10 +552,18 @@ public class NotificationMgr {
                         userHandle);
             }
         } else {
-            mNotificationManager.cancelAsUser(
-                    Integer.toString(subId) /* tag */,
-                    CALL_FORWARD_NOTIFICATION,
-                    UserHandle.ALL);
+            List<UserInfo> users = mUserManager.getUsers(true);
+            for (int i = 0; i < users.size(); i++) {
+                final UserInfo user = users.get(i);
+                if (user.isManagedProfile()) {
+                    continue;
+                }
+                UserHandle userHandle = user.getUserHandle();
+                mNotificationManager.cancelAsUser(
+                        Integer.toString(subId) /* tag */,
+                        CALL_FORWARD_NOTIFICATION,
+                        userHandle);
+            }
         }
     }
 
