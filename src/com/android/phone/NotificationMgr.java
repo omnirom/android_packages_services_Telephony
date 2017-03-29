@@ -513,7 +513,7 @@ public class NotificationMgr {
             String notificationTitle;
             int resId = R.drawable.stat_sys_phone_call_forward;
             if (mTelephonyManager.getPhoneCount() > 1) {
-                int mSlotId = SubscriptionController.getInstance().getSlotId(subId);
+                int mSlotId = SubscriptionController.getInstance().getSlotIndex(subId);
                 resId = (mSlotId == 0) ? R.drawable.stat_sys_phone_call_forward_sub1
                                 : R.drawable.stat_sys_phone_call_forward_sub2;
                 notificationTitle = subInfo.getDisplayName().toString();
