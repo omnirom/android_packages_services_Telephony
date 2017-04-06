@@ -921,7 +921,7 @@ public class TelephonyConnectionService extends ConnectionService {
             if (phone.getPhoneType() == PhoneConstants.PHONE_TYPE_GSM) {
                 Log.d(this, "dialed MMI code");
                 int subId = phone.getSubId();
-                Log.d(this, "subId: " + subId);
+                Log.d(this, "subId: "+subId);
                 telephonyDisconnectCause = android.telephony.DisconnectCause.DIALED_MMI;
                 final Intent intent = new Intent(this, MMIDialogActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |

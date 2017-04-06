@@ -40,7 +40,7 @@
     <protected-broadcast android:name="android.intent.action.SIM_STATE_CHANGED" />
     <protected-broadcast android:name="android.intent.action.NETWORK_SET_TIME" />
     <protected-broadcast android:name="android.intent.action.NETWORK_SET_TIMEZONE" />
-    <protected-broadcast android:name="android.intent.action.ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS" />
+    <protected-broadcast android:name="com.android.internal.intent.action.ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS" />
     <protected-broadcast android:name="android.intent.action.ACTION_MDN_STATE_CHANGED" />
     <protected-broadcast android:name="android.provider.Telephony.SPN_STRINGS_UPDATED" />
     <protected-broadcast android:name="android.provider.Telephony.SIM_FULL" />
@@ -61,7 +61,7 @@
     <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_SIGNAL_REDIRECTED" />
     <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_SIGNAL_REQUEST_NETWORK_FAILED" />
     <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_SIGNAL_PCO_VALUE" />
-    <protected-broadcast android:name= "android.intent.action.VOICEMAIL_SMS_RECEIVED" />
+    <protected-broadcast android:name= "com.android.internal.provider.action.VOICEMAIL_SMS_RECEIVED" />
     <protected-broadcast android:name= "com.android.intent.isim_refresh" />
     <protected-broadcast android:name= "com.android.ims.IMS_SERVICE_UP" />
     <protected-broadcast android:name= "com.android.ims.IMS_SERVICE_DOWN" />
@@ -491,7 +491,7 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <intent-filter>
                 <action android:name="com.android.phone.action.ACTION_SHOW_ECM_EXIT_DIALOG" />
-                <action android:name="android.intent.action.ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS" />
+                <action android:name="com.android.internal.intent.action.ACTION_SHOW_NOTICE_ECM_BLOCK_OTHERS" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -610,7 +610,7 @@
             android:exported="false"
             androidprv:systemUserOnly="true">
             <intent-filter>
-                <action android:name="android.intent.action.VOICEMAIL_SMS_RECEIVED"/>
+                <action android:name="com.android.internal.provider.action.VOICEMAIL_SMS_RECEIVED"/>
             </intent-filter>
         </receiver>
         <receiver

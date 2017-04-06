@@ -45,7 +45,7 @@ public class MMIDialogActivity extends Activity {
     private Handler mHandler;
 
     private CallManager mCM = PhoneGlobals.getInstance().getCallManager();
-    private Phone mPhone = PhoneGlobals.getPhone();
+    private Phone mPhone;
 
 
     @Override
