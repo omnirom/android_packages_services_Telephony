@@ -2188,30 +2188,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /**
-     * Send the dialer code if called from the current default dialer and the input code follows the
-     * format of *#*#<code>#*#*
-     * <p>
-     * Requires Permission:
-     *   {@link android.Manifest.permission#MODIFY_PHONE_STATE MODIFY_PHONE_STATE}
-     *
-     * @param inputCode The dialer code to send
-     * @return true if successfully sent, false otherwise
-     */
-    @Override
-    public boolean sendDialerCode(String callingPackage, String inputCode) {
-        enforceModifyPermission();
-        mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
-        if (TextUtils.equals(callingPackage,
-                TelecomManager.from(mPhone.getContext()).getDefaultDialerPackage())) {
-            final Phone phone = getPhone(getDefaultSubscription());
-            if (phone != null) {
-                return phone.sendDialerCode(inputCode);
-            }
-        }
-        return false;
-    }
-
-    /**
      * Send the dialer code if called from the current default dialer or the caller has
      * carrier privilege.
      * @param inputCode The dialer code to send
@@ -3282,11 +3258,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             }
         } catch (SecurityException readSmsSecurityException) {
         }
-        // Can be read with READ_PHONE_NUMBER too.
+        // Can be read with READ_PHONE_NUMBERS too.
         try {
-            mApp.enforceCallingOrSelfPermission(android.Manifest.permission.READ_PHONE_NUMBER,
+            mApp.enforceCallingOrSelfPermission(android.Manifest.permission.READ_PHONE_NUMBERS,
                     message);
-            int opCode = mAppOps.permissionToOpCode(android.Manifest.permission.READ_PHONE_NUMBER);
+            int opCode = mAppOps.permissionToOpCode(android.Manifest.permission.READ_PHONE_NUMBERS);
             if (opCode != AppOpsManager.OP_NONE) {
                 return mAppOps.noteOp(opCode, Binder.getCallingUid(), callingPackage)
                         == AppOpsManager.MODE_ALLOWED;
@@ -3299,7 +3275,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         throw new SecurityException(message + ": Neither user " + Binder.getCallingUid() +
                 " nor current process has" + android.Manifest.permission.READ_PHONE_STATE +
                 ", " + android.Manifest.permission.READ_SMS + ", or " +
-                android.Manifest.permission.READ_PHONE_NUMBER);
+                android.Manifest.permission.READ_PHONE_NUMBERS);
     }
 
     @Override
