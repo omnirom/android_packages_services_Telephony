@@ -33,7 +33,6 @@
 <resources>
     <string name="ims_settings">IMS Settings</string>
 
-    <string name="call_barring">Call barring</string>
     <!-- Icc depersonalization related strings -->
     <!-- Label text for PIN entry widget on SIM Network Depersonalization panel -->
     <string name="PERSOSUBSTATE_SIM_NETWORK_ENTRY">SIM network unlock PIN</string>
