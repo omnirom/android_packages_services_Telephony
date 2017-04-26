@@ -3430,9 +3430,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public Uri getVoicemailRingtoneUri(PhoneAccountHandle accountHandle) {
-        final Phone phone = PhoneUtils.getPhoneForPhoneAccountHandle(accountHandle);
+        Phone phone = PhoneUtils.getPhoneForPhoneAccountHandle(accountHandle);
         if (phone == null) {
-            return null;
+            phone = mPhone;
         }
 
         return VoicemailNotificationSettingsUtil.getRingtoneUri(phone);
@@ -3460,8 +3460,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
         Phone phone = PhoneUtils.getPhoneForPhoneAccountHandle(phoneAccountHandle);
         if (phone == null){
-            throw new IllegalArgumentException("The phoneAccountHandle does not correspond to an "
-                    + "active phone account.");
+           phone = mPhone;
         }
         VoicemailNotificationSettingsUtil.setRingtoneUri(phone, uri);
     }
@@ -3475,9 +3474,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public boolean isVoicemailVibrationEnabled(PhoneAccountHandle accountHandle) {
-        final Phone phone = PhoneUtils.getPhoneForPhoneAccountHandle(accountHandle);
+        Phone phone = PhoneUtils.getPhoneForPhoneAccountHandle(accountHandle);
         if (phone == null) {
-            return false;
+            phone = mPhone;
         }
 
         return VoicemailNotificationSettingsUtil.isVibrationEnabled(phone);
@@ -3506,8 +3505,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
         Phone phone = PhoneUtils.getPhoneForPhoneAccountHandle(phoneAccountHandle);
         if (phone == null){
-            throw new IllegalArgumentException("The phoneAccountHandle does not correspond to an "
-                    + "active phone account.");
+            phone = mPhone;
         }
         VoicemailNotificationSettingsUtil.setVibrationEnabled(phone, enabled);
     }
