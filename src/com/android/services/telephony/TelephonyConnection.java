@@ -100,6 +100,7 @@ abstract class TelephonyConnection extends Connection {
     private SuppServiceNotification mSsNotification = null;
     private String[] mSubName = {"SIM1", "SIM2", "SIM3"};
     private String mDisplayName;
+    private static final Object mLock = new Object();
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -449,7 +450,8 @@ abstract class TelephonyConnection extends Connection {
      */
     public abstract static class TelephonyConnectionListener {
         public void onOriginalConnectionConfigured(TelephonyConnection c) {}
-        public void onOriginalConnectionRetry(TelephonyConnection c) {}
+        public void onOriginalConnectionRetry(TelephonyConnection c, boolean isPermanentFailure) {}
+        public void resetDisconnectCause() {}
     }
 
     private final PostDialListener mPostDialListener = new PostDialListener() {
@@ -1237,40 +1239,42 @@ abstract class TelephonyConnection extends Connection {
     }
 
     protected void hangup(int telephonyDisconnectCode) {
-        if (mOriginalConnection != null) {
-            try {
-                // Hanging up a ringing call requires that we invoke call.hangup() as opposed to
-                // connection.hangup(). Without this change, the party originating the call will not
-                // get sent to voicemail if the user opts to reject the call.
-                if (isValidRingingCall()) {
-                    Call call = getCall();
-                    if (call != null) {
-                        call.hangup();
+        synchronized (mLock) {
+            if (mOriginalConnection != null) {
+                try {
+                    // Hanging up a ringing call requires that we invoke call.hangup() as opposed to
+                    // connection.hangup(). Without this change, the party originating the call
+                    // will not get sent to voicemail if the user opts to reject the call.
+                    if (isValidRingingCall()) {
+                        Call call = getCall();
+                        if (call != null) {
+                            call.hangup();
+                        } else {
+                            Log.w(this, "Attempting to hangup a connection without backing call.");
+                        }
                     } else {
-                        Log.w(this, "Attempting to hangup a connection without backing call.");
+                        // We still prefer to call connection.hangup() for non-ringing calls
+                        // in order to support hanging-up specific calls within a conference call.
+                        // If we invoked call.hangup() while in a conference, we would end up
+                        // hanging up the entire conference call instead of the specific connection.
+                        mOriginalConnection.hangup();
                     }
-                } else {
-                    // We still prefer to call connection.hangup() for non-ringing calls in order
-                    // to support hanging-up specific calls within a conference call. If we invoked
-                    // call.hangup() while in a conference, we would end up hanging up the entire
-                    // conference call instead of the specific connection.
-                    mOriginalConnection.hangup();
+                } catch (CallStateException e) {
+                    Log.e(this, e, "Call to Connection.hangup failed with exception");
                 }
-            } catch (CallStateException e) {
-                Log.e(this, e, "Call to Connection.hangup failed with exception");
-            }
-        } else {
-            if (getState() == STATE_DISCONNECTED) {
-                Log.i(this, "hangup called on an already disconnected call!");
-                close();
             } else {
-                // There are a few cases where mOriginalConnection has not been set yet. For
-                // example, when the radio has to be turned on to make an emergency call,
-                // mOriginalConnection could not be set for many seconds.
-                setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                        android.telephony.DisconnectCause.LOCAL,
-                        "Local Disconnect before connection established."));
-                close();
+                if (getState() == STATE_DISCONNECTED) {
+                    Log.i(this, "hangup called on an already disconnected call!");
+                    close();
+                } else {
+                    // There are a few cases where mOriginalConnection has not been set yet. For
+                    // example, when the radio has to be turned on to make an emergency call,
+                    // mOriginalConnection could not be set for many seconds.
+                    setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
+                            android.telephony.DisconnectCause.LOCAL,
+                            "Local Disconnect before connection established."));
+                    close();
+                }
             }
         }
     }
@@ -1444,6 +1448,9 @@ abstract class TelephonyConnection extends Connection {
         } else {
             newState = mOriginalConnection.getState();
         }
+        int cause = mOriginalConnection.getDisconnectCause();
+        final boolean isEmergencyNumber = PhoneNumberUtils.
+                 isEmergencyNumber(mOriginalConnection.getAddress());
         Log.v(this, "Update state from %s to %s for %s", mConnectionState, newState, this);
 
         if (mConnectionState != newState) {
@@ -1470,29 +1477,37 @@ abstract class TelephonyConnection extends Connection {
                     setRinging();
                     break;
                 case DISCONNECTED:
-                    // We can get into a situation where the radio wants us to redial the same
-                    // emergency call on the other available slot. This will not set the state to
-                    // disconnected and will instead tell the TelephonyConnectionService to create
-                    // a new originalConnection using the new Slot.
-                    if (mOriginalConnection.getDisconnectCause() ==
-                            DisconnectCause.DIALED_ON_WRONG_SLOT) {
-                        fireOnOriginalConnectionRetryDial();
-                    } else {
-                        if (mSsNotification != null) {
-                            setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                                    mOriginalConnection.getDisconnectCause(),
-                                    mOriginalConnection.getVendorDisconnectCause(),
-                                    mSsNotification.notificationType,
-                                    mSsNotification.code));
-                            mSsNotification = null;
-                            DisconnectCauseUtil.mNotificationCode = 0xFF;
-                            DisconnectCauseUtil.mNotificationType = 0xFF;
+                    synchronized (mLock) {
+                        if (isEmergencyNumber && (TelephonyManager.getDefault().getPhoneCount() > 1)
+                                && ((cause
+                                == android.telephony.DisconnectCause.EMERGENCY_TEMP_FAILURE)
+                                || (cause
+                                == android.telephony.DisconnectCause.EMERGENCY_PERM_FAILURE))) {
+                            // We can get into a situation where the radio wants us to redial the
+                            // same emergency call on the other available slot. This will not set
+                            // the state to disconnected and will instead tell the
+                            // TelephonyConnectionService to
+                            // create a new originalConnection using the new Slot.
+                            fireOnOriginalConnectionRetryDial(cause
+                                    == android.telephony.DisconnectCause.EMERGENCY_PERM_FAILURE);
                         } else {
-                            setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
-                                    mOriginalConnection.getDisconnectCause(),
-                                    mOriginalConnection.getVendorDisconnectCause()));
+                            if (mSsNotification != null) {
+                                setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
+                                        mOriginalConnection.getDisconnectCause(),
+                                        mOriginalConnection.getVendorDisconnectCause(),
+                                        mSsNotification.notificationType,
+                                        mSsNotification.code));
+                                mSsNotification = null;
+                                DisconnectCauseUtil.mNotificationCode = 0xFF;
+                                DisconnectCauseUtil.mNotificationType = 0xFF;
+                            } else {
+                                setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
+                                        mOriginalConnection.getDisconnectCause(),
+                                        mOriginalConnection.getVendorDisconnectCause()));
+                            }
+                            resetDisconnectCause();
+                            close();
                         }
-                        close();
                     }
                     break;
                 case DISCONNECTING:
@@ -1879,9 +1894,15 @@ abstract class TelephonyConnection extends Connection {
         }
     }
 
-    private final void fireOnOriginalConnectionRetryDial() {
+    private final void fireOnOriginalConnectionRetryDial(boolean isPermanentFailure) {
         for (TelephonyConnectionListener l : mTelephonyListeners) {
-            l.onOriginalConnectionRetry(this);
+            l.onOriginalConnectionRetry(this, isPermanentFailure);
+        }
+    }
+
+    private final void resetDisconnectCause() {
+        for (TelephonyConnectionListener l : mTelephonyListeners) {
+            l.resetDisconnectCause();
         }
     }
 
