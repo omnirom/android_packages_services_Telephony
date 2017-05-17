@@ -55,6 +55,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.android.internal.telephony.Phone;
+import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.util.NotificationChannelController;
@@ -97,7 +98,6 @@ public class NotificationMgr {
     private static NotificationMgr sInstance;
 
     private PhoneGlobals mApp;
-    private Phone mPhone;
 
     private Context mContext;
     private NotificationManager mNotificationManager;
@@ -126,7 +126,6 @@ public class NotificationMgr {
         mStatusBarManager =
                 (StatusBarManager) app.getSystemService(Context.STATUS_BAR_SERVICE);
         mUserManager = (UserManager) app.getSystemService(Context.USER_SERVICE);
-        mPhone = app.mCM.getDefaultPhone();
         mSubscriptionManager = SubscriptionManager.from(mContext);
         mTelecomManager = TelecomManager.from(mContext);
         mTelephonyManager = (TelephonyManager) app.getSystemService(Context.TELEPHONY_SERVICE);
@@ -595,8 +594,9 @@ public class NotificationMgr {
     /**
      * Display the network selection "no service" notification
      * @param operator is the numeric operator number
+     * @param subId is the subscription ID
      */
-    private void showNetworkSelection(String operator) {
+    private void showNetworkSelection(String operator, int subId) {
         if (DBG) log("showNetworkSelection(" + operator + ")...");
 
         Notification.Builder builder = new Notification.Builder(mContext)
@@ -616,7 +616,7 @@ public class NotificationMgr {
         intent.setComponent(new ComponentName(
                 mContext.getString(R.string.network_operator_settings_package),
                 mContext.getString(R.string.network_operator_settings_class)));
-        intent.putExtra(GsmUmtsOptions.EXTRA_SUB_ID, mPhone.getSubId());
+        intent.putExtra(GsmUmtsOptions.EXTRA_SUB_ID, subId);
         PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
 
         List<UserInfo> users = mUserManager.getUsers(true);
@@ -648,10 +648,13 @@ public class NotificationMgr {
      * Update notification about no service of user selected operator
      *
      * @param serviceState Phone service state
+     * @param subId The subscription ID
      */
-    void updateNetworkSelection(int serviceState) {
-        if (TelephonyCapabilities.supportsNetworkSelection(mPhone)) {
-            int subId = mPhone.getSubId();
+    void updateNetworkSelection(int serviceState, int subId) {
+        int phoneId = SubscriptionManager.getPhoneId(subId);
+        Phone phone = SubscriptionManager.isValidPhoneId(phoneId) ?
+                PhoneFactory.getPhone(phoneId) : PhoneFactory.getDefaultPhone();
+        if (TelephonyCapabilities.supportsNetworkSelection(phone)) {
             if (SubscriptionManager.isValidSubscriptionId(subId)) {
                 // get the shared preference of network_selection.
                 // empty is auto mode, otherwise it is the operator alpha name
@@ -671,7 +674,7 @@ public class NotificationMgr {
                 if (serviceState == ServiceState.STATE_OUT_OF_SERVICE
                         && !TextUtils.isEmpty(networkSelection)
                         && isUiccCardProvisioned(subId)) {
-                    showNetworkSelection(networkSelection);
+                    showNetworkSelection(networkSelection, subId);
                     mSelectedUnavailableNotify = true;
                 } else {
                     if (mSelectedUnavailableNotify) {
