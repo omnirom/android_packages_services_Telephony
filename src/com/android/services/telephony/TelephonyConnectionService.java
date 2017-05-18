@@ -327,7 +327,7 @@ public class TelephonyConnectionService extends ConnectionService {
 
         // Convert into emergency number if necessary
         // This is required in some regions (e.g. Taiwan).
-        if (!PhoneNumberUtils.isLocalEmergencyNumber(this, number) &&
+        if (!PhoneUtils.isLocalEmergencyNumber(number) &&
                 PhoneNumberUtils.isConvertToEmergencyNumberEnabled()) {
             final Phone phone = getPhoneForAccount(request.getAccountHandle(), false);
             // We only do the conversion if the phone is not in service. The un-converted
@@ -347,7 +347,7 @@ public class TelephonyConnectionService extends ConnectionService {
         final String numberToDial = number;
 
         final boolean isEmergencyNumber =
-                PhoneNumberUtils.isLocalEmergencyNumber(this, numberToDial);
+                PhoneUtils.isLocalEmergencyNumber(number);
 
         if (isEmergencyNumber && !isRadioOn()) {
             final Uri emergencyHandle = handle;
@@ -981,21 +981,13 @@ public class TelephonyConnectionService extends ConnectionService {
 
     private Phone getPhoneForAccount(PhoneAccountHandle accountHandle, boolean isEmergency) {
         Phone chosenPhone = null;
+        if (isEmergency) {
+            return PhoneFactory.getPhone(PhoneUtils.getPhoneIdForECall());
+        }
         int subId = PhoneUtils.getSubIdForPhoneAccountHandle(accountHandle);
         if (subId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
             int phoneId = mSubscriptionManagerProxy.getPhoneId(subId);
             chosenPhone = mPhoneFactoryProxy.getPhone(phoneId);
-        }
-        // If this is an emergency call and the phone we originally planned to make this call
-        // with is not in service or was invalid, try to find one that is in service, using the
-        // default as a last chance backup.
-        if (isEmergency && (chosenPhone == null || ServiceState.STATE_IN_SERVICE != chosenPhone
-                .getServiceState().getState())) {
-            Log.d(this, "getPhoneForAccount: phone for phone acct handle %s is out of service "
-                    + "or invalid for emergency call.", accountHandle);
-            chosenPhone = getFirstPhoneForEmergencyCall();
-            Log.d(this, "getPhoneForAccount: using subId: " +
-                    (chosenPhone == null ? "null" : chosenPhone.getSubId()));
         }
         return chosenPhone;
     }
