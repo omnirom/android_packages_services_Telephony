@@ -31,6 +31,8 @@
 
 <!-- The xml contains Qti specific resource strings neede for any value added features. -->
 <resources>
+    <string name="ims_settings">IMS Settings</string>
+
     <string name="call_barring">Call barring</string>
     <!-- Icc depersonalization related strings -->
     <!-- Label text for PIN entry widget on SIM Network Depersonalization panel -->

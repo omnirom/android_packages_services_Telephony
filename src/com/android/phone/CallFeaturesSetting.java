@@ -42,6 +42,7 @@ import android.provider.Settings;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
+import android.telephony.ims.feature.ImsFeature;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -50,6 +51,7 @@ import android.view.MenuItem;
 import android.widget.Toast;
 
 import com.android.ims.ImsConfig;
+import com.android.ims.ImsException;
 import com.android.ims.ImsManager;
 import com.android.internal.telephony.CallForwardInfo;
 import com.android.internal.telephony.Phone;
@@ -64,6 +66,8 @@ import com.android.services.telephony.sip.SipUtil;
 import java.lang.String;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.codeaurora.ims.QtiCallConstants;
 
 /**
  * Top level "Call settings" UI; see res/xml/call_feature_setting.xml
@@ -103,6 +107,7 @@ public class CallFeaturesSetting extends PreferenceActivity
             "phone_account_settings_preference_screen";
 
     private static final String ENABLE_VIDEO_CALLING_KEY = "button_enable_video_calling";
+    private static final String BUTTON_IMS_SETTINGS_KEY   = "ims_settings_key";
 
     private Phone mPhone;
     private SubscriptionInfoHelper mSubscriptionInfoHelper;
@@ -111,6 +116,7 @@ public class CallFeaturesSetting extends PreferenceActivity
     private SwitchPreference mButtonAutoRetry;
     private PreferenceScreen mVoicemailSettingsScreen;
     private SwitchPreference mEnableVideoCalling;
+    private PreferenceScreen mImsSettingsScreen;
 
     /*
      * Click Listeners, handle click based on objects attached to UI.
@@ -348,6 +354,36 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
         }
 
+        mImsSettingsScreen = (PreferenceScreen) findPreference(BUTTON_IMS_SETTINGS_KEY);
+        if (isImsSettingsApkAvailable(mPhone.getContext())) {
+            ImsManager imsManager = ImsManager.getInstance(mPhone.getContext(),
+                    mPhone.getPhoneId());
+            try {
+                if ((imsManager.isVolteEnabledByPlatformForSlot() ||
+                        imsManager.isVtEnabledByPlatformForSlot() ||
+                        imsManager.isWfcEnabledByPlatformForSlot()) &&
+                        imsManager.getImsServiceStatus() == ImsFeature.STATE_READY) {
+                    mImsSettingsScreen.setOnPreferenceClickListener(
+                            new Preference.OnPreferenceClickListener() {
+                         @Override
+                         public boolean onPreferenceClick(Preference preference) {
+                             Intent intent = new Intent("org.codeaurora.IMS_SETTINGS");
+                             intent.putExtra(QtiCallConstants.EXTRA_PHONE_ID, mPhone.getPhoneId());
+                             startActivity(intent);
+                             return true;
+                         }
+                    });
+                } else {
+                    prefSet.removePreference(mImsSettingsScreen);
+                }
+            } catch (ImsException ex) {
+                log("Exception when trying to get ImsServiceStatus: " + ex);
+                prefSet.removePreference(mImsSettingsScreen);
+            }
+        } else {
+            prefSet.removePreference(mImsSettingsScreen);
+        }
+
         if (ImsManager.isVtEnabledByPlatform(mPhone.getContext()) &&
                 ImsManager.isVtProvisionedOnDevice(mPhone.getContext()) &&
                 (carrierConfig.getBoolean(
@@ -486,5 +522,25 @@ public class CallFeaturesSetting extends PreferenceActivity
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         activity.startActivity(intent);
         activity.finish();
+    }
+
+    /**
+     * check whether ImsSettings apk exist in system, if yes, return true, else
+     * return false.
+     */
+    public static boolean isImsSettingsApkAvailable(Context context) {
+        // check whether the target handler exist in system
+        Intent intent = new Intent("org.codeaurora.IMS_SETTINGS");
+        PackageManager pm = context.getPackageManager();
+        List<ResolveInfo> list = pm.queryIntentActivities(intent, 0);
+        for (ResolveInfo resolveInfo : list) {
+            // check is it installed in system.img, exclude the application
+            // installed by user
+            if ((resolveInfo.activityInfo.applicationInfo.flags &
+                    ApplicationInfo.FLAG_SYSTEM) != 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }
