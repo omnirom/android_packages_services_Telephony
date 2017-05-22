@@ -57,6 +57,7 @@ import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.phone.common.CallLogAsync;
 import com.android.phone.settings.SettingsConstants;
+import com.android.phone.vvm.CarrierVvmPackageInstalledReceiver;
 import com.android.services.telephony.sip.SipUtil;
 
 /**
@@ -147,6 +148,8 @@ public class PhoneGlobals extends ContextWrapper {
     private Activity mPUKEntryActivity;
     private ProgressDialog mPUKEntryProgressDialog;
 
+    private boolean mDataDisconnectedDueToRoaming = false;
+
     private WakeState mWakeState = WakeState.SLEEP;
 
     private PowerManager mPowerManager;
@@ -158,6 +161,9 @@ public class PhoneGlobals extends ContextWrapper {
 
     // Broadcast receiver for various intent broadcasts (see onCreate())
     private final BroadcastReceiver mReceiver = new PhoneAppBroadcastReceiver();
+
+    private final CarrierVvmPackageInstalledReceiver mCarrierVvmPackageInstalledReceiver =
+            new CarrierVvmPackageInstalledReceiver();
 
     Handler mHandler = new Handler() {
         @Override
@@ -343,6 +349,8 @@ public class PhoneGlobals extends ContextWrapper {
             intentFilter.addAction(TelephonyIntents.ACTION_EMERGENCY_CALLBACK_MODE_CHANGED);
             intentFilter.addAction(TelephonyIntents.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED);
             registerReceiver(mReceiver, intentFilter);
+
+            mCarrierVvmPackageInstalledReceiver.register(this);
 
             //set the default values for the preferences in the phone.
             PreferenceManager.setDefaultValues(this, R.xml.network_setting_fragment, false);
@@ -683,16 +691,21 @@ public class PhoneGlobals extends ContextWrapper {
                 // The "data disconnected due to roaming" notification is shown
                 // if (a) you have the "data roaming" feature turned off, and
                 // (b) you just lost data connectivity because you're roaming.
-                if (PhoneConstants.DataState.DISCONNECTED.name().equals(state)
+                // (c) if we haven't shown the notification for this disconnection earlier.
+                if (!mDataDisconnectedDueToRoaming
+                        && PhoneConstants.DataState.DISCONNECTED.name().equals(state)
                         && Phone.REASON_ROAMING_ON.equals(reason)
                         && !phone.getDataRoamingEnabled()) {
                     // Notify the user that data call is disconnected due to roaming. Note that
                     // calling this multiple times will not cause multiple notifications.
                     mHandler.sendEmptyMessage(EVENT_DATA_ROAMING_DISCONNECTED);
-                } else if (PhoneConstants.DataState.CONNECTED.name().equals(state)) {
+                    mDataDisconnectedDueToRoaming = true;
+                } else if (mDataDisconnectedDueToRoaming
+                        && PhoneConstants.DataState.CONNECTED.name().equals(state)) {
                     // Cancel the notification when data is available. Note it is okay to call this
                     // even if the notification doesn't exist.
                     mHandler.sendEmptyMessage(EVENT_DATA_ROAMING_OK);
+                    mDataDisconnectedDueToRoaming = false;
                 }
             } else if (action.equals(TelephonyIntents.ACTION_SIM_STATE_CHANGED)) {
                 if (mPUKEntryActivity != null) {
