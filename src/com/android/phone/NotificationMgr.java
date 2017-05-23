@@ -31,6 +31,8 @@ import android.content.pm.UserInfo;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.PersistableBundle;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -53,15 +55,17 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.android.internal.telephony.Phone;
+import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.TelephonyCapabilities;
-import com.android.phone.settings.VoicemailNotificationSettingsUtil;
+import com.android.internal.telephony.util.NotificationChannelController;
 import com.android.phone.settings.VoicemailSettingsActivity;
-import com.android.phone.vvm.omtp.sync.VoicemailStatusQueryHelper;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
+import org.codeaurora.internal.IExtTelephony;
 
 /**
  * NotificationManager-related utility code for the Phone app.
@@ -94,7 +98,6 @@ public class NotificationMgr {
     private static NotificationMgr sInstance;
 
     private PhoneGlobals mApp;
-    private Phone mPhone;
 
     private Context mContext;
     private NotificationManager mNotificationManager;
@@ -123,7 +126,6 @@ public class NotificationMgr {
         mStatusBarManager =
                 (StatusBarManager) app.getSystemService(Context.STATUS_BAR_SERVICE);
         mUserManager = (UserManager) app.getSystemService(Context.USER_SERVICE);
-        mPhone = app.mCM.getDefaultPhone();
         mSubscriptionManager = SubscriptionManager.from(mContext);
         mTelecomManager = TelecomManager.from(mContext);
         mTelephonyManager = (TelephonyManager) app.getSystemService(Context.TELEPHONY_SERVICE);
@@ -250,24 +252,10 @@ public class NotificationMgr {
         }
 
         Phone phone = PhoneGlobals.getPhone(subId);
-        if (visible && phone != null && shouldCheckVisualVoicemailConfigurationForMwi(subId)) {
-            VoicemailStatusQueryHelper queryHelper = new VoicemailStatusQueryHelper(mContext);
-            PhoneAccountHandle phoneAccount = PhoneUtils.makePstnPhoneAccountHandle(phone);
-            if (queryHelper.isVoicemailSourceConfigured(phoneAccount)) {
-                Log.v(LOG_TAG, "Source configured for visual voicemail, hiding mwi.");
-                // MWI may not be suppressed if the PIN is not set on VVM3 because it is also a
-                // "Not OK" configuration state. But VVM3 never send a MWI after the service is
-                // activated so this should be fine.
-                // TODO(twyen): once unbundled the client should be able to set a flag to suppress
-                // MWI, instead of letting the NotificationMgr try to interpret the states.
-                visible = false;
-            }
-        }
-
         Log.i(LOG_TAG, "updateMwi(): subId " + subId + " update to " + visible);
         mMwiVisible.put(subId, visible);
 
-        if (visible) {
+        if (visible && isUiccCardProvisioned(subId)) {
             if (phone == null) {
                 Log.w(LOG_TAG, "Found null phone for: " + subId);
                 return;
@@ -352,11 +340,6 @@ public class NotificationMgr {
 
             PendingIntent pendingIntent =
                     PendingIntent.getActivity(mContext, subId /* requestCode */, intent, 0);
-            Uri ringtoneUri = null;
-
-            if (enableNotificationSound) {
-                ringtoneUri = VoicemailNotificationSettingsUtil.getRingtoneUri(phone);
-            }
 
             Resources res = mContext.getResources();
             PersistableBundle carrierConfig = PhoneGlobals.getInstance().getCarrierConfigForSubId(
@@ -368,14 +351,10 @@ public class NotificationMgr {
                     .setContentTitle(notificationTitle)
                     .setContentText(notificationText)
                     .setContentIntent(pendingIntent)
-                    .setSound(ringtoneUri)
                     .setColor(res.getColor(R.color.dialer_theme_color))
                     .setOngoing(carrierConfig.getBoolean(
-                            CarrierConfigManager.KEY_VOICEMAIL_NOTIFICATION_PERSISTENT_BOOL));
-
-            if (VoicemailNotificationSettingsUtil.isVibrationEnabled(phone)) {
-                builder.setDefaults(Notification.DEFAULT_VIBRATE);
-            }
+                            CarrierConfigManager.KEY_VOICEMAIL_NOTIFICATION_PERSISTENT_BOOL))
+                    .setChannel(NotificationChannelController.CHANNEL_ID_VOICE_MAIL);
 
             final Notification notification = builder.build();
             List<UserInfo> users = mUserManager.getUsers(true);
@@ -492,7 +471,7 @@ public class NotificationMgr {
      */
     /* package */ void updateCfi(int subId, boolean visible) {
         if (DBG) log("updateCfi(): " + visible);
-        if (visible) {
+        if (visible && isUiccCardProvisioned(subId)) {
             // If Unconditional Call Forwarding (forward all calls) for VOICE
             // is enabled, just show a notification.  We'll default to expanded
             // view for now, so the there is less confusion about the icon.  If
@@ -527,7 +506,8 @@ public class NotificationMgr {
                     .setContentTitle(notificationTitle)
                     .setContentText(mContext.getString(R.string.sum_cfu_enabled_indicator))
                     .setShowWhen(false)
-                    .setOngoing(true);
+                    .setOngoing(true)
+                    .setChannel(NotificationChannelController.CHANNEL_ID_CALL_FORWARD);
 
             Intent intent = new Intent(Intent.ACTION_MAIN);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -585,7 +565,8 @@ public class NotificationMgr {
                 .setSmallIcon(android.R.drawable.stat_sys_warning)
                 .setContentTitle(mContext.getText(R.string.roaming))
                 .setColor(mContext.getResources().getColor(R.color.dialer_theme_color))
-                .setContentText(contentText);
+                .setContentText(contentText)
+                .setChannel(NotificationChannelController.CHANNEL_ID_MOBILE_DATA_ALERT);
 
         List<UserInfo> users = mUserManager.getUsers(true);
         for (int i = 0; i < users.size(); i++) {
@@ -613,8 +594,9 @@ public class NotificationMgr {
     /**
      * Display the network selection "no service" notification
      * @param operator is the numeric operator number
+     * @param subId is the subscription ID
      */
-    private void showNetworkSelection(String operator) {
+    private void showNetworkSelection(String operator, int subId) {
         if (DBG) log("showNetworkSelection(" + operator + ")...");
 
         Notification.Builder builder = new Notification.Builder(mContext)
@@ -623,7 +605,8 @@ public class NotificationMgr {
                 .setContentText(
                         mContext.getString(R.string.notification_network_selection_text, operator))
                 .setShowWhen(false)
-                .setOngoing(true);
+                .setOngoing(true)
+                .setChannel(NotificationChannelController.CHANNEL_ID_ALERT);
 
         // create the target network operators settings intent
         Intent intent = new Intent(Intent.ACTION_MAIN);
@@ -633,7 +616,7 @@ public class NotificationMgr {
         intent.setComponent(new ComponentName(
                 mContext.getString(R.string.network_operator_settings_package),
                 mContext.getString(R.string.network_operator_settings_class)));
-        intent.putExtra(GsmUmtsOptions.EXTRA_SUB_ID, mPhone.getSubId());
+        intent.putExtra(GsmUmtsOptions.EXTRA_SUB_ID, subId);
         PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
 
         List<UserInfo> users = mUserManager.getUsers(true);
@@ -665,10 +648,13 @@ public class NotificationMgr {
      * Update notification about no service of user selected operator
      *
      * @param serviceState Phone service state
+     * @param subId The subscription ID
      */
-    void updateNetworkSelection(int serviceState) {
-        if (TelephonyCapabilities.supportsNetworkSelection(mPhone)) {
-            int subId = mPhone.getSubId();
+    void updateNetworkSelection(int serviceState, int subId) {
+        int phoneId = SubscriptionManager.getPhoneId(subId);
+        Phone phone = SubscriptionManager.isValidPhoneId(phoneId) ?
+                PhoneFactory.getPhone(phoneId) : PhoneFactory.getDefaultPhone();
+        if (TelephonyCapabilities.supportsNetworkSelection(phone)) {
             if (SubscriptionManager.isValidSubscriptionId(subId)) {
                 // get the shared preference of network_selection.
                 // empty is auto mode, otherwise it is the operator alpha name
@@ -686,8 +672,9 @@ public class NotificationMgr {
                         serviceState + " new network " + networkSelection);
 
                 if (serviceState == ServiceState.STATE_OUT_OF_SERVICE
-                        && !TextUtils.isEmpty(networkSelection)) {
-                    showNetworkSelection(networkSelection);
+                        && !TextUtils.isEmpty(networkSelection)
+                        && isUiccCardProvisioned(subId)) {
+                    showNetworkSelection(networkSelection, subId);
                     mSelectedUnavailableNotify = true;
                 } else {
                     if (mSelectedUnavailableNotify) {
@@ -714,4 +701,24 @@ public class NotificationMgr {
     private void log(String msg) {
         Log.d(LOG_TAG, msg);
     }
+
+    private boolean isUiccCardProvisioned(int subId) {
+        final int PROVISIONED = 1;
+        final int INVALID_STATE = -1;
+        int provisionStatus = INVALID_STATE;
+        IExtTelephony mExtTelephony = IExtTelephony.Stub
+                .asInterface(ServiceManager.getService("extphone"));
+        int slotId = SubscriptionController.getInstance().getSlotIndex(subId);
+        try {
+            //get current provision state of the SIM.
+            provisionStatus = mExtTelephony.getCurrentUiccCardProvisioningStatus(slotId);
+        } catch (RemoteException ex) {
+            provisionStatus = INVALID_STATE;
+            if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
+        } catch (NullPointerException ex) {
+            provisionStatus = INVALID_STATE;
+            if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
+        }
+        return provisionStatus == PROVISIONED;
+   }
 }

@@ -95,6 +95,18 @@ public class MobileNetworkSettings extends Activity  {
         }
     }
 
+    @Override
+    public boolean onOptionsItemSelected(final MenuItem item) {
+        final int itemId = item.getItemId();
+        switch (itemId) {
+            // Respond to the action bar's Up/Home button
+            case android.R.id.home:
+                finish();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     public static class MobileNetworkFragment extends PreferenceFragment implements
             Preference.OnPreferenceChangeListener, RoamingDialogFragment.RoamingDialogListener {
 
@@ -184,6 +196,13 @@ public class MobileNetworkSettings extends Activity  {
             mButtonDataRoam.setChecked(true);
         }
 
+        @Override
+        public void onViewCreated(View view, Bundle savedInstanceState) {
+            if (getListView() != null) {
+                getListView().setDivider(null);
+            }
+        }
+
         /**
          * Invoked on each preference click in this hierarchy, overrides
          * PreferenceActivity's implementation.  Used to make sure we track the
@@ -201,8 +220,7 @@ public class MobileNetworkSettings extends Activity  {
                 return true;
             } else if (mCdmaOptions != null &&
                     mCdmaOptions.preferenceTreeClick(preference) == true) {
-                if (Boolean.parseBoolean(
-                        SystemProperties.get(TelephonyProperties.PROPERTY_INECM_MODE))) {
+                if (mPhone.isInEcm()) {
 
                     mClickedPreference = preference;
 

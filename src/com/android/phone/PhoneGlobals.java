@@ -92,6 +92,7 @@ public class PhoneGlobals extends ContextWrapper {
     // Message codes; see mHandler below.
     private static final int EVENT_SIM_NETWORK_LOCKED = 3;
     private static final int EVENT_SIM_STATE_CHANGED = 8;
+    private static final int EVENT_SIM_STATE_CHANGED_CHECKREADY = 14;
     private static final int EVENT_DATA_ROAMING_DISCONNECTED = 10;
     private static final int EVENT_DATA_ROAMING_OK = 11;
     private static final int EVENT_UNSOL_CDMA_INFO_RECORD = 12;
@@ -146,8 +147,6 @@ public class PhoneGlobals extends ContextWrapper {
     private Activity mPUKEntryActivity;
     private ProgressDialog mPUKEntryProgressDialog;
 
-    private boolean mDataDisconnectedDueToRoaming = false;
-
     private WakeState mWakeState = WakeState.SLEEP;
 
     private PowerManager mPowerManager;
@@ -177,8 +176,16 @@ public class PhoneGlobals extends ContextWrapper {
                         // Normal case: show the "SIM network unlock" PIN entry screen.
                         // The user won't be able to do anything else until
                         // they enter a valid SIM network PIN.
+                        int subType = (Integer)((AsyncResult)msg.obj).result;
                         Log.i(LOG_TAG, "show sim depersonal panel");
-                        IccNetworkDepersonalizationPanel.showDialog();
+                        IccNetworkDepersonalizationPanel.showDialog(subType);
+                    }
+                    break;
+
+                case EVENT_SIM_STATE_CHANGED_CHECKREADY:
+                    if (msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_READY)) {
+                        Log.i(LOG_TAG, "Dismissing depersonal panel");
+                        IccNetworkDepersonalizationPanel.dialogDismiss();
                     }
                     break;
 
@@ -654,66 +661,49 @@ public class PhoneGlobals extends ContextWrapper {
                 int subId = intent.getIntExtra(PhoneConstants.SUBSCRIPTION_KEY,
                         SubscriptionManager.INVALID_SUBSCRIPTION_ID);
                 int phoneId = SubscriptionManager.getPhoneId(subId);
-                String state = intent.getStringExtra(PhoneConstants.STATE_KEY);
+                final String apnType = intent.getStringExtra(PhoneConstants.DATA_APN_TYPE_KEY);
+                final String state = intent.getStringExtra(PhoneConstants.STATE_KEY);
+                final String reason = intent.getStringExtra(PhoneConstants.STATE_CHANGE_REASON_KEY);
                 if (VDBG) {
                     Log.d(LOG_TAG, "mReceiver: " + action);
                     Log.d(LOG_TAG, "- state: " + state);
-                    Log.d(LOG_TAG, "- reason: "
-                    + intent.getStringExtra(PhoneConstants.STATE_CHANGE_REASON_KEY));
+                    Log.d(LOG_TAG, "- reason: " + reason);
                     Log.d(LOG_TAG, "- subId: " + subId);
-                    Log.d(LOG_TAG, "- phoneId: " + phoneId);
                 }
                 Phone phone = SubscriptionManager.isValidPhoneId(phoneId) ?
                         PhoneFactory.getPhone(phoneId) : PhoneFactory.getDefaultPhone();
 
-                // If not default data subscription, ignore the broadcast intent and avoid action.
-                if (subId != SubscriptionManager.getDefaultDataSubscriptionId()) {
-                    if (VDBG) Log.d(LOG_TAG, "Ignore broadcast intent as not default data sub.");
+                // If the apn type of data connection state changed event is NOT default,
+                // ignore the broadcast intent and avoid action.
+                if (!PhoneConstants.APN_TYPE_DEFAULT.equals(apnType)) {
+                    if (VDBG) Log.d(LOG_TAG, "Ignore broadcast intent as not default apn type");
                     return;
                 }
+
                 // The "data disconnected due to roaming" notification is shown
                 // if (a) you have the "data roaming" feature turned off, and
-                // (b) your registered to roaming network and
-                // (c) you just lost data connectivity because you're roaming
-                //       OR
-                // (d) DDS was changed to a SIM card where (a) and (b) are true
-                boolean disconnectReasonRoaming =
-                        PhoneConstants.DataState.DISCONNECTED.name().equals(state)
-                        && Phone.REASON_ROAMING_ON.equals(
-                            intent.getStringExtra(PhoneConstants.STATE_CHANGE_REASON_KEY));
-                Phone ddsPhone = getPhone(SubscriptionManager.getDefaultDataSubscriptionId());
-                if (ddsPhone == null) ddsPhone = getPhone();
-                boolean isRoaming = ddsPhone.getServiceState().getDataRoaming();
-                boolean isRoamingDataEnabled = ddsPhone.getDataRoamingEnabled();
-                boolean isDdsSwitch = action.equals(
-                        TelephonyIntents.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED);
-
-                boolean disconnectedDueToRoaming = mDataDisconnectedDueToRoaming;
-                if ((disconnectReasonRoaming || isDdsSwitch)
-                        && !isRoamingDataEnabled && isRoaming) {
-                    disconnectedDueToRoaming = true;
-                } else if (!isRoaming || isRoamingDataEnabled) {
-                    // Dismiss pop up only if phone is not roaming or dataonroaming is enabled
-                    disconnectedDueToRoaming = false;
+                // (b) you just lost data connectivity because you're roaming.
+                if (PhoneConstants.DataState.DISCONNECTED.name().equals(state)
+                        && Phone.REASON_ROAMING_ON.equals(reason)
+                        && !phone.getDataRoamingEnabled()) {
+                    // Notify the user that data call is disconnected due to roaming. Note that
+                    // calling this multiple times will not cause multiple notifications.
+                    mHandler.sendEmptyMessage(EVENT_DATA_ROAMING_DISCONNECTED);
+                } else if (PhoneConstants.DataState.CONNECTED.name().equals(state)) {
+                    // Cancel the notification when data is available. Note it is okay to call this
+                    // even if the notification doesn't exist.
+                    mHandler.sendEmptyMessage(EVENT_DATA_ROAMING_OK);
                 }
-
-                if (VDBG) Log.d(LOG_TAG, "isRoaming = " + isRoaming + " isRoamingDataEnabled = "
-                        + isRoamingDataEnabled + "disconnectReasonRoaming = "
-                        + disconnectReasonRoaming + " mDataDisconnectedDueToRoaming = "
-                        + mDataDisconnectedDueToRoaming);
-
-                if (mDataDisconnectedDueToRoaming != disconnectedDueToRoaming) {
-                    mDataDisconnectedDueToRoaming = disconnectedDueToRoaming;
-                    mHandler.sendEmptyMessage(disconnectedDueToRoaming
-                            ? EVENT_DATA_ROAMING_DISCONNECTED : EVENT_DATA_ROAMING_OK);
+            } else if (action.equals(TelephonyIntents.ACTION_SIM_STATE_CHANGED)) {
+                if (mPUKEntryActivity != null) {
+                    // if an attempt to un-PUK-lock the device was made, while we're
+                    // receiving this state change notification, notify the handler.
+                    // NOTE: This is ONLY triggered if an attempt to un-PUK-lock has
+                    // been attempted.
+                    mHandler.sendMessage(mHandler.obtainMessage(EVENT_SIM_STATE_CHANGED,
+                            intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE)));
                 }
-            } else if ((action.equals(TelephonyIntents.ACTION_SIM_STATE_CHANGED)) &&
-                    (mPUKEntryActivity != null)) {
-                // if an attempt to un-PUK-lock the device was made, while we're
-                // receiving this state change notification, notify the handler.
-                // NOTE: This is ONLY triggered if an attempt to un-PUK-lock has
-                // been attempted.
-                mHandler.sendMessage(mHandler.obtainMessage(EVENT_SIM_STATE_CHANGED,
+                mHandler.sendMessage(mHandler.obtainMessage(EVENT_SIM_STATE_CHANGED_CHECKREADY,
                         intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE)));
             } else if (action.equals(TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED)) {
                 String newPhone = intent.getStringExtra(PhoneConstants.PHONE_NAME_KEY);
@@ -763,7 +753,9 @@ public class PhoneGlobals extends ContextWrapper {
             ServiceState ss = ServiceState.newFromBundle(extras);
             if (ss != null) {
                 int state = ss.getState();
-                notificationMgr.updateNetworkSelection(state);
+                int subId = intent.getIntExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                        SubscriptionManager.INVALID_SUBSCRIPTION_ID);
+                notificationMgr.updateNetworkSelection(state, subId);
             }
         }
     }

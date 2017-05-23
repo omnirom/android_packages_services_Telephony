@@ -13,13 +13,15 @@ LOCAL_JAVA_LIBRARIES := \
         telephony-common \
         voip-common \
         ims-common \
-        org.apache.http.legacy
+        org.apache.http.legacy \
+        telephony-ext
 
 LOCAL_STATIC_JAVA_LIBRARIES := \
         android-support-v7-appcompat \
         android-support-v7-preference \
         android-support-v7-recyclerview \
         android-support-v14-preference \
+        ims-ext-common \
         guava \
         volley
 
