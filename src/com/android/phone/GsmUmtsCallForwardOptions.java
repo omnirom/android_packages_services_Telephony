@@ -46,6 +46,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity {
     private Bundle mIcicle;
     private Phone mPhone;
     private SubscriptionInfoHelper mSubscriptionInfoHelper;
+    private int mServiceClass;
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -78,6 +79,13 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity {
         // TimeConsumingPreferenceActivity dialog can display as it
         // relies on onResume / onPause to maintain its foreground state.
 
+        /*Retrieve Call Forward ServiceClass*/
+        Intent intent = getIntent();
+        if (DBG) Log.d(LOG_TAG, "Intent is"+intent);
+        mServiceClass = intent.getIntExtra(PhoneUtils.SERVICE_CLASS,
+                CommandsInterface.SERVICE_CLASS_VOICE);
+        if (DBG) Log.d(LOG_TAG, "serviceClass: " +mServiceClass);
+
         mFirstResume = true;
         mIcicle = icicle;
 
@@ -95,7 +103,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity {
         if (mFirstResume) {
             if (mIcicle == null) {
                 if (DBG) Log.d(LOG_TAG, "start to init ");
-                mPreferences.get(mInitIndex).init(this, false, mPhone);
+                mPreferences.get(mInitIndex).init(this, false, mPhone, mServiceClass);
             } else {
                 mInitIndex = mPreferences.size();
 
@@ -106,7 +114,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity {
                     cf.number = bundle.getString(KEY_NUMBER);
                     cf.status = bundle.getInt(KEY_STATUS);
                     pref.handleCallForwardResult(cf);
-                    pref.init(this, true, mPhone);
+                    pref.init(this, true, mPhone, mServiceClass);
                 }
             }
             mFirstResume = false;
@@ -133,7 +141,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity {
     public void onFinished(Preference preference, boolean reading) {
         if (mInitIndex < mPreferences.size()-1 && !isFinishing()) {
             mInitIndex++;
-            mPreferences.get(mInitIndex).init(this, false, mPhone);
+            mPreferences.get(mInitIndex).init(this, false, mPhone, mServiceClass);
         }
 
         super.onFinished(preference, reading);
