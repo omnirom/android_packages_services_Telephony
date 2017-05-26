@@ -241,7 +241,7 @@ public class TelephonyConnectionService extends ConnectionService {
         }
 
         @Override
-        public void resetDisconnectCause() {
+        public void onCallDisconnectResetDisconnectCause() {
             resetDisconnectCause();
         }
     };

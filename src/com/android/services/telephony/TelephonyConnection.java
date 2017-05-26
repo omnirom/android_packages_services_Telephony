@@ -451,7 +451,7 @@ abstract class TelephonyConnection extends Connection {
     public abstract static class TelephonyConnectionListener {
         public void onOriginalConnectionConfigured(TelephonyConnection c) {}
         public void onOriginalConnectionRetry(TelephonyConnection c, boolean isPermanentFailure) {}
-        public void resetDisconnectCause() {}
+        public void onCallDisconnectResetDisconnectCause() {}
     }
 
     private final PostDialListener mPostDialListener = new PostDialListener() {
@@ -1505,7 +1505,7 @@ abstract class TelephonyConnection extends Connection {
                                         mOriginalConnection.getDisconnectCause(),
                                         mOriginalConnection.getVendorDisconnectCause()));
                             }
-                            resetDisconnectCause();
+                            fireResetDisconnectCause();
                             close();
                         }
                     }
@@ -1900,9 +1900,9 @@ abstract class TelephonyConnection extends Connection {
         }
     }
 
-    private final void resetDisconnectCause() {
+    private final void fireResetDisconnectCause() {
         for (TelephonyConnectionListener l : mTelephonyListeners) {
-            l.resetDisconnectCause();
+            l.onCallDisconnectResetDisconnectCause();
         }
     }
 
