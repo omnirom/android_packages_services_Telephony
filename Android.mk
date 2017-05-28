@@ -14,7 +14,8 @@ LOCAL_JAVA_LIBRARIES := \
         voip-common \
         ims-common \
         org.apache.http.legacy \
-        telephony-ext
+        telephony-ext \
+        ims-ext-common
 
 LOCAL_STATIC_JAVA_LIBRARIES := \
         android-support-v7-appcompat \
