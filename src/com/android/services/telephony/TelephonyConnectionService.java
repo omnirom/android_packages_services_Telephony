@@ -100,6 +100,12 @@ public class TelephonyConnectionService extends ConnectionService {
                     .addExistingConnection(phoneAccountHandle, connection);
         }
         @Override
+        public void addExistingConnection(PhoneAccountHandle phoneAccountHandle,
+                Connection connection, Conference conference) {
+            TelephonyConnectionService.this
+                    .addExistingConnection(phoneAccountHandle, connection, conference);
+        }
+        @Override
         public void addConnectionToConferenceController(TelephonyConnection connection) {
             TelephonyConnectionService.this.addConnectionToConferenceController(connection);
         }
@@ -668,6 +674,21 @@ public class TelephonyConnectionService extends ConnectionService {
         }
     }
 
+    /**
+     * Called by the {@link ConnectionService} when a newly created {@link Connection} has been
+     * added to the {@link ConnectionService} and sent to Telecom.  Here it is safe to send
+     * connection events.
+     *
+     * @param connection the {@link Connection}.
+     */
+    @Override
+    public void onCreateConnectionComplete(Connection connection) {
+        if (connection instanceof TelephonyConnection) {
+            TelephonyConnection telephonyConnection = (TelephonyConnection) connection;
+            maybeSendInternationalCallEvent(telephonyConnection);
+        }
+    }
+
     @Override
     public void triggerConferenceRecalculate() {
         if (mTelephonyConferenceController.shouldRecalculate()) {
@@ -940,18 +961,6 @@ public class TelephonyConnectionService extends ConnectionService {
                     return;
                 } else {
                     originalConnection = phone.dial(number, null, videoState, extras);
-                }
-
-                if (phone instanceof GsmCdmaPhone) {
-                    GsmCdmaPhone gsmCdmaPhone = (GsmCdmaPhone) phone;
-                    if (gsmCdmaPhone.isNotificationOfWfcCallRequired(number)) {
-                        // Send connection event to InCall UI to inform the user of the fact they
-                        // are potentially placing an international call on WFC.
-                        Log.i(this, "placeOutgoingConnection - sending international call on WFC " +
-                                "confirmation event");
-                        connection.sendConnectionEvent(
-                                TelephonyManager.EVENT_NOTIFY_INTERNATIONAL_CALL_ON_WFC, null);
-                    }
                 }
             }
         } catch (CallStateException e) {
@@ -1279,5 +1288,21 @@ public class TelephonyConnectionService extends ConnectionService {
                 context.getContentResolver(),
                 android.provider.Settings.Secure.PREFERRED_TTY_MODE,
                 TelecomManager.TTY_MODE_OFF) != TelecomManager.TTY_MODE_OFF);
+    }
+
+    private void maybeSendInternationalCallEvent(TelephonyConnection telephonyConnection) {
+        Phone phone = telephonyConnection.getPhone().getDefaultPhone();
+        if (phone instanceof GsmCdmaPhone) {
+            GsmCdmaPhone gsmCdmaPhone = (GsmCdmaPhone) phone;
+            if (gsmCdmaPhone.isNotificationOfWfcCallRequired(
+                    telephonyConnection.getOriginalConnection().getOrigDialString())) {
+                // Send connection event to InCall UI to inform the user of the fact they
+                // are potentially placing an international call on WFC.
+                Log.i(this, "placeOutgoingConnection - sending international call on WFC " +
+                        "confirmation event");
+                telephonyConnection.sendConnectionEvent(
+                        TelephonyManager.EVENT_NOTIFY_INTERNATIONAL_CALL_ON_WFC, null);
+            }
+        }
     }
 }
