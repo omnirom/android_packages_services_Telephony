@@ -1283,7 +1283,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     public int[] supplyPinReportResultForSubscriber(int subId, String pin) {
         enforceModifyPermission();
-        final UnlockSim checkSimPin = new UnlockSim(getPhone(subId).getIccCard());
+        Phone phone = getPhone(subId);
+        if (phone == null) return returnErrorForPinPukOperation();
+        final UnlockSim checkSimPin = new UnlockSim(phone.getIccCard());
         checkSimPin.start();
         return checkSimPin.unlockSim(null, pin);
     }
@@ -1295,9 +1297,20 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     public int[] supplyPukReportResultForSubscriber(int subId, String puk, String pin) {
         enforceModifyPermission();
-        final UnlockSim checkSimPuk = new UnlockSim(getPhone(subId).getIccCard());
+        Phone phone = getPhone(subId);
+        if (phone == null) return returnErrorForPinPukOperation();
+        final UnlockSim checkSimPuk = new UnlockSim(phone.getIccCard());
         checkSimPuk.start();
         return checkSimPuk.unlockSim(puk, pin);
+    }
+
+    private int[] returnErrorForPinPukOperation() {
+        int[] resultArray = new int[2];
+        resultArray[0] = PhoneConstants.PIN_GENERAL_FAILURE;
+        //This field is for attempts remaining, anything < 0 is considered
+        //as invalid. This is returned in case of actual PIN FAILURE from UIM.
+        resultArray[1] = -1;
+        return resultArray;
     }
 
     /**
