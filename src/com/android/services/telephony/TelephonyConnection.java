@@ -57,6 +57,7 @@ import com.android.phone.ImsUtil;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.PhoneUtils;
 import com.android.phone.R;
+import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 import org.codeaurora.ims.QtiCallConstants;
 
@@ -129,6 +130,16 @@ abstract class TelephonyConnection extends Connection
                             Log.d(TelephonyConnection.this,
                                     "SettingOriginalConnection " + mOriginalConnection.toString()
                                             + " with " + connection.toString());
+                            boolean isShowToast = (getPhone() != null) ?
+                                    QtiImsExtUtils.isCarrierConfigEnabled(getPhone().getPhoneId(),
+                                    getPhone().getContext(), "config_show_srvcc_toast") : false;
+                            if (isShowToast && !shouldTreatAsEmergencyCall()) {
+                                int srvccMessageRes = VideoProfile.isVideo(
+                                        mOriginalConnection.getVideoState()) ?
+                                        R.string.srvcc_video_message : R.string.srvcc_message;
+                                Toast.makeText(getPhone().getContext(),
+                                        srvccMessageRes, Toast.LENGTH_LONG).show();
+                            }
                             setOriginalConnection(connection);
                             mWasImsConnection = false;
                         }
