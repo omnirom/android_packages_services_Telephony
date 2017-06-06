@@ -93,11 +93,10 @@ import com.android.internal.telephony.uicc.SIMRecords;
 import com.android.internal.telephony.uicc.UiccCard;
 import com.android.internal.telephony.uicc.UiccCardApplication;
 import com.android.internal.telephony.uicc.UiccController;
+import com.android.internal.telephony.util.VoicemailNotificationSettingsUtil;
 import com.android.internal.util.HexDump;
-import com.android.phone.settings.VoicemailNotificationSettingsUtil;
 import com.android.phone.vvm.PhoneAccountHandleConverter;
 import com.android.phone.vvm.RemoteVvmTaskManager;
-import com.android.phone.vvm.VisualVoicemailPreferences;
 import com.android.phone.vvm.VisualVoicemailSettingsUtil;
 import com.android.phone.vvm.VisualVoicemailSmsFilterConfig;
 
@@ -3489,7 +3488,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             phone = mPhone;
         }
 
-        return VoicemailNotificationSettingsUtil.getRingtoneUri(phone);
+        return VoicemailNotificationSettingsUtil.getRingtoneUri(phone.getContext());
     }
 
     /**
@@ -3516,7 +3515,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         if (phone == null){
            phone = mPhone;
         }
-        VoicemailNotificationSettingsUtil.setRingtoneUri(phone, uri);
+        VoicemailNotificationSettingsUtil.setRingtoneUri(phone.getContext(), uri);
     }
 
     /**
@@ -3533,7 +3532,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             phone = mPhone;
         }
 
-        return VoicemailNotificationSettingsUtil.isVibrationEnabled(phone);
+        return VoicemailNotificationSettingsUtil.isVibrationEnabled(phone.getContext());
     }
 
     /**
@@ -3561,7 +3560,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         if (phone == null){
             phone = mPhone;
         }
-        VoicemailNotificationSettingsUtil.setVibrationEnabled(phone, enabled);
+        VoicemailNotificationSettingsUtil.setVibrationEnabled(phone.getContext(), enabled);
     }
 
     /**
