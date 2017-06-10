@@ -332,10 +332,12 @@ public class CallFeaturesSetting extends PreferenceActivity
                                     new Preference.OnPreferenceClickListener() {
                                         @Override
                                         public boolean onPreferenceClick(Preference preference) {
-                                            Intent intent = new Intent(CdmaCallOptions.
-                                                    CALL_FORWARD_INTENT);
-                                            intent.putExtra(PhoneConstants.
-                                                    SUBSCRIPTION_KEY, mPhone.getSubId());
+                                            Intent intent = (mPhone.getImsPhone() != null
+                                                && mPhone.isUtEnabled()) ?
+                                                mSubscriptionInfoHelper
+                                                    .getIntent(CallForwardType.class)
+                                                : new Intent(CdmaCallOptions.CALL_FORWARD_INTENT);
+                                            intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, mPhone.getSubId());
                                             startActivity(intent);
                                             return true;
                                         }

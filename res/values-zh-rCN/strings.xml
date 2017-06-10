@@ -584,4 +584,6 @@
     <string name="change_pin_confirm_pins_dont_match" msgid="4795052654904027909">"PIN 码不一致"</string>
     <string name="change_pin_succeeded" msgid="2022852286442211151">"语音信箱 PIN 码已更新"</string>
     <string name="change_pin_system_error" msgid="8308462387154257840">"无法设置 PIN 码"</string>
+    <string name="ut_not_support">UT补充业务不可用</string>
+    <string name="ct_ut_not_support_close_4glte">UT补充业务不可用，请在设置中关闭增强4G LTE选项</string>
 </resources>
