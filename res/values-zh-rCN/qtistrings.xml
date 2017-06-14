@@ -33,4 +33,10 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="call_barring">"呼入限制"</string>
+    <string name="srvcc_video_message">"4G网络不可用，视频电话降级到2G/3G语音电话."</string>
+    <string name="srvcc_message">"4G网络不可用，4G语音电话降级到2G/3G语音电话."</string>
+    <string name="no_mobile_data">移动数据连接不可用</string>
+    <string name="cf_setting_mobile_data_alert_roaming">请开启数据漫游</string>
+    <string name="no_mobile_data_roaming">数据漫游不可用</string>
+    <string name="ims_settings">"IMS 设置"</string>
 </resources>

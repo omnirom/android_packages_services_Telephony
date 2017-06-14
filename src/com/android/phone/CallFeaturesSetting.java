@@ -332,10 +332,12 @@ public class CallFeaturesSetting extends PreferenceActivity
                                     new Preference.OnPreferenceClickListener() {
                                         @Override
                                         public boolean onPreferenceClick(Preference preference) {
-                                            Intent intent = new Intent(CdmaCallOptions.
-                                                    CALL_FORWARD_INTENT);
-                                            intent.putExtra(PhoneConstants.
-                                                    SUBSCRIPTION_KEY, mPhone.getSubId());
+                                            Intent intent = (mPhone.getImsPhone() != null
+                                                && mPhone.isUtEnabled()) ?
+                                                mSubscriptionInfoHelper
+                                                    .getIntent(CallForwardType.class)
+                                                : new Intent(CdmaCallOptions.CALL_FORWARD_INTENT);
+                                            intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, mPhone.getSubId());
                                             startActivity(intent);
                                             return true;
                                         }
@@ -421,6 +423,17 @@ public class CallFeaturesSetting extends PreferenceActivity
 
         Preference wifiCallingSettings = findPreference(
                 getResources().getString(R.string.wifi_calling_settings_key));
+
+        wifiCallingSettings.setOnPreferenceClickListener(
+                 new Preference.OnPreferenceClickListener() {
+            @Override
+            public boolean onPreferenceClick(Preference preference) {
+                Intent intent = new Intent("android.settings.WIFI_CALLING_SETTINGS");
+                intent.putExtra(QtiCallConstants.EXTRA_PHONE_ID, mPhone.getPhoneId());
+                startActivity(intent);
+                return true;
+            }
+        });
 
         final PhoneAccountHandle simCallManager = mTelecomManager.getSimCallManager();
         if (simCallManager != null) {

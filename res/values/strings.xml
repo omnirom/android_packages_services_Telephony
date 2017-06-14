@@ -235,6 +235,22 @@
     <!-- Call forwarding settings screen, setting summary text when Always forward is disabled -->
     <string name="sum_cfu_disabled">Off</string>
 
+    <!-- Call forwarding settings screen, setting timer info for cfut case -->
+    <string name="set_time_period">Set time period</string>
+    <string name="all_day">\u0020All day\u0020</string>
+    <string name="time_interval_char">: </string>
+    <string name="time_start">\u0020From\u0020</string>
+    <string name="time_start_hour">time start hour</string>
+    <string name="time_start_minute">time start minute</string>
+    <string name="time_end">\u0020To\u0020</string>
+    <string name="time_next_day">\u0020next day\u0020</string>
+    <string name="time_end_hour">time end hour</string>
+    <string name="time_end_minute">time end minute</string>
+    <string name="time_formate_am">AM</string>
+    <string name="time_formate_pm">PM</string>
+    <string name="cf_setting_mobile_data_alert">Please turn on mobile data and make sure that WLAN is off</string>
+    <string name="cf_setting_mobile_data_roaming_alert">Please turn on data roaming</string>
+
     <!-- Call forwarding settings screen, setting option name -->
     <string name="labelCFB">When busy</string>
     <!-- Call forwarding dialog box, text field label -->
@@ -1435,4 +1451,6 @@
     <string name="change_pin_succeeded">Voicemail PIN updated</string>
     <!-- The error message to show if the server reported an error while attempting to change the voicemail PIN -->
     <string name="change_pin_system_error">Unable to set PIN</string>
+    <string name="ut_not_support">UT is not available</string>
+    <string name="ct_ut_not_support_close_4glte">UT is not available, please turn off Enhanced 4G LTE Mode in Settings</string>
 </resources>

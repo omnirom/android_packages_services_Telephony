@@ -199,4 +199,6 @@ ul.</string>
     <string name="PERSOSUBSTATE_RUIM_CORPORATE_PUK_SUCCESS">PUK unlock successful.</string>
     <string name="PERSOSUBSTATE_RUIM_SERVICE_PROVIDER_PUK_SUCCESS">PUK unlock successful.</string>
     <string name="PERSOSUBSTATE_RUIM_RUIM_PUK_SUCCESS">PUK unlock successful.</string>
+    <string name="srvcc_video_message">"Video call is downgraded to 2G/3G voice call due to 4G network is not available."</string>
+    <string name="srvcc_message">"4G voice call is downgraded to 2G/3G voice call due to 4G network is not available."</string>
 </resources>
