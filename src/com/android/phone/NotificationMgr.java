@@ -557,6 +557,29 @@ public class NotificationMgr {
 
         // "Mobile network settings" screen / dialog
         Intent intent = new Intent(mContext, com.android.phone.MobileNetworkSettings.class);
+
+        boolean isVendorNetworkSettingApkAvailable = false;
+        IExtTelephony extTelephony =
+                IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+        try {
+            if (extTelephony != null &&
+                    extTelephony.isVendorApkAvailable("com.qualcomm.qti.networksetting")) {
+                isVendorNetworkSettingApkAvailable = true;
+            }
+        } catch (RemoteException ex) {
+            // could not connect to extphone service, launch the default activity
+            log("couldn't connect to extphone service, launch the default activity");
+        }
+
+        if (isVendorNetworkSettingApkAvailable) {
+            // prepare intent to start qti MobileNetworkSettings activity
+            intent.setComponent(new ComponentName("com.qualcomm.qti.networksetting",
+                    "com.qualcomm.qti.networksetting.MobileNetworkSettings"));
+        } else {
+            // vendor MobileNetworkSettings not available, launch the default activity
+            log("vendor MobileNetworkSettings is not available");
+        }
+
         PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
 
         final CharSequence contentText = mContext.getText(R.string.roaming_reenable_message);
@@ -575,6 +598,9 @@ public class NotificationMgr {
                 continue;
             }
             UserHandle userHandle = user.getUserHandle();
+            if (isVendorNetworkSettingApkAvailable) {
+                builder.setAutoCancel(true);
+            }
             builder.setContentIntent(user.isAdmin() ? contentIntent : null);
             final Notification notif =
                     new Notification.BigTextStyle(builder).bigText(contentText).build();
