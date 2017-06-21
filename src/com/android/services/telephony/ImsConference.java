@@ -19,7 +19,11 @@ package com.android.services.telephony;
 import android.content.Context;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
+import android.os.AsyncResult;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.os.PersistableBundle;
 import android.telecom.Conference;
 import android.telecom.ConferenceParticipant;
@@ -240,6 +244,70 @@ public class ImsConference extends Conference {
      */
     private final Object mUpdateSyncRoot = new Object();
 
+    private static final int EVENT_REQUEST_ADD_PARTICIPANTS = 1;
+    private static final int EVENT_ADD_PARTICIPANTS_DONE = 2;
+    private static final String PARTICIPANTS_LIST_SEPARATOR = ";";
+    // Pending participants to invite to conference
+    private ArrayList<String> mPendingParticipantsList = new ArrayList<String>(0);
+
+    private Handler mHandler = new Handler(Looper.getMainLooper()) {
+        @Override public void handleMessage (Message msg) {
+            AsyncResult ar;
+            Log.i(this, "handleMessage what=" + msg.what);
+            switch (msg.what) {
+                case EVENT_REQUEST_ADD_PARTICIPANTS:
+                    if (msg.obj instanceof String) {
+                        processAddParticipantsList((String)msg.obj);
+                    }
+                    break;
+                case EVENT_ADD_PARTICIPANTS_DONE:
+                    ar = (AsyncResult)msg.obj;
+                    processAddParticipantResponse((ar.exception == null));
+                    break;
+            }
+        }
+    };
+
+    private void processAddParticipantsList(String dialString) {
+        boolean initAdding = false;
+        String[] participantsArr = dialString.split(PARTICIPANTS_LIST_SEPARATOR);
+        int numOfParticipants = ((participantsArr == null) ? 0 : participantsArr.length);
+        Log.d(this,"processAddParticipantsList: no of particpants = " + numOfParticipants
+                + " pending = " + mPendingParticipantsList.size());
+        if (numOfParticipants > 0) {
+            if (mPendingParticipantsList.size() == 0) {
+                //directly add participant if no pending participants.
+                initAdding = true;
+            }
+            for (String participant: participantsArr) {
+                mPendingParticipantsList.add(participant);
+            }
+            if (initAdding) {
+                processNextParticipant();
+            }
+        }
+    }
+
+    private void processNextParticipant() {
+        if (mPendingParticipantsList.size() > 0) {
+            if (addParticipantInternal(mPendingParticipantsList.get(0))) {
+                Log.d(this,"processNextParticipant: sent request");
+            } else {
+                Log.d(this,"processNextParticipant: failed. Clear pending list.");
+                mPendingParticipantsList.clear();
+            }
+        }
+    }
+
+    private void processAddParticipantResponse(boolean success) {
+        Log.d(this,"processAddParticipantResponse: success = " + success + " pending = " +
+                (mPendingParticipantsList.size() - 1));
+        if (mPendingParticipantsList.size() > 0) {
+            mPendingParticipantsList.remove(0);
+            processNextParticipant();
+        }
+    }
+
     public void updateConferenceParticipantsAfterCreation() {
         if (mConferenceHost != null) {
             Log.v(this, "updateConferenceStateAfterCreation :: process participant update");
@@ -456,16 +524,26 @@ public class ImsConference extends Conference {
      */
     @Override
     public void onAddParticipant(String participant) {
+        if (participant == null || participant.isEmpty()) {
+            return;
+        }
+        mHandler.sendMessage(mHandler.obtainMessage(EVENT_REQUEST_ADD_PARTICIPANTS, participant));
+    }
+
+    private boolean addParticipantInternal(String participant) {
         try {
             Phone phone = (mConferenceHost != null) ? mConferenceHost.getPhone() : null;
             Log.d(this, "onAddParticipant mConferenceHost = " + mConferenceHost
                     + " Phone = " + phone);
             if (phone != null) {
-                phone.addParticipant(participant);
+                phone.addParticipant(participant,
+                        mHandler.obtainMessage(EVENT_ADD_PARTICIPANTS_DONE));
+                return true;
             }
         } catch (CallStateException e) {
             Log.e(this, e, "Exception thrown trying to add a participant into conference");
         }
+        return false;
     }
 
     /**
@@ -902,7 +980,8 @@ public class ImsConference extends Conference {
 
             if (mConferenceHost.getPhone().getPhoneType() == PhoneConstants.PHONE_TYPE_GSM) {
                 Log.i(this,"handleOriginalConnectionChange : SRVCC to GSM");
-                GsmConnection c = new GsmConnection(originalConnection, getTelecomCallId());
+                GsmConnection c = new GsmConnection(originalConnection, getTelecomCallId(),
+                        mConferenceHost.isOutgoingCall());
                 // This is a newly created conference connection as a result of SRVCC
                 c.setConferenceSupported(true);
                 c.addCapability(Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN);

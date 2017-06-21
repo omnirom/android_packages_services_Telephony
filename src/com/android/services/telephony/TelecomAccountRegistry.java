@@ -751,8 +751,7 @@ final class TelecomAccountRegistry {
                     // setupAccounts can be called multiple times during service changes. Don't add an
                     // account if the Icc has not been set yet.
                     if (subscriptionId >= 0  && (provisionStatus == PROVISIONED)
-                            && phone.getFullIccSerialNumber() != null &&
-                            (mSubscriptionManager.isActiveSubId(subscriptionId))) {
+                            && (mSubscriptionManager.isActiveSubId(subscriptionId))) {
                         activeCount++;
                         activeSubscriptionId = subscriptionId;
                         mAccounts.add(new AccountEntry(phone, false /* emergency */,
