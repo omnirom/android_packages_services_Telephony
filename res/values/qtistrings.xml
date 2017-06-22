@@ -79,6 +79,14 @@
     <string name="PERSOSUBSTATE_RUIM_RUIM_PUK_ENTRY">Enter PUK</string>
     <!-- Label text for PUK entry widget on Depersonalization panel -->
     <string name="PERSOSUBSTATE_RUIM_CORPORATE_PUK_ENTRY">Enter PUK</string>
+
+    <!-- Label text for PIN entry widget on SIM SPN Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_SPN_ENTRY">SPN unlock PIN</string>
+    <!-- Label text for PIN entry widget on SIM SP EHPLMN Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_SP_EHPLMN_ENTRY">SP EHPLMN unlock PIN</string>
+    <!-- Label text for PIN entry widget on SIM ICCID Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_ICCID_ENTRY">ICCID unlock PIN</string>
+
     <!-- Status message displayed on SIM Network Depersonalization panel -->
     <string name="PERSOSUBSTATE_SIM_NETWORK_IN_PROGRESS">Requesting SIM network unlock\u2026</string>
     <!-- Status message displayed on SIM Network Subset Depersonalization panel -->
@@ -112,6 +120,14 @@ lock\u2026</string>
 unlock\u2026</string>
     <!-- Status message displayed on RUIM Corporate Depersonalization panel -->
     <string name="PERSOSUBSTATE_RUIM_CORPORATE_IN_PROGRESS">Requesting RUIM corporate unlock\u2026</string>
+
+    <!-- Status message displayed on SIM SPN Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_SPN_IN_PROGRESS">Requesting SPN unlock\u2026</string>
+    <!-- Status message displayed on SIM SP EHPLMN Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_SP_EHPLMN_IN_PROGRESS">Requesting SP EHPLMN unlock\u2026</string>
+    <!-- Status message displayed on SIM ICCID Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_ICCID_IN_PROGRESS">Requesting ICCID unlock\u2026</string>
+
     <!-- Status message displayed on RUIM RUIM Depersonalization panel -->
     <string name="PERSOSUBSTATE_RUIM_RUIM_IN_PROGRESS">Requesting RUIM unlock\u2026</string>
     <!-- Status message displayed on PUK Depersonalization panel -->
@@ -163,6 +179,14 @@ successful.</string>
     <string name="PERSOSUBSTATE_RUIM_SERVICE_PROVIDER_PUK_ERROR">PUK unlock unsuccessful.</string>
     <string name="PERSOSUBSTATE_RUIM_RUIM_PUK_ERROR">PUK unlock unsuccessful.</string>
     <string name="PERSOSUBSTATE_RUIM_CORPORATE_PUK_ERROR">PUK unlock unsuccessful.</string>
+
+    <!--  Error message displayed on SIM SPN Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_SPN_ERROR">SPN unlock request unsuccessful.</string>
+    <!--  Error message displayed on SIM SP EHPLMN Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_SP_EHPLMN_ERROR">SP EHPLMN unlock request unsuccessful.</string>
+    <!--  Error message displayed on SIM ICCID Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_ICCID_ERROR">ICCID unlock request unsuccessful.</string>
+
     <!-- Success message displayed on SIM Network Depersonalization panel -->
     <string name="PERSOSUBSTATE_SIM_NETWORK_SUCCESS">SIM Network unlock successful.</string>
     <!-- Success message displayed on SIM Network Subset Depersonalization panel -->
@@ -199,6 +223,14 @@ ul.</string>
     <string name="PERSOSUBSTATE_RUIM_CORPORATE_PUK_SUCCESS">PUK unlock successful.</string>
     <string name="PERSOSUBSTATE_RUIM_SERVICE_PROVIDER_PUK_SUCCESS">PUK unlock successful.</string>
     <string name="PERSOSUBSTATE_RUIM_RUIM_PUK_SUCCESS">PUK unlock successful.</string>
+
+    <!-- Success message displayed on SIM SPN Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_SPN_SUCCESS">SPN unlock successful.</string>
+    <!-- Success message displayed on SIM SP EHPLMN Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_SP_EHPLMN_SUCCESS">SP EHPLMN unlock successful.</string>
+    <!-- Success message displayed on SIM ICCID Depersonalization panel -->
+    <string name="PERSOSUBSTATE_SIM_ICCID_SUCCESS">ICCID unlock successful.</string>
+
     <string name="srvcc_video_message">"Video call is downgraded to 2G/3G voice call due to 4G network is not available."</string>
     <string name="srvcc_message">"4G voice call is downgraded to 2G/3G voice call due to 4G network is not available."</string>
 </resources>

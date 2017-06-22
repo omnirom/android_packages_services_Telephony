@@ -248,9 +248,12 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
                 return;
             }
 
-            log("Requesting De-Personalization for subtype " + mPersoSubtype);
+            int persoState = mPersoSubState.getState();
+            log("Requesting De-Personalization for subtype " + mPersoSubtype
+                    + " subtype val " + persoState);
+
             try {
-                mExtTelephony.supplyIccDepersonalization(pin, Integer.toString(mPersoSubtype),
+                mExtTelephony.supplyIccDepersonalization(pin, Integer.toString(persoState),
                         mCallback, mPhone.getPhoneId());
             } catch (RemoteException ex) {
                 log("RemoteException @supplyIccDepersonalization" + ex);
