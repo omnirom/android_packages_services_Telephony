@@ -205,7 +205,8 @@ final class TelecomAccountRegistry {
 
             mIsVideoCapable = mPhone.isVideoEnabled();
             boolean isVideoEnabledByPlatform =
-                    ImsManager.isVtEnabledByPlatform(mPhone.getContext());
+                    ImsManager.getInstance(mPhone.getContext(),
+                    mPhone.getPhoneId()).isVtEnabledByPlatformForSlot();
 
             if (!mIsPrimaryUser) {
                 Log.i(this, "Disabling video calling for secondary user.");
