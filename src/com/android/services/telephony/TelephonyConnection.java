@@ -1038,7 +1038,9 @@ abstract class TelephonyConnection extends Connection
                 }
             }
             if (showOrigDialString) {
-                address = getAddressFromNumber(mOriginalConnection.getOrigDialString());
+                final String dialPart = PhoneNumberUtils.extractNetworkPortionAlt(
+                        mOriginalConnection.getOrigDialString());
+                address = getAddressFromNumber(dialPart);
             } else {
                 address = getAddressFromNumber(mOriginalConnection.getAddress());
             }
