@@ -239,9 +239,6 @@
     <!-- Flag indicating if SIP settings ennbled -->
     <bool name="sip_settings_on">true</bool>
 
-    <!-- If false, removes the X-Divert option from Call Settings -->
-    <bool name="config_xdivert_enable">false</bool>
-
     <bool name="config_regional_ussd_hide_error_from_network_enable">false</bool>
 
     <!-- the number which the video conference call max supported for TMO -->
