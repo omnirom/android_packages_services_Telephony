@@ -84,16 +84,16 @@ public class CdmaCallOptions extends PreferenceActivity
         return isActivityPresent(context, CALL_WAITING_INTENT);
     }
 
-    //prompt dialog to notify user turn off Enhance 4G LTE switch
+    //prompt dialog to notify user to turn off Enhanced 4G LTE switch
     private boolean isPromptTurnOffEnhance4GLTE(Phone phone) {
         if (phone == null || phone.getImsPhone() == null) {
             return false;
         }
-         return ImsManager.isEnhanced4gLteModeSettingEnabledByUser(this)
-             && ImsManager.isNonTtyOrTtyOnVolteEnabled(this)
-             && !phone.isUtEnabled()
-             && !phone.isVolteEnabled()
-             && !phone.isVideoEnabled();
+        ImsManager imsMgr = ImsManager.getInstance(this, phone.getPhoneId());
+        return imsMgr.isEnhanced4gLteModeSettingEnabledByUserForSlot()
+            && imsMgr.isNonTtyOrTtyOnVolteEnabledForSlot()
+            && !phone.isImsRegistered()
+            && !phone.isUtEnabled();
     }
 
     private void showAlertDialog(String title, String message) {
