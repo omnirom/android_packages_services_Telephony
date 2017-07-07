@@ -557,16 +557,22 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     ar = (AsyncResult) msg.obj;
                     request = (MainThreadRequest) ar.userObj;
                     IccOpenLogicalChannelResponse openChannelResp;
-                    if (ar.exception == null && ar.result != null) {
+                    int channelId = IccOpenLogicalChannelResponse.INVALID_CHANNEL;
+                    byte[] selectResponse = null;
+
+                    if (ar.result != null) {
                         int[] result = (int[]) ar.result;
-                        int channelId = result[0];
-                        byte[] selectResponse = null;
+                        channelId = result[0];
                         if (result.length > 1) {
                             selectResponse = new byte[result.length - 1];
                             for (int i = 1; i < result.length; ++i) {
                                 selectResponse[i - 1] = (byte) result[i];
                             }
                         }
+                    }
+
+                    if (ar.exception == null && ar.result != null) {
+                        Log.d(LOG_TAG, "iccOpenLogicalChannel: success response " + channelId);
                         openChannelResp = new IccOpenLogicalChannelResponse(channelId,
                             IccOpenLogicalChannelResponse.STATUS_NO_ERROR, selectResponse);
                     } else {
@@ -588,7 +594,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                             }
                         }
                         openChannelResp = new IccOpenLogicalChannelResponse(
-                            IccOpenLogicalChannelResponse.INVALID_CHANNEL, errorCode, null);
+                            channelId, errorCode, selectResponse);
                     }
                     request.result = openChannelResp;
                     synchronized (request) {
