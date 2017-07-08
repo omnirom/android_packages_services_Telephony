@@ -1713,7 +1713,7 @@ abstract class TelephonyConnection extends Connection
         setActive();
     }
 
-    private void close() {
+    protected void close() {
         Log.v(this, "close");
         clearOriginalConnection();
         destroy();
