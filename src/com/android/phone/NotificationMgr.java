@@ -650,10 +650,26 @@ public class NotificationMgr {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                 Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-        // Use NetworkSetting to handle the selection intent
-        intent.setComponent(new ComponentName(
-                mContext.getString(R.string.network_operator_settings_package),
-                mContext.getString(R.string.network_operator_settings_class)));
+        IExtTelephony extTelephony =
+                IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+        try {
+            if (extTelephony != null &&
+                    extTelephony.isVendorApkAvailable("com.qualcomm.qti.networksetting")) {
+                // Use Vendor NetworkSetting to handle the selection intent
+                intent.setComponent(new ComponentName("com.qualcomm.qti.networksetting",
+                        "com.qualcomm.qti.networksetting.NetworkSetting"));
+            } else {
+                // Use aosp NetworkSetting to handle the selection intent
+                intent.setComponent(new ComponentName(
+                        mContext.getString(R.string.network_operator_settings_package),
+                        mContext.getString(R.string.network_operator_settings_class)));
+            }
+        } catch (RemoteException e) {
+            // Use aosp NetworkSetting to handle the selection intent
+            intent.setComponent(new ComponentName(
+                    mContext.getString(R.string.network_operator_settings_package),
+                    mContext.getString(R.string.network_operator_settings_class)));
+        }
         intent.putExtra(GsmUmtsOptions.EXTRA_SUB_ID, subId);
         PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
 

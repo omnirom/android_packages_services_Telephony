@@ -1038,7 +1038,9 @@ abstract class TelephonyConnection extends Connection
                 }
             }
             if (showOrigDialString) {
-                address = getAddressFromNumber(mOriginalConnection.getOrigDialString());
+                final String dialPart = PhoneNumberUtils.extractNetworkPortionAlt(
+                        mOriginalConnection.getOrigDialString());
+                address = getAddressFromNumber(dialPart);
             } else {
                 address = getAddressFromNumber(mOriginalConnection.getAddress());
             }
@@ -1128,13 +1130,17 @@ abstract class TelephonyConnection extends Connection
             mTreatAsEmergencyCall = true;
         }
 
-        if (isImsConnection()) {
-            mWasImsConnection = true;
-        }
-        mIsMultiParty = mOriginalConnection.isMultiparty();
-
         Bundle extrasToPut = new Bundle();
         List<String> extrasToRemove = new ArrayList<>();
+
+        if (isImsConnection()) {
+            mWasImsConnection = true;
+        } else {
+            extrasToRemove.add(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY);
+        }
+
+        mIsMultiParty = mOriginalConnection.isMultiparty();
+
         if (mOriginalConnection.isActiveCallDisconnectedOnAnswer()) {
             extrasToPut.putBoolean(Connection.EXTRA_ANSWERING_DROPS_FG_CALL, true);
         } else {
@@ -1707,7 +1713,7 @@ abstract class TelephonyConnection extends Connection
         setActive();
     }
 
-    private void close() {
+    protected void close() {
         Log.v(this, "close");
         clearOriginalConnection();
         destroy();
