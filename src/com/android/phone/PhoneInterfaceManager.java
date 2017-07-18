@@ -19,22 +19,25 @@ package com.android.phone;
 import static com.android.internal.telephony.PhoneConstants.SUBSCRIPTION_KEY;
 
 import android.Manifest.permission;
-import android.app.ActivityManager;
 import android.app.AppOpsManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ComponentInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.NetworkStats;
 import android.net.Uri;
 import android.os.AsyncResult;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.Messenger;
 import android.os.Process;
 import android.os.PersistableBundle;
 import android.os.ResultReceiver;
@@ -54,9 +57,11 @@ import android.telephony.ClientRequestStats;
 import android.telephony.IccOpenLogicalChannelResponse;
 import android.telephony.ModemActivityInfo;
 import android.telephony.NeighboringCellInfo;
+import android.telephony.NetworkScanRequest;
 import android.telephony.RadioAccessFamily;
 import android.telephony.Rlog;
 import android.telephony.ServiceState;
+import android.telephony.SignalStrength;
 import android.telephony.SmsManager;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
@@ -81,6 +86,7 @@ import com.android.internal.telephony.DefaultPhoneNotifier;
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.telephony.IccCard;
 import com.android.internal.telephony.MccTable;
+import com.android.internal.telephony.NetworkScanRequestTracker;
 import com.android.internal.telephony.OperatorInfo;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstantConversions;
@@ -90,6 +96,7 @@ import com.android.internal.telephony.ProxyController;
 import com.android.internal.telephony.RIL;
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.SubscriptionController;
+import com.android.internal.telephony.euicc.EuiccConnector;
 import com.android.internal.telephony.uicc.IccIoResult;
 import com.android.internal.telephony.uicc.IccUtils;
 import com.android.internal.telephony.uicc.SIMRecords;
@@ -188,6 +195,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private static final String PREF_CARRIERS_ALPHATAG_PREFIX = "carrier_alphtag_";
     private static final String PREF_CARRIERS_NUMBER_PREFIX = "carrier_number_";
     private static final String PREF_CARRIERS_SUBSCRIBER_PREFIX = "carrier_subscriber_";
+
+    // The AID of ISD-R.
+    private static final String ISDR_AID = "A0000005591010FFFFFFFF8900000100";
+
+    private NetworkScanRequestTracker mNetworkScanRequestTracker;
 
     /**
      * A request object to use for transmitting data to an ICC.
@@ -1087,6 +1099,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         mTelephonySharedPreferences =
                 PreferenceManager.getDefaultSharedPreferences(mPhone.getContext());
         mSubscriptionController = SubscriptionController.getInstance();
+        mNetworkScanRequestTracker = new NetworkScanRequestTracker();
 
         publish();
     }
@@ -1614,13 +1627,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
     }
 
-    // FIXME: subId version needed
     @Override
-    public boolean isDataConnectivityPossible() {
-        int subId = mSubscriptionController.getDefaultDataSubId();
+    public boolean isDataConnectivityPossible(int subId) {
         final Phone phone = getPhone(subId);
         if (phone != null) {
-            return phone.isDataConnectivityPossible();
+            return phone.isDataAllowed();
         } else {
             return false;
         }
@@ -1638,7 +1649,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
       Pair<String, ResultReceiver> ussdObject = new Pair(ussdRequest, wrappedCallback);
       sendRequest(CMD_HANDLE_USSD_REQUEST, ussdObject, subId);
     };
-
 
     public boolean handlePinMmiForSubscriber(int subId, String dialString) {
         enforceModifyPermission();
@@ -1680,46 +1690,22 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public Bundle getCellLocation(String callingPackage) {
-        enforceFineOrCoarseLocationPermission("getCellLocation");
-
-        // OP_COARSE_LOCATION controls both fine and coarse location.
-        if (mAppOps.noteOp(AppOpsManager.OP_COARSE_LOCATION, Binder.getCallingUid(),
-                callingPackage) != AppOpsManager.MODE_ALLOWED) {
-            log("getCellLocation: returning null; mode != allowed");
+        if (!LocationAccessPolicy.canAccessCellLocation(mPhone.getContext(),
+                callingPackage, Binder.getCallingUid())) {
             return null;
         }
 
-        if (checkIfCallerIsSelfOrForegroundUser() ||
-                checkCallerInteractAcrossUsersFull()) {
-            if (DBG_LOC) log("getCellLocation: is active user");
-            Bundle data = new Bundle();
-            Phone phone = getPhone(mSubscriptionController.getDefaultDataSubId());
-            if (phone == null) {
-                return null;
-            }
-
-            WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
-            phone.getCellLocation(workSource).fillInNotifierBundle(data);
-            return data;
-        } else {
-            log("getCellLocation: suppress non-active user");
+        if (DBG_LOC) log("getCellLocation: is active user");
+        Bundle data = new Bundle();
+        Phone phone = getPhone(mSubscriptionController.getDefaultDataSubId());
+        if (phone == null) {
             return null;
         }
-    }
 
-    private void enforceFineOrCoarseLocationPermission(String message) {
-        try {
-            mApp.enforceCallingOrSelfPermission(
-                    android.Manifest.permission.ACCESS_FINE_LOCATION, null);
-        } catch (SecurityException e) {
-            // If we have ACCESS_FINE_LOCATION permission, skip the check for ACCESS_COARSE_LOCATION
-            // A failure should throw the SecurityException from ACCESS_COARSE_LOCATION since this
-            // is the weaker precondition
-            mApp.enforceCallingOrSelfPermission(
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION, message);
-        }
+        WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
+        phone.getCellLocation(workSource).fillInNotifierBundle(data);
+        return data;
     }
-
 
     @Override
     public void enableLocationUpdates() {
@@ -1754,11 +1740,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     @Override
     @SuppressWarnings("unchecked")
     public List<NeighboringCellInfo> getNeighboringCellInfo(String callingPackage) {
-        enforceFineOrCoarseLocationPermission("getNeighboringCellInfo");
-
-        // OP_COARSE_LOCATION controls both fine and coarse location.
-        if (mAppOps.noteOp(AppOpsManager.OP_COARSE_LOCATION, Binder.getCallingUid(),
-                callingPackage) != AppOpsManager.MODE_ALLOWED) {
+        if (!LocationAccessPolicy.canAccessCellLocation(mPhone.getContext(),
+                callingPackage, Binder.getCallingUid())) {
             return null;
         }
 
@@ -1767,52 +1750,37 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             return null;
         }
 
-        if (checkIfCallerIsSelfOrForegroundUser() ||
-                checkCallerInteractAcrossUsersFull()) {
-            if (DBG_LOC) log("getNeighboringCellInfo: is active user");
+        if (DBG_LOC) log("getNeighboringCellInfo: is active user");
 
-            ArrayList<NeighboringCellInfo> cells = null;
+        ArrayList<NeighboringCellInfo> cells = null;
 
-            WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
-            try {
-                cells = (ArrayList<NeighboringCellInfo>) sendRequest(
-                        CMD_HANDLE_NEIGHBORING_CELL, workSource,
-                        SubscriptionManager.INVALID_SUBSCRIPTION_ID);
-            } catch (RuntimeException e) {
-                Log.e(LOG_TAG, "getNeighboringCellInfo " + e);
-            }
-            return cells;
-        } else {
-            if (DBG_LOC) log("getNeighboringCellInfo: suppress non-active user");
-            return null;
+        WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
+        try {
+            cells = (ArrayList<NeighboringCellInfo>) sendRequest(
+                    CMD_HANDLE_NEIGHBORING_CELL, workSource,
+                    SubscriptionManager.INVALID_SUBSCRIPTION_ID);
+        } catch (RuntimeException e) {
+            Log.e(LOG_TAG, "getNeighboringCellInfo " + e);
         }
+        return cells;
     }
 
 
     @Override
     public List<CellInfo> getAllCellInfo(String callingPackage) {
-        enforceFineOrCoarseLocationPermission("getAllCellInfo");
-
-        // OP_COARSE_LOCATION controls both fine and coarse location.
-        if (mAppOps.noteOp(AppOpsManager.OP_COARSE_LOCATION, Binder.getCallingUid(),
-                callingPackage) != AppOpsManager.MODE_ALLOWED) {
+        if (!LocationAccessPolicy.canAccessCellLocation(mPhone.getContext(),
+                callingPackage, Binder.getCallingUid())) {
             return null;
         }
 
-        if (checkIfCallerIsSelfOrForegroundUser() ||
-                checkCallerInteractAcrossUsersFull()) {
-            if (DBG_LOC) log("getAllCellInfo: is active user");
-            WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
-            List<CellInfo> cellInfos = new ArrayList<CellInfo>();
-            for (Phone phone : PhoneFactory.getPhones()) {
-                final List<CellInfo> info = phone.getAllCellInfo(workSource);
-                if (info != null) cellInfos.addAll(info);
-            }
-            return cellInfos;
-        } else {
-            if (DBG_LOC) log("getAllCellInfo: suppress non-active user");
-            return null;
+        if (DBG_LOC) log("getAllCellInfo: is active user");
+        WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
+        List<CellInfo> cellInfos = new ArrayList<CellInfo>();
+        for (Phone phone : PhoneFactory.getPhones()) {
+            final List<CellInfo> info = phone.getAllCellInfo(workSource);
+            if (info != null) cellInfos.addAll(info);
         }
+        return cellInfos;
     }
 
     @Override
@@ -1852,47 +1820,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     //
     // Internal helper methods.
     //
-
-    /**
-     * Returns true if the caller holds INTERACT_ACROSS_USERS_FULL.
-     */
-    private boolean checkCallerInteractAcrossUsersFull() {
-        return mPhone.getContext().checkCallingOrSelfPermission(
-                android.Manifest.permission.INTERACT_ACROSS_USERS_FULL)
-                == PackageManager.PERMISSION_GRANTED;
-    }
-
-    private static boolean checkIfCallerIsSelfOrForegroundUser() {
-        boolean ok;
-
-        boolean self = Binder.getCallingUid() == Process.myUid();
-        if (!self) {
-            // Get the caller's user id then clear the calling identity
-            // which will be restored in the finally clause.
-            int callingUser = UserHandle.getCallingUserId();
-            long ident = Binder.clearCallingIdentity();
-
-            try {
-                // With calling identity cleared the current user is the foreground user.
-                int foregroundUser = ActivityManager.getCurrentUser();
-                ok = (foregroundUser == callingUser);
-                if (DBG_LOC) {
-                    log("checkIfCallerIsSelfOrForegoundUser: foregroundUser=" + foregroundUser
-                            + " callingUser=" + callingUser + " ok=" + ok);
-                }
-            } catch (Exception ex) {
-                if (DBG_LOC) loge("checkIfCallerIsSelfOrForegoundUser: Exception ex=" + ex);
-                ok = false;
-            } finally {
-                Binder.restoreCallingIdentity(ident);
-            }
-        } else {
-            if (DBG_LOC) log("checkIfCallerIsSelfOrForegoundUser: is self");
-            ok = true;
-        }
-        if (DBG_LOC) log("checkIfCallerIsSelfOrForegoundUser: ret=" + ok);
-        return ok;
-    }
 
     /**
      * Make sure the caller has the MODIFY_PHONE_STATE permission.
@@ -2443,12 +2370,25 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public IccOpenLogicalChannelResponse iccOpenLogicalChannel(int subId, String AID, int p2) {
+    public IccOpenLogicalChannelResponse iccOpenLogicalChannel(
+            int subId, String callingPackage, String aid, int p2) {
         enforceModifyPermissionOrCarrierPrivilege(subId);
 
-        if (DBG) log("iccOpenLogicalChannel: subId=" + subId + " aid=" + AID + " p2=" + p2);
+        if (TextUtils.equals(ISDR_AID, aid)) {
+            // Only allows LPA to open logical channel to ISD-R.
+            mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
+            ComponentInfo bestComponent =
+                    EuiccConnector.findBestComponent(mPhone.getContext().getPackageManager());
+            if (bestComponent == null
+                    || !TextUtils.equals(callingPackage, bestComponent.packageName)) {
+                loge("The calling package is not allowed to access ISD-R.");
+                throw new SecurityException("The calling package is not allowed to access ISD-R.");
+            }
+        }
+
+        if (DBG) log("iccOpenLogicalChannel: subId=" + subId + " aid=" + aid + " p2=" + p2);
         IccOpenLogicalChannelResponse response = (IccOpenLogicalChannelResponse)sendRequest(
-            CMD_OPEN_CHANNEL, new Pair<String, Integer>(AID, p2), subId);
+                CMD_OPEN_CHANNEL, new Pair<String, Integer>(aid, p2), subId);
         if (DBG) log("iccOpenLogicalChannel: " + response);
         return response;
     }
@@ -2723,6 +2663,35 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         CellNetworkScanResult result = (CellNetworkScanResult) sendRequest(
                 CMD_PERFORM_NETWORK_SCAN, null, subId);
         return result;
+    }
+
+    /**
+     * Starts a new network scan and returns the id of this scan.
+     *
+     * @param subId id of the subscription
+     * @param request contains the radio access networks with bands/channels to scan
+     * @param messenger callback messenger for scan results or errors
+     * @param binder for the purpose of auto clean when the user thread crashes
+     * @return the id of the requested scan which can be used to stop the scan.
+     */
+    @Override
+    public int requestNetworkScan(int subId, NetworkScanRequest request, Messenger messenger,
+            IBinder binder) {
+        enforceModifyPermissionOrCarrierPrivilege(subId);
+        return mNetworkScanRequestTracker.startNetworkScan(
+                request, messenger, binder, getPhone(subId));
+    }
+
+    /**
+     * Stops an existing network scan with the given scanId.
+     *
+     * @param subId id of the subscription
+     * @param scanId id of the scan that needs to be stopped
+     */
+    @Override
+    public void stopNetworkScan(int subId, int scanId) {
+        enforceModifyPermissionOrCarrierPrivilege(subId);
+        mNetworkScanRequestTracker.stopNetworkScan(scanId);
     }
 
     /**
@@ -3368,7 +3337,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 // Set preferred mobile network type to the best available
                 setPreferredNetworkType(subId, Phone.PREFERRED_NT_MODE);
                 // Turn off roaming
-                SubscriptionManager.from(mApp).setDataRoaming(0, subId);
+                mPhone.setDataRoamingEnabled(false);
             }
         } finally {
             Binder.restoreCallingIdentity(identity);
@@ -3795,27 +3764,25 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /**
-     * Get aggregated video call data usage from all subscriptions since boot.
-     * @return total data usage in bytes
+     * Get aggregated video call data usage since boot.
+     *
+     * @param perUidStats True if requesting data usage per uid, otherwise overall usage.
+     * @return Snapshot of video call data usage
      * {@hide}
      */
     @Override
-    public long getVtDataUsage() {
+    public NetworkStats getVtDataUsage(int subId, boolean perUidStats) {
         mApp.enforceCallingOrSelfPermission(android.Manifest.permission.READ_NETWORK_USAGE_HISTORY,
                 null);
 
-        // NetworkStatsService keeps tracking the active network interface and identity. It will
-        // record the delta with the corresponding network identity. What we need to do here is
-        // returning total video call data usage from all subscriptions since boot.
-
-        // TODO: Add sub id support in the future. We'll need it when we support DSDA and
-        // simultaneous VT calls.
-        final Phone[] phones = PhoneFactory.getPhones();
-        long total = 0;
-        for (Phone phone : phones) {
-            total += phone.getVtDataUsage();
+        // NetworkStatsService keeps tracking the active network interface and identity. It
+        // records the delta with the corresponding network identity. We just return the total video
+        // call data usage snapshot since boot.
+        Phone phone = getPhone(subId);
+        if (phone != null) {
+            return phone.getVtDataUsage(perUidStats);
         }
-        return total;
+        return null;
     }
 
     /**
@@ -3863,19 +3830,22 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /**
-     * Set SIM card power state. Request is equivalent to inserting or removing the card.
+     * Set SIM card power state.
      *
      * @param slotIndex SIM slot id.
-     * @param powerUp True if powering up the SIM, otherwise powering down
+     * @param state  State of SIM (power down, power up, pass through)
+     * - {@link android.telephony.TelephonyManager#CARD_POWER_DOWN}
+     * - {@link android.telephony.TelephonyManager#CARD_POWER_UP}
+     * - {@link android.telephony.TelephonyManager#CARD_POWER_UP_PASS_THROUGH}
      *
      **/
     @Override
-    public void setSimPowerStateForSlot(int slotIndex, boolean powerUp) {
+    public void setSimPowerStateForSlot(int slotIndex, int state) {
         enforceModifyPermission();
         Phone phone = PhoneFactory.getPhone(slotIndex);
 
         if (phone != null) {
-            phone.setSimPowerState(powerUp);
+            phone.setSimPowerState(state);
         }
     }
 
@@ -3927,5 +3897,21 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             }
         }
         return null;
+    }
+    /**
+     * Get the current signal strength information for the given subscription.
+     * Because this information is not updated when the device is in a low power state
+     * it should not be relied-upon to be current.
+     * @param subId Subscription index
+     * @return the most recent cached signal strength info from the modem
+     */
+    @Override
+    public SignalStrength getSignalStrength(int subId) {
+        Phone p = getPhone(subId);
+        if (p == null) {
+            return null;
+        }
+
+        return p.getSignalStrength();
     }
 }

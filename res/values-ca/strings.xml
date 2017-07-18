@@ -78,7 +78,6 @@
     <string name="voicemail_settings_with_label" msgid="152724978380748296">"Bústia de veu (<xliff:g id="SUBSCRIPTIONLABEL">%s</xliff:g>)"</string>
     <string name="voicemail_abbreviated" msgid="2215592488517217448">"CV:"</string>
     <string name="voicemail_notifications_preference_title" msgid="4019728578955102213">"Notificacions"</string>
-    <string name="networks" msgid="8873030692174541976">"Operadors de xarxa"</string>
     <string name="cell_broadcast_settings" msgid="8740238216690502563">"Missatges d\'emergència"</string>
     <string name="call_settings" msgid="6112441768261754562">"Configuració de trucada"</string>
     <string name="additional_gsm_call_settings" msgid="1391795981938800617">"Configuració addicional"</string>
@@ -164,16 +163,13 @@
     <string name="label_available" msgid="1181658289009300430">"Xarxes disponibles"</string>
     <string name="load_networks_progress" msgid="5230707536168902952">"S\'està cercant…"</string>
     <string name="empty_networks_list" msgid="4249426905018815316">"No s\'ha trobat cap xarxa."</string>
-    <string name="search_networks" msgid="1601136049300882441">"Cerca xarxes"</string>
     <string name="network_query_error" msgid="6828516148953325006">"S\'ha produït un error en cercar xarxes."</string>
     <string name="register_on_network" msgid="9055203954040805084">"S\'està registrant a <xliff:g id="NETWORK">%s</xliff:g>..."</string>
     <string name="not_allowed" msgid="5613353860205691579">"La targeta SIM no et permet connectar-te a aquesta xarxa."</string>
     <string name="connect_later" msgid="2308119155752343975">"Ara mateix no es pot connectar a aquesta xarxa. Torna-ho a provar més tard."</string>
     <string name="registration_done" msgid="495135664535876612">"Registrat a la xarxa."</string>
-    <string name="sum_carrier_select" msgid="3494252551249882718">"Tria un operador de xarxa"</string>
-    <string name="sum_search_networks" msgid="2921092249873272715">"Cerca totes les xarxes disponibles"</string>
-    <string name="select_automatically" msgid="5628402124471810174">"Selecció automàtica"</string>
-    <string name="sum_select_automatically" msgid="5614890115123292400">"Selecciona automàticament la xarxa preferida"</string>
+    <string name="select_automatically" msgid="1046727200631770962">"Selecciona la xarxa automàticament"</string>
+    <string name="network_select_title" msgid="7733107364757544558">"Xarxa"</string>
     <string name="register_automatically" msgid="6017849844573519637">"Registre automàtic..."</string>
     <string name="preferred_network_mode_title" msgid="2336624679902659306">"Tipus de xarxa preferit"</string>
     <string name="preferred_network_mode_summary" msgid="1434820673166126609">"Canvia el mode de funcionament de la xarxa"</string>
@@ -210,18 +206,36 @@
     <item msgid="1524224863879435516">"Només GSM"</item>
     <item msgid="3817924849415716259">"GSM/WCDMA preferit"</item>
   </string-array>
+    <string name="call_category" msgid="5863978196309462052">"Trucades"</string>
+    <string name="network_operator_category" msgid="4830701959205735636">"Xarxa"</string>
     <string name="enhanced_4g_lte_mode_title" msgid="522191650223239171">"Mode 4G LTE millorat"</string>
     <string name="enhanced_4g_lte_mode_title_variant" msgid="4871126028907265406">"Trucades avançades"</string>
     <string name="enhanced_4g_lte_mode_summary" msgid="2332175070522125850">"Utilitza els serveis LTE per millorar la veu i la comunicació (opció recomanada)"</string>
     <string name="data_enabled" msgid="5972538663568715366">"Dades activades"</string>
     <string name="data_enable_summary" msgid="2382798156640007971">"Permet l\'ús de dades"</string>
     <string name="dialog_alert_title" msgid="6751344986194435476">"Atenció"</string>
-    <string name="roaming" msgid="8871412572928323707">"Itinerància de dades"</string>
+    <string name="roaming" msgid="7894878421600247140">"Itinerància"</string>
     <string name="roaming_enable" msgid="7331106985174381987">"Estableix connexió amb serveis de dades en itinerància"</string>
     <string name="roaming_disable" msgid="1843417228755568110">"Estableix connexió amb serveis de dades en itinerància"</string>
     <string name="roaming_reenable_message" msgid="8913735676127858115">"Has perdut la connectivitat de dades, perquè has abandonat la xarxa domèstica i la itinerància de dades està desactivada."</string>
     <string name="roaming_warning" msgid="1603164667540144353">"És possible que se\'t facturin càrrecs elevats."</string>
     <string name="roaming_alert_title" msgid="3654815360303826008">"Permetre la itinerància de dades?"</string>
+    <string name="data_usage_title" msgid="8759619109516889802">"Ús de dades"</string>
+    <string name="data_usage_template" msgid="8065650945732671045">"<xliff:g id="ID_1">%1$s</xliff:g> de dades mòbils utilitzats durant el període <xliff:g id="ID_2">%2$s</xliff:g>"</string>
+    <string name="carrier_settings_euicc" msgid="6714062862127226405">"Operador de telefonia mòbil"</string>
+    <string name="carrier_settings_euicc_summary" msgid="5115001942761995457">"<xliff:g id="CARRIER_NAME">%1$s</xliff:g> — <xliff:g id="PHONE_NUMBER">%2$s</xliff:g>"</string>
+    <string name="mobile_data_settings_title" msgid="3273340917802377121">"Dades mòbils"</string>
+    <string name="mobile_data_settings_summary" msgid="5087255915840576895">"Accedeix a les dades amb una xarxa mòbil"</string>
+    <!-- no translation found for data_usage_disable_mobile (3577275288809667615) -->
+    <skip />
+    <!-- no translation found for sim_selection_required_pref (7049424902961844236) -->
+    <skip />
+    <!-- no translation found for sim_change_data_title (5332425991853799280) -->
+    <skip />
+    <!-- no translation found for sim_change_data_message (2163963581444907496) -->
+    <skip />
+    <string name="wifi_calling_settings_title" msgid="7741961465416430470">"Trucades per Wi-Fi"</string>
+    <string name="video_calling_settings_title" msgid="539714564273795574">"Videotrucades amb l\'operador de telefonia mòbil"</string>
     <string name="gsm_umts_options" msgid="6538311689850981686">"Opcions de GSM/UMTS"</string>
     <string name="cdma_options" msgid="4016822858172249884">"Opcions de CDMA"</string>
     <string name="throttle_data_usage" msgid="3715677828160555808">"Ús de dades"</string>
@@ -443,7 +457,7 @@
     <string name="notification_voicemail_no_vm_number" msgid="760963466895609716">"Número de la bústia de veu desconegut"</string>
     <string name="notification_network_selection_title" msgid="4224455487793492772">"Sense servei"</string>
     <string name="notification_network_selection_text" msgid="2607085729661923269">"La xarxa seleccionada (<xliff:g id="OPERATOR_NAME">%s</xliff:g>) no està disponible"</string>
-    <string name="incall_error_power_off" product="watch" msgid="2007450435656211658">"Per fer una trucada, activa la xarxa de telefonia mòbil o desactiva el mode d\'avió o el mode d\'estalvi de bateria."</string>
+    <string name="incall_error_power_off" product="watch" msgid="2007450435656211658">"Per fer una trucada, activa la xarxa mòbil o desactiva el mode d\'avió o el mode d\'estalvi de bateria."</string>
     <string name="incall_error_power_off" product="default" msgid="2947938060513306698">"Per fer una trucada, desactiva el mode d\'avió."</string>
     <string name="incall_error_power_off_wfc" msgid="8711428920632416575">"Per fer una trucada, desactiva el mode d\'avió o connecta amb una xarxa sense fil."</string>
     <string name="incall_error_ecm_emergency_only" msgid="738708660612388692">"Surt del mode de devolució de trucada d\'emergència per fer un altre tipus de trucada."</string>
@@ -584,4 +598,18 @@
     <string name="change_pin_confirm_pins_dont_match" msgid="4795052654904027909">"Els PIN no coincideixen"</string>
     <string name="change_pin_succeeded" msgid="2022852286442211151">"S\'ha actualitzat el PIN per a la bústia de veu"</string>
     <string name="change_pin_system_error" msgid="8308462387154257840">"No s\'ha pogut definir el PIN"</string>
+    <string name="mobile_data_status_roaming_turned_off_subtext" msgid="935636805765823307">"La itinerància de dades està desactivada"</string>
+    <string name="mobile_data_status_roaming_turned_on_subtext" msgid="1335176927083781041">"La itinerància de dades està activada"</string>
+    <string name="mobile_data_status_roaming_without_plan_subtext" msgid="3568412513831673037">"Estàs en itinerància, però cal un pla de dades"</string>
+    <string name="mobile_data_status_roaming_with_plan_subtext" msgid="8721998948811064377">"Estàs en itinerància i el pla de dades està activat"</string>
+    <string name="mobile_data_status_no_plan_subtext" msgid="4887747337017565725">"No queden dades mòbils"</string>
+    <string name="mobile_data_activate_prepaid" msgid="7447025165850512683">"No queden dades mòbils"</string>
+    <string name="mobile_data_activate_prepaid_summary" msgid="5705389791791637666">"Afegeix dades mòbils mitjançant <xliff:g id="PROVIDER_NAME">%s</xliff:g>"</string>
+    <string name="mobile_data_activate_roaming_plan" msgid="5998161536947086264">"No hi ha cap pla d\'itinerància"</string>
+    <string name="mobile_data_activate_roaming_plan_summary" msgid="511202908883425459">"Afegeix un pla d\'itinerància mitjançant <xliff:g id="PROVIDER_NAME">%s</xliff:g>"</string>
+    <string name="mobile_data_activate_footer" msgid="5979019929980140594">"Pots afegir dades mòbils o un pla d\'itinerància mitjançant el teu operador de telefonia mòbil: <xliff:g id="PROVIDER_NAME">%s</xliff:g>."</string>
+    <string name="mobile_data_activate_diag_title" msgid="9044252207707864493">"Vols afegir dades?"</string>
+    <string name="mobile_data_activate_diag_message" msgid="8216154678758451453">"És possible que hagis d\'afegir dades mitjançant <xliff:g id="PROVIDER_NAME">%s</xliff:g>"</string>
+    <string name="mobile_data_activate_button" msgid="3682400969184405446">"AFEGEIX DADES"</string>
+    <string name="mobile_data_activate_cancel_button" msgid="1708022171547398765">"CANCEL·LA"</string>
 </resources>

@@ -16,8 +16,6 @@
 
 package com.android.phone;
 
-import static android.Manifest.permission.READ_PHONE_STATE;
-
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -54,6 +52,7 @@ import android.util.ArrayMap;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.SubscriptionController;
@@ -66,6 +65,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.codeaurora.internal.IExtTelephony;
+import static android.Manifest.permission.READ_PHONE_STATE;
 
 /**
  * NotificationManager-related utility code for the Phone app.
@@ -564,7 +564,8 @@ public class NotificationMgr {
      * appears when you lose data connectivity because you're roaming and
      * you have the "data roaming" feature turned off.
      */
-    /* package */ void showDataDisconnectedRoaming() {
+    @VisibleForTesting
+    public void showDataDisconnectedRoaming() {
         if (DBG) log("showDataDisconnectedRoaming()...");
 
         // "Mobile network settings" screen / dialog
@@ -660,16 +661,20 @@ public class NotificationMgr {
                         "com.qualcomm.qti.networksetting.NetworkSetting"));
             } else {
                 // Use aosp NetworkSetting to handle the selection intent
-                intent.setComponent(new ComponentName(
+                /*intent.setComponent(new ComponentName(
                         mContext.getString(R.string.network_operator_settings_package),
-                        mContext.getString(R.string.network_operator_settings_class)));
+                        mContext.getString(R.string.network_operator_settings_class)));*/
             }
         } catch (RemoteException e) {
             // Use aosp NetworkSetting to handle the selection intent
-            intent.setComponent(new ComponentName(
+            /*intent.setComponent(new ComponentName(
                     mContext.getString(R.string.network_operator_settings_package),
-                    mContext.getString(R.string.network_operator_settings_class)));
+                    mContext.getString(R.string.network_operator_settings_class)));*/
         }
+        // Use MobileNetworkSettings to handle the selection intent
+        /*intent.setComponent(new ComponentName(
+                mContext.getString(R.string.mobile_network_settings_package),
+                mContext.getString(R.string.mobile_network_settings_class)));*/
         intent.putExtra(GsmUmtsOptions.EXTRA_SUB_ID, subId);
         PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
 

@@ -20,9 +20,9 @@ import android.content.Context;
 import android.media.ToneGenerator;
 import android.telecom.DisconnectCause;
 
+import com.android.phone.ImsUtil;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.common.R;
-import com.android.phone.ImsUtil;
 
 import com.android.internal.telephony.gsm.SuppServiceNotification;
 
@@ -145,6 +145,7 @@ public class DisconnectCauseUtil {
             case android.telephony.DisconnectCause.DIALED_CALL_FORWARDING_WHILE_ROAMING:
             case android.telephony.DisconnectCause.IMEI_NOT_ACCEPTED:
             case android.telephony.DisconnectCause.WIFI_LOST:
+            //case android.telephony.DisconnectCause.IMS_ACCESS_BLOCKED:
                 return DisconnectCause.ERROR;
 
             case android.telephony.DisconnectCause.DIALED_MMI:
@@ -160,7 +161,7 @@ public class DisconnectCauseUtil {
             case android.telephony.DisconnectCause.BEARER_CAPABILITY_NOT_AUTHORIZED:
             case android.telephony.DisconnectCause.CHANNEL_UNACCEPTABLE:
             case android.telephony.DisconnectCause.CALL_REJECTED:
-            case android.telephony.DisconnectCause.NUMBER_CHANGED:
+            //case android.telephony.DisconnectCause.NUMBER_CHANGED:
             case android.telephony.DisconnectCause.PREEMPTION:
             case android.telephony.DisconnectCause.FACILITY_REJECTED:
             case android.telephony.DisconnectCause.RESP_TO_STATUS_ENQUIRY:
@@ -702,6 +703,8 @@ public class DisconnectCauseUtil {
                     return android.telecom.DisconnectCause.REASON_WIFI_ON_BUT_WFC_OFF;
                 }
                 break;
+            case android.telephony.DisconnectCause.IMS_ACCESS_BLOCKED:
+                return DisconnectCause.REASON_IMS_ACCESS_BLOCKED;
         }
 
         // If no specific code-mapping found, then fall back to using the reason.

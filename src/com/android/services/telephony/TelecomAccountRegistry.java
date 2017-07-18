@@ -95,6 +95,7 @@ final class TelecomAccountRegistry {
         private boolean mIsVideoPresenceSupported;
         private boolean mIsVideoPauseSupported;
         private boolean mIsMergeCallSupported;
+        private boolean mIsMergeImsCallSupported;
         private boolean mIsVideoConferencingSupported;
         private boolean mIsMergeOfWifiCallsAllowedWhenVoWifiOff;
 
@@ -231,13 +232,33 @@ final class TelecomAccountRegistry {
             }
 
             mIsVideoPauseSupported = isCarrierVideoPauseSupported();
-            Bundle phoneAccountExtras = new Bundle();
+            //Bundle phoneAccountExtras = new Bundle();
             if (isCarrierInstantLetteringSupported()) {
                 capabilities |= PhoneAccount.CAPABILITY_CALL_SUBJECT;
-                phoneAccountExtras = getPhoneAccountExtras(phoneAccountExtras);
+                //extras.putAll(getPhoneAccountExtras());
             }
-            phoneAccountExtras.putBoolean(PhoneAccount.EXTRA_ALWAYS_USE_VOIP_AUDIO_MODE, false);
+            //phoneAccountExtras.putBoolean(PhoneAccount.EXTRA_ALWAYS_USE_VOIP_AUDIO_MODE, false);
+
+            final boolean isHandoverFromSupported = mContext.getResources().getBoolean(
+                    R.bool.config_support_handover_from);
+            if (isHandoverFromSupported && !isEmergency) {
+                // Only set the extra is handover is supported and this isn't the emergency-only
+                // acct.
+                //extras.putBoolean(PhoneAccount.EXTRA_SUPPORTS_HANDOVER_FROM,
+                  //      isHandoverFromSupported);
+            }
+
+            //extras.putBoolean(PhoneAccount.EXTRA_SUPPORTS_VIDEO_CALLING_FALLBACK,
+              //      mContext.getResources()
+                //            .getBoolean(R.bool.config_support_video_calling_fallback));
+
+            if (slotId != SubscriptionManager.INVALID_SIM_SLOT_INDEX) {
+                //extras.putString(PhoneAccount.EXTRA_SORT_ORDER,
+                  //  String.valueOf(slotId));
+            }
+
             mIsMergeCallSupported = isCarrierMergeCallSupported();
+            mIsMergeImsCallSupported = isCarrierMergeImsCallSupported();
             mIsVideoConferencingSupported = isCarrierVideoConferencingSupported();
             mIsMergeOfWifiCallsAllowedWhenVoWifiOff =
                     isCarrierMergeOfWifiCallsAllowedWhenVoWifiOff();
@@ -291,7 +312,7 @@ final class TelecomAccountRegistry {
                     .setShortDescription(description)
                     .setSupportedUriSchemes(Arrays.asList(
                             PhoneAccount.SCHEME_TEL, PhoneAccount.SCHEME_VOICEMAIL))
-                    .setExtras(phoneAccountExtras)
+                    //.setExtras(phoneAccountExtras)
                     .setGroupId(groupId)
                     .build();
 
@@ -356,6 +377,17 @@ final class TelecomAccountRegistry {
         }
 
         /**
+         * Determines from carrier config whether merging IMS calls is supported.
+         *
+         * @return {@code true} if merging IMS calls is supported, {@code false} otherwise.
+         */
+        private boolean isCarrierMergeImsCallSupported() {
+            PersistableBundle b =
+                    PhoneGlobals.getInstance().getCarrierConfigForSubId(mPhone.getSubId());
+            return b.getBoolean(CarrierConfigManager.KEY_SUPPORT_IMS_CONFERENCE_CALL_BOOL);
+        }
+
+        /**
          * Determines from carrier config whether emergency video calls are supported.
          *
          * @return {@code true} if emergency video calls are allowed, {@code false} otherwise.
@@ -394,6 +426,8 @@ final class TelecomAccountRegistry {
         }
 
         /**
+         * Where a device supports instant lettering and call subjects, retrieves the necessary
+         * PhoneAccount extras for those features.
          * @return The {@link PhoneAccount} extras associated with the current subscription.
          */
         private Bundle getPhoneAccountExtras(Bundle phoneAccountExtras) {
@@ -404,7 +438,6 @@ final class TelecomAccountRegistry {
                     CarrierConfigManager.KEY_CARRIER_INSTANT_LETTERING_LENGTH_LIMIT_INT);
             String instantLetteringEncoding = b.getString(
                     CarrierConfigManager.KEY_CARRIER_INSTANT_LETTERING_ENCODING_STRING);
-
             phoneAccountExtras.putInt(PhoneAccount.EXTRA_CALL_SUBJECT_MAX_LENGTH,
                     instantLetteringMaxLength);
             phoneAccountExtras.putString(PhoneAccount.EXTRA_CALL_SUBJECT_CHARACTER_ENCODING,
@@ -448,6 +481,14 @@ final class TelecomAccountRegistry {
          */
         public boolean isMergeCallSupported() {
             return mIsMergeCallSupported;
+        }
+
+        /**
+         * Indicates whether this account supports merging IMS calls (i.e. conferencing).
+         * @return {@code true} if the account supports merging IMS calls, {@code false} otherwise.
+         */
+        public boolean isMergeImsCallSupported() {
+            return mIsMergeImsCallSupported;
         }
 
         /**
@@ -613,6 +654,24 @@ final class TelecomAccountRegistry {
                 return false;
             }
         }
+    }
+
+    /**
+     * Determines if the {@link AccountEntry} associated with a {@link PhoneAccountHandle} supports
+     * merging IMS calls.
+     *
+     * @param handle The {@link PhoneAccountHandle}.
+     * @return {@code True} if merging IMS calls is supported.
+     */
+    boolean isMergeImsCallSupported(PhoneAccountHandle handle) {
+        synchronized (mAccountsLock) {
+            for (AccountEntry entry : mAccounts) {
+                if (entry.getPhoneAccountHandle().equals(handle)) {
+                    return entry.isMergeImsCallSupported();
+                }
+            }
+        }
+        return false;
     }
 
     /**

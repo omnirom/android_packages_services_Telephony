@@ -47,12 +47,12 @@ import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.Connection.Capability;
 import com.android.internal.telephony.Connection.PostDialListener;
+import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.gsm.SuppServiceNotification;
-
-import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.imsphone.ImsPhone;
 import com.android.internal.telephony.imsphone.ImsPhoneCallTracker;
+import com.android.internal.telephony.imsphone.ImsPhoneConnection;
 import com.android.phone.ImsUtil;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.PhoneUtils;
@@ -61,9 +61,8 @@ import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 import org.codeaurora.ims.QtiCallConstants;
 
-import java.lang.Override;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -643,6 +642,20 @@ abstract class TelephonyConnection extends Connection
         public void onConnectionEvent(String event, Bundle extras) {
             sendConnectionEvent(event, extras);
         }
+
+        @Override
+        public void onRttModifyRequestReceived() {
+            sendRemoteRttRequest();
+        }
+
+        @Override
+        public void onRttModifyResponseReceived(int status) {
+            if (status == RttModifyStatus.SESSION_MODIFY_REQUEST_SUCCESS) {
+                sendRttInitiationSuccess();
+            } else {
+                sendRttInitiationFailure(status);
+            }
+        }
     };
 
     protected com.android.internal.telephony.Connection mOriginalConnection;
@@ -856,6 +869,31 @@ abstract class TelephonyConnection extends Connection
         if (conn != this) {
             mHandler.obtainMessage(MSG_CONNECTION_REMOVED).sendToTarget();
         }
+    }
+
+    @Override
+    public void onStartRtt(RttTextStream textStream) {
+        if (isImsConnection()) {
+            ImsPhoneConnection originalConnection = (ImsPhoneConnection) mOriginalConnection;
+            originalConnection.sendRttModifyRequest(textStream);
+        } else {
+            Log.w(this, "onStartRtt - not in IMS, so RTT cannot be enabled.");
+        }
+    }
+
+    @Override
+    public void onStopRtt() {
+        // This is not supported by carriers/vendor yet. No-op for now.
+    }
+
+    @Override
+    public void handleRttUpgradeResponse(RttTextStream textStream) {
+        if (!isImsConnection()) {
+            Log.w(this, "handleRttUpgradeResponse - not in IMS, so RTT cannot be enabled.");
+            return;
+        }
+        ImsPhoneConnection originalConnection = (ImsPhoneConnection) mOriginalConnection;
+        originalConnection.sendRttModifyResponse(textStream);
     }
 
     public void performHold() {
@@ -2101,20 +2139,24 @@ abstract class TelephonyConnection extends Connection
                 .getInstance(getPhone().getContext());
         boolean isConferencingSupported = telecomAccountRegistry
                 .isMergeCallSupported(phoneAccountHandle);
+        boolean isImsConferencingSupported = telecomAccountRegistry
+                .isMergeImsCallSupported(phoneAccountHandle);
         mIsCarrierVideoConferencingSupported = telecomAccountRegistry
                 .isVideoConferencingSupported(phoneAccountHandle);
         boolean isMergeOfWifiCallsAllowedWhenVoWifiOff = telecomAccountRegistry
                 .isMergeOfWifiCallsAllowedWhenVoWifiOff(phoneAccountHandle);
 
-        Log.v(this, "refreshConferenceSupported : isConfSupp=%b, isVidConfSupp=%b, " +
-                "isMergeOfWifiAllowed=%b, isWifi=%b, isVoWifiEnabled=%b", isConferencingSupported,
+        Log.v(this, "refreshConferenceSupported : isConfSupp=%b, isImsConfSupp=%b, " +
+                "isVidConfSupp=%b, isMergeOfWifiAllowed=%b, " +
+                "isWifi=%b, isVoWifiEnabled=%b",
+                isConferencingSupported, isImsConferencingSupported,
                 mIsCarrierVideoConferencingSupported, isMergeOfWifiCallsAllowedWhenVoWifiOff,
                 isWifi(), isVoWifiEnabled);
         boolean isConferenceSupported = true;
         if (mTreatAsEmergencyCall) {
             isConferenceSupported = false;
             Log.d(this, "refreshConferenceSupported = false; emergency call");
-        } else if (!isConferencingSupported) {
+        } else if (!isConferencingSupported || isIms && !isImsConferencingSupported) {
             isConferenceSupported = false;
             Log.d(this, "refreshConferenceSupported = false; carrier doesn't support conf.");
         } else if (isVideoCall && !mIsCarrierVideoConferencingSupported) {
