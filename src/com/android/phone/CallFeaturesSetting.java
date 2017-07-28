@@ -476,6 +476,19 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
             wifiCallingSettings.setSummary(resId);
         }
+
+        try {
+            if (mImsMgr.getImsServiceStatus() != ImsFeature.STATE_READY) {
+                log("Feature state not ready so remove vt and wfc settings for " +
+                        " phone =" + mPhone.getPhoneId());
+                prefSet.removePreference(wifiCallingSettings);
+                prefSet.removePreference(mEnableVideoCalling);
+            }
+        } catch (ImsException ex) {
+            log("Exception when trying to get ImsServiceStatus: " + ex);
+            prefSet.removePreference(wifiCallingSettings);
+            prefSet.removePreference(mEnableVideoCalling);
+        }
     }
 
     /**
