@@ -237,6 +237,7 @@ final class TelecomAccountRegistry {
                 phoneAccountExtras = getPhoneAccountExtras(phoneAccountExtras);
             }
             phoneAccountExtras.putBoolean(PhoneAccount.EXTRA_ALWAYS_USE_VOIP_AUDIO_MODE, false);
+            phoneAccountExtras.putString(PhoneAccount.EXTRA_SORT_ORDER, String.valueOf(slotId) );
             mIsMergeCallSupported = isCarrierMergeCallSupported();
             mIsVideoConferencingSupported = isCarrierVideoConferencingSupported();
             mIsMergeOfWifiCallsAllowedWhenVoWifiOff =
