@@ -227,4 +227,7 @@
     <string name="platform_carrier_config_package" translatable="false">com.android.carrierconfig</string>
     <!-- To disable/enable CallForwardUnconditional Timer -->
     <bool name="config_enable_cfu_time">false</bool>
+
+    <!-- Disable filter out conference host-->
+    <bool name="disable_filter_out_conference_host">false</bool>
 </resources>

@@ -233,4 +233,18 @@ ul.</string>
 
     <string name="srvcc_video_message">"Video call is downgraded to 2G/3G voice call due to 4G network is not available."</string>
     <string name="srvcc_message">"4G voice call is downgraded to 2G/3G voice call due to 4G network is not available."</string>
+    <string name="preferred_duration_title">Display duration</string>
+    <string name="duration_enable_summary">Display duration is ON</string>
+    <string name="duration_disable_summary">Display duration is OFF</string>
+    <!-- Setting option name to enable or disable vibration after connected -->
+    <string name="vibrate_after_connected_title">Vibrating after connected</string>
+    <string name="vibrate_after_connected_summary">Vibrate when answers</string>
+
+    <string name="cf_setting_mobile_data_alert">Please turn on mobile data and make sure that WLAN is off</string>
+    <string name="cf_setting_mobile_data_roaming_alert">Please turn on data roaming</string>
+    <string name="no_mobile_data">Mobile data is not available</string>
+    <string name="no_mobile_data_roaming">Data roaming is not available</string>
+
+    <!--alert user to switch DDS when user is making UT supplementary service on non-DDS sub -->
+    <string name="switch_dds_to_sub_alert">Please switch mobile data to slot</string>
 </resources>
