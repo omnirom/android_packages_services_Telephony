@@ -256,9 +256,18 @@ public class MobileNetworkSettings extends Activity  {
             @Override
             public void onCallStateChanged(int state, String incomingNumber) {
                 if (DBG) log("PhoneStateListener.onCallStateChanged: state=" + state);
-                boolean enabled = (state == TelephonyManager.CALL_STATE_IDLE) &&
-                        ImsManager.isNonTtyOrTtyOnVolteEnabled
-                                (getActivity().getApplicationContext());
+
+                Activity activity = getActivity();
+                if (activity == null) {
+                    return;
+                }
+
+                int subId = mPhone != null
+                        ? mPhone.getSubId() : SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+                PersistableBundle carrierConfig =
+                        PhoneGlobals.getInstance().getCarrierConfigForSubId(subId);
+                boolean enabled = is4gLtePrefEnabled(activity.getApplicationContext(),
+                        carrierConfig);
                 Preference pref = getPreferenceScreen().findPreference(BUTTON_4G_LTE_KEY);
                 if (pref != null) pref.setEnabled(enabled && hasActiveSubscriptions());
 
@@ -652,8 +661,6 @@ public class MobileNetworkSettings extends Activity  {
             int max = mSubscriptionManager.getActiveSubscriptionInfoCountMax();
             mActiveSubInfos = new ArrayList<SubscriptionInfo>(max);
 
-            setAndvancedButtonSummary();
-
             IntentFilter intentFilter = new IntentFilter(
                     TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED);
             activity.registerReceiver(mPhoneChangeReceiver, intentFilter);
@@ -687,7 +694,7 @@ public class MobileNetworkSettings extends Activity  {
         public void onDestroy() {
             unbindNetworkQueryService();
             super.onDestroy();
-            if (getActivity() != null && !getActivity().isDestroyed()) {
+            if (getActivity() != null) {
                 getActivity().unregisterReceiver(mPhoneChangeReceiver);
             }
         }
@@ -747,6 +754,12 @@ public class MobileNetworkSettings extends Activity  {
         private void updateBodyBasicFields(Activity activity, PreferenceScreen prefSet,
                 int phoneSubId, boolean hasActiveSubscriptions) {
             Context context = activity.getApplicationContext();
+
+            ActionBar actionBar = activity.getActionBar();
+            if (actionBar != null) {
+                // android.R.id.home will be triggered in onOptionsItemSelected()
+                actionBar.setDisplayHomeAsUpEnabled(true);
+            }
 
             prefSet.addPreference(mMobileDataPref);
             prefSet.addPreference(mButtonDataRoam);
@@ -980,12 +993,6 @@ public class MobileNetworkSettings extends Activity  {
 
             updateCallingCategory();
 
-            ActionBar actionBar = activity.getActionBar();
-            if (actionBar != null) {
-                // android.R.id.home will be triggered in onOptionsItemSelected()
-                actionBar.setDisplayHomeAsUpEnabled(true);
-            }
-
             // Enable link to CMAS app settings depending on the value in config.xml.
             final boolean isCellBroadcastAppLinkEnabled = activity.getResources().getBoolean(
                     com.android.internal.R.bool.config_cellBroadcastAppLinks);
@@ -1016,12 +1023,8 @@ public class MobileNetworkSettings extends Activity  {
              * but you do need to remember that this all needs to work when subscriptions
              * change dynamically such as when hot swapping sims.
              */
-            boolean canChange4glte =
-                    (mTelephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE)
-                            && ImsManager.isNonTtyOrTtyOnVolteEnabled(
-                                    activity.getApplicationContext())
-                            && carrierConfig.getBoolean(
-                            CarrierConfigManager.KEY_EDITABLE_ENHANCED_4G_LTE_BOOL);
+            boolean canChange4glte = is4gLtePrefEnabled(activity.getApplicationContext(),
+                    carrierConfig);
             boolean useVariant4glteTitle = carrierConfig.getBoolean(
                     CarrierConfigManager.KEY_ENHANCED_4G_LTE_TITLE_VARIANT_BOOL);
             int enhanced4glteModeTitleId = useVariant4glteTitle ?
@@ -1225,6 +1228,13 @@ public class MobileNetworkSettings extends Activity  {
             updateBody();
             // always let the preference setting proceed.
             return true;
+        }
+
+        private boolean is4gLtePrefEnabled(Context context, PersistableBundle carrierConfig) {
+            return (mTelephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE)
+                    && ImsManager.isNonTtyOrTtyOnVolteEnabled(context)
+                    && carrierConfig.getBoolean(
+                            CarrierConfigManager.KEY_EDITABLE_ENHANCED_4G_LTE_BOOL);
         }
 
         private class MyHandler extends Handler {
@@ -1764,26 +1774,6 @@ public class MobileNetworkSettings extends Activity  {
                         MetricsEvent.ACTION_MOBILE_NETWORK_DATA_USAGE);
             }
             // TODO: add Metrics constants for other preferences and send events here accordingly.
-        }
-
-        private void setAndvancedButtonSummary() {
-            if (mAdvancedOptions == null) {
-                return;
-            }
-
-            StringBuilder summary = new StringBuilder();
-            summary.append(mButton4glte.getTitle());
-            summary.append(", ");
-            summary.append(mButtonPreferredNetworkMode.getTitle());
-            summary.append(", ");
-            summary.append(mButtonEnabledNetworks.getTitle());
-            summary.append(", ");
-            summary.append(mEuiccSettingsPref.getTitle());
-            summary.append(", ");
-            summary.append(mWiFiCallingPref.getTitle());
-            summary.append(", ");
-            summary.append(mVideoCallingPref.getTitle());
-            mAdvancedOptions.setSummary(summary.toString());
         }
 
         private void updateGsmUmtsOptions(PreferenceFragment prefFragment,

@@ -96,6 +96,7 @@ import com.android.internal.telephony.ProxyController;
 import com.android.internal.telephony.RIL;
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.SubscriptionController;
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.euicc.EuiccConnector;
 import com.android.internal.telephony.uicc.IccIoResult;
 import com.android.internal.telephony.uicc.IccUtils;
@@ -1705,6 +1706,24 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         WorkSource workSource = getWorkSource(null, Binder.getCallingUid());
         phone.getCellLocation(workSource).fillInNotifierBundle(data);
         return data;
+    }
+
+    @Override
+    public String getNetworkCountryIsoForPhone(int phoneId) {
+        // Reporting the correct network country is ambiguous when IWLAN could conflict with
+        // registered cell info, so return a NULL country instead.
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            final int subId = mSubscriptionController.getSubIdUsingPhoneId(phoneId);
+            if (TelephonyManager.NETWORK_TYPE_IWLAN
+                    == getVoiceNetworkTypeForSubscriber(subId, mApp.getPackageName())) {
+                return "";
+            }
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+        return TelephonyManager.getTelephonyProperty(
+                phoneId, TelephonyProperties.PROPERTY_OPERATOR_ISO_COUNTRY, "");
     }
 
     @Override
@@ -3742,6 +3761,30 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             phone.carrierActionSetRadioEnabled(enabled);
         } catch (Exception e) {
             Log.e(LOG_TAG, "carrierAction: SetRadioEnabled fails. Exception ex=" + e);
+        }
+    }
+
+    /**
+     * Action set from carrier signalling broadcast receivers to start/stop reporting the default
+     * network status based on which carrier apps could apply actions accordingly,
+     * enable/disable default url handler for example.
+     *
+     * @param subId the subscription ID that this action applies to.
+     * @param report control start/stop reporting the default network status.
+     * {@hide}
+     */
+    @Override
+    public void carrierActionReportDefaultNetworkStatus(int subId, boolean report) {
+        enforceModifyPermission();
+        final Phone phone = getPhone(subId);
+        if (phone == null) {
+            loge("carrierAction: ReportDefaultNetworkStatus fails with invalid sibId: " + subId);
+            return;
+        }
+        try {
+            phone.carrierActionReportDefaultNetworkStatus(report);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "carrierAction: ReportDefaultNetworkStatus fails. Exception ex=" + e);
         }
     }
 

@@ -221,12 +221,12 @@
     <string name="roaming_warning" msgid="1603164667540144353">"Могу да настану значајни трошкови."</string>
     <string name="roaming_alert_title" msgid="3654815360303826008">"Дозвољавате ли пренос података у ромингу?"</string>
     <string name="data_usage_title" msgid="8759619109516889802">"Употреба података"</string>
-    <string name="data_usage_template" msgid="8065650945732671045">"Потрошили сте <xliff:g id="ID_1">%1$s</xliff:g> мобилних података у периоду <xliff:g id="ID_2">%2$s</xliff:g>"</string>
+    <string name="data_usage_template" msgid="8526428824844656364">"Потрошили сте <xliff:g id="ID_1">%1$s</xliff:g> мобилних података у периоду <xliff:g id="ID_2">%2$s</xliff:g>"</string>
     <string name="advanced_options_title" msgid="8074895510265488035">"Напредно"</string>
     <string name="carrier_settings_euicc" msgid="6714062862127226405">"Мобилни оператер"</string>
     <string name="keywords_carrier_settings_euicc" msgid="783429609643157743">"мобилни оператер, esim, sim, euicc"</string>
     <string name="carrier_settings_euicc_summary" msgid="5115001942761995457">"<xliff:g id="CARRIER_NAME">%1$s</xliff:g> – <xliff:g id="PHONE_NUMBER">%2$s</xliff:g>"</string>
-    <string name="mobile_data_settings_title" msgid="3273340917802377121">"Мобилни подаци"</string>
+    <string name="mobile_data_settings_title" msgid="4661165467914727157">"Мобилни подаци"</string>
     <string name="mobile_data_settings_summary" msgid="5087255915840576895">"Користите податке преко мобилне мреже"</string>
     <string name="data_usage_disable_mobile" msgid="3577275288809667615">"Желите ли да искључите мобилне податке?"</string>
     <string name="sim_selection_required_pref" msgid="7049424902961844236">"Потребно је да изаберете нешто"</string>
@@ -464,7 +464,8 @@
     <string name="incall_error_out_of_service_wfc" msgid="8741629779555132471">"Мобилна мрежа није доступна. Повежите се на бежичну да бисте упутили позив."</string>
     <string name="incall_error_no_phone_number_supplied" msgid="1150414018684246528">"Да бисте упутили позив, унесите важећи број."</string>
     <string name="incall_error_call_failed" msgid="5891978320269774095">"Позив није успео."</string>
-    <string name="incall_error_cannot_add_call" msgid="5206923515522412110">"Тренутно није могуће додати позив."</string>
+    <!-- no translation found for incall_error_cannot_add_call (8878159278947023326) -->
+    <skip />
     <string name="incall_error_supp_service_unknown" msgid="655570339115407698">"Услуга није подржана"</string>
     <string name="incall_error_supp_service_switch" msgid="5237002176899962862">"Замена позива није успела."</string>
     <string name="incall_error_supp_service_separate" msgid="7224393405134545246">"Раздвајање позива није успело."</string>

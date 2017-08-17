@@ -221,12 +221,12 @@
     <string name="roaming_warning" msgid="1603164667540144353">"आपल्‍याला लक्षणीय रोमिंग शुल्‍क लागू शकते."</string>
     <string name="roaming_alert_title" msgid="3654815360303826008">"डेटा रोमिंगला अनुमती द्यायची?"</string>
     <string name="data_usage_title" msgid="8759619109516889802">"डेटा वापर"</string>
-    <string name="data_usage_template" msgid="8065650945732671045">"<xliff:g id="ID_2">%2$s</xliff:g> दरम्यान <xliff:g id="ID_1">%1$s</xliff:g> मोबाइल डेटा वापरला गेला"</string>
+    <string name="data_usage_template" msgid="8526428824844656364">"<xliff:g id="ID_2">%2$s</xliff:g> दरम्यान <xliff:g id="ID_1">%1$s</xliff:g> मोबाइल डेटा वापरला गेला"</string>
     <string name="advanced_options_title" msgid="8074895510265488035">"प्रगत"</string>
     <string name="carrier_settings_euicc" msgid="6714062862127226405">"वाहक"</string>
     <string name="keywords_carrier_settings_euicc" msgid="783429609643157743">"carrier, esim, sim, euicc"</string>
     <string name="carrier_settings_euicc_summary" msgid="5115001942761995457">"<xliff:g id="CARRIER_NAME">%1$s</xliff:g> — <xliff:g id="PHONE_NUMBER">%2$s</xliff:g>"</string>
-    <string name="mobile_data_settings_title" msgid="3273340917802377121">"मोबाइल डेटा"</string>
+    <string name="mobile_data_settings_title" msgid="4661165467914727157">"मोबाइल डेटा"</string>
     <string name="mobile_data_settings_summary" msgid="5087255915840576895">"मोबाइल नेटवर्क वापरून डेटा मध्‍ये प्रवेश करा"</string>
     <string name="data_usage_disable_mobile" msgid="3577275288809667615">"मोबाइल डेटा बंद करायचा?"</string>
     <string name="sim_selection_required_pref" msgid="7049424902961844236">"निवड आवश्यक"</string>
@@ -355,7 +355,7 @@
     <item msgid="7494167883478914080">"0"</item>
     <item msgid="6043847456049107742">"1"</item>
   </string-array>
-    <string name="cdma_activate_device" msgid="3793805892364814518">"डिव्हाइस सक्रिय करा"</string>
+    <string name="cdma_activate_device" msgid="3793805892364814518">"डीव्हाइस सक्रिय करा"</string>
     <string name="cdma_lte_data_service" msgid="4255018217292548962">"डेटा सेवा सेट अप करा"</string>
     <string name="carrier_settings_title" msgid="9028166176523012300">"वाहक सेटिंग्ज"</string>
     <string name="fdn" msgid="7878832555095183202">"निश्चित डायलिंग नंबर"</string>
@@ -464,7 +464,8 @@
     <string name="incall_error_out_of_service_wfc" msgid="8741629779555132471">"मोबाइल नेटवर्क उपलब्‍ध नाही. कॉल करण्‍यासाठी वायरलेस नेटवर्कशी कनेक्‍ट करा."</string>
     <string name="incall_error_no_phone_number_supplied" msgid="1150414018684246528">"कॉल करण्यासाठी, एक वैध नंबर प्रविष्ट करा."</string>
     <string name="incall_error_call_failed" msgid="5891978320269774095">"कॉल अयशस्वी झाला."</string>
-    <string name="incall_error_cannot_add_call" msgid="5206923515522412110">"यावेळी कॉल जोडला जाऊ शकत नाही."</string>
+    <!-- no translation found for incall_error_cannot_add_call (8878159278947023326) -->
+    <skip />
     <string name="incall_error_supp_service_unknown" msgid="655570339115407698">"सेवा समर्थित नाही"</string>
     <string name="incall_error_supp_service_switch" msgid="5237002176899962862">"कॉल स्विच करू शकत नाही."</string>
     <string name="incall_error_supp_service_separate" msgid="7224393405134545246">"कॉल विभक्त करू शकत नाही."</string>
