@@ -2123,6 +2123,11 @@ abstract class TelephonyConnection extends Connection
         boolean isVideoCall = VideoProfile.isVideo(getVideoState());
         Phone phone = getPhone();
         if (phone == null) {
+            Log.w(this, "refreshConferenceSupported = false; phone is null");
+            if (isConferenceSupported()) {
+                setConferenceSupported(false);
+                notifyConferenceSupportedChanged(false);
+            }
             return;
         }
 
