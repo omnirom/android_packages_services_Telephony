@@ -458,7 +458,7 @@ public class CallFeaturesSetting extends PreferenceActivity
         } else {
             int resId = com.android.internal.R.string.wifi_calling_off_summary;
             if (mImsMgr.isWfcEnabledByUserForSlot()) {
-                boolean isRoaming = telephonyManager.isNetworkRoaming();
+                boolean isRoaming = telephonyManager.isNetworkRoaming(mPhone.getSubId());
                 int wfcMode = mImsMgr.getWfcModeForSlot(isRoaming);
                 switch (wfcMode) {
                     case ImsConfig.WfcModeFeatureValueConstants.WIFI_ONLY:
