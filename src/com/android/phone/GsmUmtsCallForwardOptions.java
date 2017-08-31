@@ -17,11 +17,13 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.os.SystemProperties;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
 import android.telephony.ServiceState;
 import android.telephony.CarrierConfigManager;
 import android.util.Log;
+import android.widget.Toast;
 import android.view.MenuItem;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyIntents;
@@ -63,6 +65,11 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
     private int mServiceClass;
     private final BroadcastReceiver mReceiver = new PhoneAppBroadcastReceiver();
     private SubscriptionManager mSubscriptionManager;
+
+    private static final String CARRIER_MODE_CMCC = "cmcc";
+    private String mCarrierMode = SystemProperties.get("persist.radio.carrier_mode", "default");
+    private boolean mIsCMCC = mCarrierMode.equals(CARRIER_MODE_CMCC);
+    AlertDialog.Builder builder = null;
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -123,50 +130,71 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
                  String state = intent.getStringExtra(PhoneConstants.STATE_KEY);
                 if (PhoneConstants.DataState.DISCONNECTED.name().equals(state)) {
                     Log.d(LOG_TAG, "data is disconnected.");
-                    checkDataStaus();
+                    checkDataStatus();
                 }
             }
         }
     }
 
-    public void checkDataStaus() {
+    public void checkDataStatus() {
         // check the active data sub.
         int sub = mPhone.getSubId();
+        int slotId = mSubscriptionManager.getSlotIndex(sub);
         int defaultDataSub = mSubscriptionManager.getDefaultDataSubscriptionId();
         CarrierConfigManager configManager = (CarrierConfigManager)mPhone.
                 getContext().getSystemService(Context.CARRIER_CONFIG_SERVICE);
         PersistableBundle pb = configManager.getConfigForSubId(mPhone.getSubId());
         boolean checkData = pb.getBoolean("check_mobile_data_for_cf");
         Log.d(LOG_TAG, "isUtEnabled = " + mPhone.isUtEnabled() + ", checkData= " + checkData);
-        if (mPhone != null && mPhone.isUtEnabled() && checkData) {
+        if (mPhone != null) {
             int activeNetworkType = getActiveNetworkType();
             boolean isDataRoaming = mPhone.getServiceState().getDataRoaming();
             boolean isDataRoamingEnabled = mPhone.getDataRoamingEnabled();
             boolean promptForDataRoaming = isDataRoaming && !isDataRoamingEnabled;
+            boolean dualLTECapability = this.getResources().getBoolean(
+                    com.android.internal.R.bool.config_dual_LTE_capability);
             Log.d(LOG_TAG, "activeNetworkType = " + getActiveNetworkType() + ", sub = " + sub +
                     ", defaultDataSub = " + defaultDataSub + ", isDataRoaming = " +
-                    isDataRoaming + ", isDataRoamingEnabled= " + isDataRoamingEnabled);
-            if ((activeNetworkType != ConnectivityManager.TYPE_MOBILE
-                    || sub != defaultDataSub)
-                    && !(activeNetworkType == ConnectivityManager.TYPE_NONE
-                    && promptForDataRoaming)) {
-                Log.d(LOG_TAG, "Show alert dialog if data sub in not on current sub or WLAN is on");
-                String title = (String)this.getResources().getText(R.string.no_mobile_data);
-                String message = (String)this.getResources()
-                        .getText(R.string.cf_setting_mobile_data_alert);
-                showAlertDialog(title, message);
-                return;
+                    isDataRoaming + ", isDataRoamingEnabled= " + isDataRoamingEnabled +
+                    " dualLTECapability: " + dualLTECapability);
+            if (sub != defaultDataSub) {
+                if (dualLTECapability) {
+                    Log.d(LOG_TAG, "Show data in use indication if data sub is not on current sub");
+                    showDataInuseToast();
+                    initCallforwarding();
+                    return;
+                } else {
+                    Log.d(LOG_TAG, "Show dds switch dialog if data sub is not on current sub");
+                    showSwitchDdsDialog(slotId);
+                    return;
+                }
             }
-            if (promptForDataRoaming) {
-                   if (DBG) Log.d(LOG_TAG, "Show alert dialog if data roaming is disabled");
-                   String title = (String)this.getResources()
-                           .getText(R.string.no_mobile_data_roaming);
-                   String message = (String)this.getResources()
-                           .getText(R.string.cf_setting_mobile_data_roaming_alert);
-                   showAlertDialog(title, message);
-                   return;
+
+            if (mPhone.isUtEnabled() && checkData) {
+                if ((activeNetworkType != ConnectivityManager.TYPE_MOBILE
+                        || sub != defaultDataSub)
+                        && !(activeNetworkType == ConnectivityManager.TYPE_NONE
+                        && promptForDataRoaming)) {
+                    Log.d(LOG_TAG,
+                            "Show alert dialog if data sub in not on current sub or WLAN is on");
+                    String title = (String)this.getResources().getText(R.string.no_mobile_data);
+                    String message = (String)this.getResources()
+                            .getText(R.string.cf_setting_mobile_data_alert);
+                    showAlertDialog(title, message);
+                    return;
+                }
+                if (promptForDataRoaming) {
+                       Log.d(LOG_TAG, "Show alert dialog if data roaming is disabled");
+                       String title = (String)this.getResources()
+                               .getText(R.string.no_mobile_data_roaming);
+                       String message = (String)this.getResources()
+                               .getText(R.string.cf_setting_mobile_data_roaming_alert);
+                       showAlertDialog(title, message);
+                       return;
+                }
             }
         }
+        initCallforwarding();
     }
 
     @Override
@@ -197,45 +225,18 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
     public void onResume() {
         super.onResume();
 
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(TelephonyIntents.ACTION_ANY_DATA_CONNECTION_STATE_CHANGED);
-        registerReceiver(mReceiver, intentFilter);
-        final SubscriptionManager mSubscriptionManager = SubscriptionManager.from(this);
-
-        checkDataStaus();
-        int sub = mPhone.getSubId();
-        int defaultDataSub = mSubscriptionManager.getDefaultDataSubscriptionId();
-        int slotId = SubscriptionManager.getSlotIndex(sub);
-
-        if (sub != defaultDataSub) {
-            if (DBG) Log.d(LOG_TAG, "Show alert dialog if data sub in not on current sub");
-            String title = (String)this.getResources().getText(R.string.no_mobile_data);
-            String message = (String)this.getResources()
-                    .getText(R.string.switch_dds_to_sub_alert) + String.valueOf(slotId);
-            AlertDialog.Builder builder=new AlertDialog.Builder(this);
-            builder.setTitle(title);
-            builder.setMessage(message);
-            builder.setIconAttribute(android.R.attr.alertDialogIcon);
-            builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    Intent newIntent = new Intent("com.qualcomm.qti.simsettings.SIM_SETTINGS");
-                    newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(newIntent);
-                }
-            });
-            builder.setNegativeButton(android.R.string.cancel,
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                            finish();
-                        }
-                    });
-            builder.create().show();
-            return;
+        if (mIsCMCC) {
+            IntentFilter intentFilter = new IntentFilter();
+            intentFilter.addAction(TelephonyIntents.ACTION_ANY_DATA_CONNECTION_STATE_CHANGED);
+            registerReceiver(mReceiver, intentFilter);
+            final SubscriptionManager mSubscriptionManager = SubscriptionManager.from(this);
+            checkDataStatus();
+        } else {
+            initCallforwarding();
         }
+    }
 
+    private void initCallforwarding () {
         if (mFirstResume) {
             if (mIcicle == null) {
                 if (DBG) Log.d(LOG_TAG, "start to init ");
@@ -255,6 +256,42 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
             }
             mFirstResume = false;
             mIcicle = null;
+        }
+    }
+
+    private void showDataInuseToast() {
+        String message = (String)this.getResources()
+                .getText(R.string.mobile_data_alert);
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private void showSwitchDdsDialog(int slotId) {
+        String title = (String)this.getResources().getText(R.string.no_mobile_data);
+        int simId = slotId + 1;
+        String message = (String)this.getResources()
+                .getText(R.string.switch_dds_to_sub_alert) + String.valueOf(simId);
+        if (builder == null) {
+            builder=new AlertDialog.Builder(this);
+            builder.setTitle(title);
+            builder.setMessage(message);
+            builder.setIconAttribute(android.R.attr.alertDialogIcon);
+            builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    Intent newIntent = new Intent("com.qualcomm.qti.simsettings.SIM_SETTINGS");
+                    newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(newIntent);
+                }
+            });
+            builder.setNegativeButton(android.R.string.cancel,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        finish();
+                    }
+            });
+            builder.create().show();
         }
     }
 
