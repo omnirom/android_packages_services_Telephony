@@ -306,8 +306,8 @@ public class EditPhoneNumberPreference extends EditTextPreference
                 builder.setPositiveButton(mChangeNumberText, this);
                 builder.setNeutralButton(mDisableText, this);
             } else {
-                builder.setPositiveButton(null, null);
-                builder.setNeutralButton(mEnableText, this);
+                builder.setPositiveButton(mEnableText, this);
+                builder.setNeutralButton(null, null);
             }
         }
         // set the call icon on the title.

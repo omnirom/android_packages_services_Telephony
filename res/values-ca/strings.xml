@@ -398,7 +398,7 @@
     <string name="deleting_fdn_contact" msgid="5669163206349319969">"S\'està suprimint el número de marcatge fix..."</string>
     <string name="fdn_contact_deleted" msgid="7154162327112259569">"Número de marcatge fix suprimit."</string>
     <string name="pin2_invalid" msgid="5470854099230755944">"FDN no s\'ha actualitzat ja que has escrit un PIN incorrecte."</string>
-    <string name="fdn_invalid_number" msgid="8602417141715473998">"FDN no s\'ha actualitzat perquè el número està buit o conté més de 20 dígits."</string>
+    <string name="fdn_invalid_number" msgid="8602417141715473998">"FDN no s\'ha actualitzat perquè el número és buit o conté més de 20 dígits."</string>
     <string name="pin2_or_fdn_invalid" msgid="6025144083384701197">"El número FDN no s\'ha actualitzat. El PIN2 no és correcte o bé s\'ha rebutjat el número de telèfon."</string>
     <string name="fdn_failed" msgid="540018079008319747">"Hi ha hagut un problema en l\'operació FDN."</string>
     <string name="simContacts_emptyLoading" msgid="2203331234764498011">"Lectura de la targeta SIM..."</string>
@@ -435,7 +435,7 @@
     <string name="label_puk2_code" msgid="4688069961795341948">"Introdueix el codi PUK2"</string>
     <string name="fdn_enable_puk2_requested" msgid="4991074891459554705">"La contrasenya no és correcta i el PIN2 s\'ha bloquejat. Per tornar-ho a provar, canvia el PIN2."</string>
     <string name="puk2_requested" msgid="5831015200030161434">"La contrasenya no és correcta i la SIM s\'ha bloquejat. Introdueix el PUK2."</string>
-    <string name="puk2_blocked" msgid="3150263853077280049">"El PUK2 s\'ha bloquejat de manera permanent."</string>
+    <string name="puk2_blocked" msgid="3150263853077280049">"El PUK2 s\'ha bloquejat permanentment."</string>
     <string name="pin2_attempts" msgid="720736232885011507">\n"Et queden <xliff:g id="NUMBER">%d</xliff:g> intents."</string>
     <string name="pin2_unblocked" msgid="7791600368153469078">"El PIN2 ja no està bloquejat."</string>
     <string name="pin2_error_exception" msgid="1088689322248996699">"Error de xarxa o de targeta SIM"</string>
@@ -584,6 +584,8 @@
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Hi ha massa trucades actives. Finalitza\'n alguna o combina-les abans de fer-ne una de nova."</string>
     <string name="callFailed_imei_not_accepted" msgid="132192626901238542">"No es pot establir la connexió. Insereix una targeta SIM vàlida."</string>
     <string name="callFailed_wifi_lost" msgid="5968076625137297184">"La trucada ha finalitzat perquè s\'ha perdut la connexió Wi-Fi."</string>
+    <string name="dialFailed_low_battery" msgid="8760548177088774268">"No pots iniciar la videotrucada perquè queda poca bateria."</string>
+    <string name="callFailed_low_battery" msgid="4913582435905872616">"La videotrucada ha finalitzat perquè queda poca bateria."</string>
     <string name="change_pin_title" msgid="7790232089699034029">"Canvia el PIN per a la bústia de veu"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Continua"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Cancel·la"</string>

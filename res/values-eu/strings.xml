@@ -470,7 +470,7 @@
     <string name="incall_error_out_of_service_wfc" msgid="8741629779555132471">"Sare mugikorra ez dago erabilgarri. Deia egiteko, konektatu haririk gabeko sare batera."</string>
     <string name="incall_error_no_phone_number_supplied" msgid="1150414018684246528">"Deitzeko, idatzi balio duen zenbaki bat."</string>
     <string name="incall_error_call_failed" msgid="5891978320269774095">"Ezin izan da deitu."</string>
-    <string name="incall_error_cannot_add_call" msgid="8878159278947023326">"Une honetan, ezin da gehitu deia. Deitu ordez, mezu bat bidaltzen saia zaitezke."</string>
+    <string name="incall_error_cannot_add_call" msgid="8878159278947023326">"Une honetan, ezin da egin deia. Deitu ordez, mezu bat bidaltzen saia zaitezke."</string>
     <string name="incall_error_supp_service_unknown" msgid="655570339115407698">"Ez da zerbitzua onartzen"</string>
     <string name="incall_error_supp_service_switch" msgid="5237002176899962862">"Ezin da deiz aldatu."</string>
     <string name="incall_error_supp_service_separate" msgid="7224393405134545246">"Ezin da deia bereizi."</string>
@@ -590,6 +590,8 @@
     <string name="callFailed_cdma_call_limit" msgid="1556916577171457086">"Dei gehiegi daude aktibo. Amaitu edo bateratu abian diren deiak beste bat egin aurretik."</string>
     <string name="callFailed_imei_not_accepted" msgid="132192626901238542">"Ezin da konektatu. Erabili balio duen SIM txartel bat."</string>
     <string name="callFailed_wifi_lost" msgid="5968076625137297184">"Galdu egin da Wi-Fi konexioa. Amaitu da deia."</string>
+    <string name="dialFailed_low_battery" msgid="8760548177088774268">"Ezin da egin deia, bateria gutxi gelditzen delako."</string>
+    <string name="callFailed_low_battery" msgid="4913582435905872616">"Bideo-deia amaitu egin da bateria gutxi gelditzen delako."</string>
     <string name="change_pin_title" msgid="7790232089699034029">"Aldatu erantzungailuaren PIN kodea"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Jarraitu"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Utzi"</string>

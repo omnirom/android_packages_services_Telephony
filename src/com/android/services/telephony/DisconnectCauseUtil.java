@@ -129,6 +129,8 @@ public class DisconnectCauseUtil {
             case android.telephony.DisconnectCause.OUT_OF_NETWORK:
             case android.telephony.DisconnectCause.OUT_OF_SERVICE:
             case android.telephony.DisconnectCause.POWER_OFF:
+            case android.telephony.DisconnectCause.LOW_BATTERY:
+            case android.telephony.DisconnectCause.DIAL_LOW_BATTERY:
             case android.telephony.DisconnectCause.SERVER_ERROR:
             case android.telephony.DisconnectCause.SERVER_UNREACHABLE:
             case android.telephony.DisconnectCause.TIMED_OUT:
@@ -271,6 +273,14 @@ public class DisconnectCauseUtil {
                 resourceId = R.string.callFailed_powerOff;
                 break;
 
+            case android.telephony.DisconnectCause.LOW_BATTERY:
+                resourceId = R.string.callFailed_low_battery;
+                break;
+
+            case android.telephony.DisconnectCause.DIAL_LOW_BATTERY:
+                resourceId = R.string.dialFailed_low_battery;
+                break;
+
             case android.telephony.DisconnectCause.ICC_ERROR:
                 resourceId = R.string.callFailed_simError;
                 break;
@@ -399,6 +409,14 @@ public class DisconnectCauseUtil {
                 } else {
                     resourceId = R.string.incall_error_power_off;
                 }
+                break;
+
+            case android.telephony.DisconnectCause.LOW_BATTERY:
+                resourceId = R.string.callFailed_low_battery;
+                break;
+
+            case android.telephony.DisconnectCause.DIAL_LOW_BATTERY:
+                resourceId = R.string.dialFailed_low_battery;
                 break;
 
             case android.telephony.DisconnectCause.CDMA_NOT_EMERGENCY:
