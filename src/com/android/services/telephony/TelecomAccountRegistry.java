@@ -206,7 +206,8 @@ final class TelecomAccountRegistry {
 
             mIsVideoCapable = mPhone.isVideoEnabled();
             boolean isVideoEnabledByPlatform =
-                    ImsManager.isVtEnabledByPlatform(mPhone.getContext());
+                    ImsManager.getInstance(mPhone.getContext(),
+                    mPhone.getPhoneId()).isVtEnabledByPlatformForSlot();
 
             if (!mIsPrimaryUser) {
                 Log.i(this, "Disabling video calling for secondary user.");
@@ -232,29 +233,28 @@ final class TelecomAccountRegistry {
             }
 
             mIsVideoPauseSupported = isCarrierVideoPauseSupported();
-            //Bundle phoneAccountExtras = new Bundle();
+            Bundle extras = new Bundle();
             if (isCarrierInstantLetteringSupported()) {
                 capabilities |= PhoneAccount.CAPABILITY_CALL_SUBJECT;
-                //extras.putAll(getPhoneAccountExtras());
+                extras.putAll(getPhoneAccountExtras());
             }
-            //phoneAccountExtras.putBoolean(PhoneAccount.EXTRA_ALWAYS_USE_VOIP_AUDIO_MODE, false);
 
             final boolean isHandoverFromSupported = mContext.getResources().getBoolean(
                     R.bool.config_support_handover_from);
             if (isHandoverFromSupported && !isEmergency) {
                 // Only set the extra is handover is supported and this isn't the emergency-only
                 // acct.
-                //extras.putBoolean(PhoneAccount.EXTRA_SUPPORTS_HANDOVER_FROM,
-                  //      isHandoverFromSupported);
+                extras.putBoolean(PhoneAccount.EXTRA_SUPPORTS_HANDOVER_FROM,
+                        isHandoverFromSupported);
             }
 
-            //extras.putBoolean(PhoneAccount.EXTRA_SUPPORTS_VIDEO_CALLING_FALLBACK,
-              //      mContext.getResources()
-                //            .getBoolean(R.bool.config_support_video_calling_fallback));
+            extras.putBoolean(PhoneAccount.EXTRA_SUPPORTS_VIDEO_CALLING_FALLBACK,
+                    mContext.getResources()
+                            .getBoolean(R.bool.config_support_video_calling_fallback));
 
             if (slotId != SubscriptionManager.INVALID_SIM_SLOT_INDEX) {
-                //extras.putString(PhoneAccount.EXTRA_SORT_ORDER,
-                  //  String.valueOf(slotId));
+                extras.putString(PhoneAccount.EXTRA_SORT_ORDER,
+                    String.valueOf(slotId));
             }
 
             mIsMergeCallSupported = isCarrierMergeCallSupported();
@@ -312,7 +312,7 @@ final class TelecomAccountRegistry {
                     .setShortDescription(description)
                     .setSupportedUriSchemes(Arrays.asList(
                             PhoneAccount.SCHEME_TEL, PhoneAccount.SCHEME_VOICEMAIL))
-                    //.setExtras(phoneAccountExtras)
+                    .setExtras(extras)
                     .setGroupId(groupId)
                     .build();
 
@@ -430,7 +430,7 @@ final class TelecomAccountRegistry {
          * PhoneAccount extras for those features.
          * @return The {@link PhoneAccount} extras associated with the current subscription.
          */
-        private Bundle getPhoneAccountExtras(Bundle phoneAccountExtras) {
+        private Bundle getPhoneAccountExtras() {
             PersistableBundle b =
                     PhoneGlobals.getInstance().getCarrierConfigForSubId(mPhone.getSubId());
 
@@ -438,6 +438,7 @@ final class TelecomAccountRegistry {
                     CarrierConfigManager.KEY_CARRIER_INSTANT_LETTERING_LENGTH_LIMIT_INT);
             String instantLetteringEncoding = b.getString(
                     CarrierConfigManager.KEY_CARRIER_INSTANT_LETTERING_ENCODING_STRING);
+            Bundle phoneAccountExtras = new Bundle();
             phoneAccountExtras.putInt(PhoneAccount.EXTRA_CALL_SUBJECT_MAX_LENGTH,
                     instantLetteringMaxLength);
             phoneAccountExtras.putString(PhoneAccount.EXTRA_CALL_SUBJECT_CHARACTER_ENCODING,

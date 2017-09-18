@@ -453,7 +453,7 @@ public class CallFeaturesSetting extends PreferenceActivity
         } else {
             int resId = com.android.internal.R.string.wifi_calling_off_summary;
             if (mImsMgr.isWfcEnabledByUserForSlot()) {
-                boolean isRoaming = telephonyManager.isNetworkRoaming();
+                boolean isRoaming = telephonyManager.isNetworkRoaming(mPhone.getSubId());
                 int wfcMode = mImsMgr.getWfcModeForSlot(isRoaming);
                 switch (wfcMode) {
                     case ImsConfig.WfcModeFeatureValueConstants.WIFI_ONLY:
@@ -470,6 +470,19 @@ public class CallFeaturesSetting extends PreferenceActivity
                 }
             }
             wifiCallingSettings.setSummary(resId);
+        }
+
+        try {
+            if (mImsMgr.getImsServiceStatus() != ImsFeature.STATE_READY) {
+                log("Feature state not ready so remove vt and wfc settings for " +
+                        " phone =" + mPhone.getPhoneId());
+                prefSet.removePreference(wifiCallingSettings);
+                prefSet.removePreference(mEnableVideoCalling);
+            }
+        } catch (ImsException ex) {
+            log("Exception when trying to get ImsServiceStatus: " + ex);
+            prefSet.removePreference(wifiCallingSettings);
+            prefSet.removePreference(mEnableVideoCalling);
         }
     }
 

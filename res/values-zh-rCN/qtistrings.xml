@@ -32,11 +32,23 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="call_barring">"呼入限制"</string>
+    <string name="call_barring">"呼叫限制"</string>
     <string name="srvcc_video_message">"4G网络不可用，视频电话降级到2G/3G语音电话."</string>
     <string name="srvcc_message">"4G网络不可用，4G语音电话降级到2G/3G语音电话."</string>
     <string name="no_mobile_data">移动数据连接不可用</string>
     <string name="cf_setting_mobile_data_alert_roaming">请开启数据漫游</string>
     <string name="no_mobile_data_roaming">数据漫游不可用</string>
     <string name="ims_settings">"IMS 设置"</string>
+    <string name="preferred_duration_title">挂机显示通话时长</string>
+    <string name="duration_enable_summary">挂机显示通话时长已开启</string>
+    <string name="duration_disable_summary">挂机显示通话时长已关闭</string>
+    <string name="vibrate_after_connected_title">"接通振动提示"</string>
+    <string name="vibrate_after_connected_summary">"对方接通时振动"</string>
+    <string name="cf_setting_mobile_data_alert">请开启手机数据连接，并确保WLAN已关闭</string>
+    <string name="no_mobile_data">移动数据连接不可用</string>
+    <string name="cf_setting_mobile_data_alert_roaming">请开启数据漫游</string>
+    <string name="no_mobile_data_roaming">数据漫游不可用</string>
+
+    <!--alert user to switch DDS when user is making UT supplementary service on non-DDS sub -->
+    <string name="switch_dds_to_sub_alert">请将移动数据切到卡槽</string>
 </resources>
