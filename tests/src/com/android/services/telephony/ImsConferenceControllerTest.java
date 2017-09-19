@@ -118,8 +118,8 @@ public class ImsConferenceControllerTest {
                 .thenReturn(PhoneConstants.PHONE_TYPE_IMS);
         when(mMockTelephonyConnectionB.mMockRadioConnection.getPhoneType())
                 .thenReturn(PhoneConstants.PHONE_TYPE_IMS);
-        when(mMockTelephonyConnectionA.mMockRadioConnection.isMultiparty()).thenReturn(true);
-        when(mMockTelephonyConnectionB.mMockRadioConnection.isMultiparty()).thenReturn(true);
+        when(mMockTelephonyConnectionA.mMockRadioConnection.isMultiparty()).thenReturn(true, false);
+        when(mMockTelephonyConnectionB.mMockRadioConnection.isMultiparty()).thenReturn(true, false);
 
         mControllerTest.add(mMockTelephonyConnectionB);
         mControllerTest.add(mMockTelephonyConnectionA);

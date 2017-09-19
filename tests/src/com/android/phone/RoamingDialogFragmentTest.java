@@ -22,6 +22,7 @@ import android.provider.Settings.SettingNotFoundException;
 import android.support.test.espresso.matcher.PreferenceMatchers;
 import android.support.test.rule.ActivityTestRule;
 import android.support.test.filters.FlakyTest;
+import android.telephony.TelephonyManager;
 import com.google.common.truth.Truth;
 import junit.framework.AssertionFailedError;
 import org.junit.Before;
@@ -120,9 +121,14 @@ public class RoamingDialogFragmentTest {
         // click to cancel turning on data roaming
         onView(withId(android.R.id.button2)).perform(click());
 
-        // verify that the the setting has not been changed
-        assertThat(Global.getInt(mActivity.getApplicationContext().getContentResolver(),
-                Global.DATA_ROAMING)).isEqualTo(0);
-
+        if (TelephonyManager.getDefault().getSimCount() == 1) {
+            // verify that the the setting has not been changed
+            assertThat(Global.getInt(mActivity.getApplicationContext().getContentResolver(),
+                    Global.DATA_ROAMING)).isEqualTo(0);
+        } else {
+            // verify that the the setting has not been changed
+            assertThat(Global.getInt(mActivity.getApplicationContext().getContentResolver(),
+                    Global.DATA_ROAMING)).isEqualTo(1);
+        }
     }
 }
