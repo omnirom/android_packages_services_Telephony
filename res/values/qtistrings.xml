@@ -243,8 +243,10 @@ ul.</string>
     <string name="cf_setting_mobile_data_alert">Please turn on mobile data and make sure that WLAN is off</string>
     <string name="cf_setting_mobile_data_roaming_alert">Please turn on data roaming</string>
     <string name="no_mobile_data">Mobile data is not available</string>
+    <string name="mobile_data">Mobile data</string>
     <string name="no_mobile_data_roaming">Data roaming is not available</string>
 
     <!--alert user to switch DDS when user is making UT supplementary service on non-DDS sub -->
-    <string name="switch_dds_to_sub_alert">Please switch mobile data to slot</string>
+    <string name="switch_dds_to_sub_alert">Please switch mobile data to SIM</string>
+    <string name="mobile_data_alert">Data traffic may be generated on secondary card</string>
 </resources>

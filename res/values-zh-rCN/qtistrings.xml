@@ -46,9 +46,11 @@
     <string name="vibrate_after_connected_summary">"对方接通时振动"</string>
     <string name="cf_setting_mobile_data_alert">请开启手机数据连接，并确保WLAN已关闭</string>
     <string name="no_mobile_data">移动数据连接不可用</string>
+    <string name="mobile_data">移动数据</string>
     <string name="cf_setting_mobile_data_alert_roaming">请开启数据漫游</string>
     <string name="no_mobile_data_roaming">数据漫游不可用</string>
 
     <!--alert user to switch DDS when user is making UT supplementary service on non-DDS sub -->
     <string name="switch_dds_to_sub_alert">请将移动数据切到卡槽</string>
+    <string name="mobile_data_alert">副卡可能会产生数据流量</string>
 </resources>
