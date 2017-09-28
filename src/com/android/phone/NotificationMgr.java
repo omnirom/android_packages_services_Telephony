@@ -473,7 +473,7 @@ public class NotificationMgr {
      * @param visible true if there are messages waiting
      */
     /* package */ void updateCfi(int subId, boolean visible) {
-        if (DBG) log("updateCfi(): " + visible);
+        logi("updateCfi: subId= " + subId + ", visible=" + (visible ? "Y" : "N"));
         if (visible && isUiccCardProvisioned(subId)) {
             // If Unconditional Call Forwarding (forward all calls) for VOICE
             // is enabled, just show a notification.  We'll default to expanded
@@ -718,10 +718,6 @@ public class NotificationMgr {
         mToast.show();
     }
 
-    private void log(String msg) {
-        Log.d(LOG_TAG, msg);
-    }
-
     private boolean isUiccCardProvisioned(int subId) {
         final int PROVISIONED = 1;
         final int INVALID_STATE = -1;
@@ -740,5 +736,13 @@ public class NotificationMgr {
             if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
         }
         return provisionStatus == PROVISIONED;
+   }
+
+   private void log(String msg) {
+       Log.d(LOG_TAG, msg);
+   }
+
+   private void logi(String msg) {
+       Log.i(LOG_TAG, msg);
    }
 }
