@@ -49,7 +49,7 @@ import com.android.internal.telephony.SubscriptionController;
 
 import java.util.List;
 
-public class CdmaCallOptions extends PreferenceActivity
+public class CdmaCallOptions extends TimeConsumingPreferenceActivity
                 implements DialogInterface.OnClickListener,
                 DialogInterface.OnCancelListener {
     private static final String LOG_TAG = "CdmaCallOptions";
@@ -61,6 +61,8 @@ public class CdmaCallOptions extends PreferenceActivity
     public static final String CALL_FORWARD_INTENT = "org.codeaurora.settings.CDMA_CALL_FORWARDING";
     public static final String CALL_WAITING_INTENT = "org.codeaurora.settings.CDMA_CALL_WAITING";
 
+    private CallWaitingSwitchPreference mCWButton;
+    private static final String BUTTON_CW_KEY = "button_cw_ut_key";
 
     private static boolean isActivityPresent(Context context, String intentName) {
         PackageManager pm = context.getPackageManager();
@@ -168,14 +170,18 @@ public class CdmaCallOptions extends PreferenceActivity
             showAlertDialog(title, msg);
         }
 
+        mCWButton = (CallWaitingSwitchPreference) prefScreen.findPreference(BUTTON_CW_KEY);
         if (phone.getPhoneType() != PhoneConstants.PHONE_TYPE_CDMA
                 || !carrierConfig.getBoolean(CarrierConfigManager.KEY_CDMA_CW_CF_ENABLED_BOOL)
                 || !isCdmaCallWaitingActivityPresent(this)) {
             Log.d(LOG_TAG, "Disabled CW CF");
             PreferenceScreen prefCW = (PreferenceScreen)
-                    prefScreen.findPreference("button_cw_key");
+                 prefScreen.findPreference("button_cw_key");
+            if (mCWButton != null) {
+                 prefScreen.removePreference(mCWButton);
+            }
             if (prefCW != null) {
-                prefCW.setEnabled(false);
+                 prefCW.setEnabled(false);
             }
             PreferenceScreen prefCF = (PreferenceScreen)
                     prefScreen.findPreference("button_cf_expand_key");
@@ -185,19 +191,28 @@ public class CdmaCallOptions extends PreferenceActivity
         } else {
             Log.d(LOG_TAG, "Enabled CW CF");
             PreferenceScreen prefCW = (PreferenceScreen)
-                    prefScreen.findPreference("button_cw_key");
+                prefScreen.findPreference("button_cw_key");
 
-            if (prefCW != null) {
-                prefCW.setOnPreferenceClickListener(
-                        new Preference.OnPreferenceClickListener() {
-                            @Override
-                            public boolean onPreferenceClick(Preference preference) {
-                                Intent intent = new Intent(CALL_WAITING_INTENT);
-                                intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, phone.getSubId());
-                                startActivity(intent);
-                                return true;
-                            }
-                        });
+            if (phone.isUtEnabled()) {
+                prefScreen.removePreference(prefCW);
+                mCWButton.init(this, false, phone);
+            } else {
+                if (mCWButton != null) {
+                     prefScreen.removePreference(mCWButton);
+                }
+                if (prefCW != null) {
+                    prefCW.setOnPreferenceClickListener(
+                            new Preference.OnPreferenceClickListener() {
+                                @Override
+                                public boolean onPreferenceClick(Preference preference) {
+                                    Intent intent = new Intent(CALL_WAITING_INTENT);
+                                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                                        phone.getSubId());
+                                    startActivity(intent);
+                                    return true;
+                                }
+                            });
+                }
             }
             PreferenceScreen prefCF = (PreferenceScreen)
                     prefScreen.findPreference("button_cf_expand_key");

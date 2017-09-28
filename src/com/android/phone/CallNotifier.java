@@ -44,9 +44,14 @@ import android.telephony.TelephonyManager;
 import android.util.ArrayMap;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import com.android.internal.telephony.SubscriptionController;
 
 /**
  * Phone app module that listens for phone state changes and various other
@@ -601,10 +606,19 @@ public class CallNotifier extends Handler {
     public void updatePhoneStateListeners() {
         List<SubscriptionInfo> subInfos = mSubscriptionManager.getActiveSubscriptionInfoList();
 
-        // Unregister phone listeners for inactive subscriptions.
-        Iterator<Integer> itr = mPhoneStateListeners.keySet().iterator();
-        while (itr.hasNext()) {
-            int subId = itr.next();
+        // Sort sub id list based on slot id, so that CFI/MWI notifications will be updated for
+        // slot 0 first then slot 1
+        List<Integer> subIdList = new ArrayList<Integer>(mPhoneStateListeners.keySet());
+        Collections.sort(subIdList, new Comparator<Integer>() {
+            public int compare(Integer sub1, Integer sub2) {
+                int slotId1 = SubscriptionController.getInstance().getSlotIndex(sub1);
+                int slotId2 = SubscriptionController.getInstance().getSlotIndex(sub2);
+                return slotId1 > slotId2 ? 0 : -1;
+            }
+        });
+
+        for (int subIdCounter = (subIdList.size() - 1); subIdCounter >= 0; subIdCounter--) {
+            int subId = subIdList.get(subIdCounter);
             if (subInfos == null || !containsSubId(subInfos, subId)) {
                 Log.d(LOG_TAG, "updatePhoneStateListeners: Hide the outstanding notifications.");
                 // Hide the outstanding notifications.
@@ -614,7 +628,7 @@ public class CallNotifier extends Handler {
                 // Listening to LISTEN_NONE removes the listener.
                 mTelephonyManager.listen(
                         mPhoneStateListeners.get(subId), PhoneStateListener.LISTEN_NONE);
-                itr.remove();
+                mPhoneStateListeners.remove(subId);
             } else {
                 Log.d(LOG_TAG, "updatePhoneStateListeners: update CF notifications.");
 
@@ -795,14 +809,14 @@ public class CallNotifier extends Handler {
         public void onMessageWaitingIndicatorChanged(boolean visible) {
             if (VDBG) log("onMessageWaitingIndicatorChanged(): " + this.mSubId + " " + visible);
             mMWIStatus.put(this.mSubId, visible);
-            mApplication.notificationMgr.updateMwi(this.mSubId, visible);
+            updatePhoneStateListeners();
         }
 
         @Override
         public void onCallForwardingIndicatorChanged(boolean visible) {
             if (VDBG) log("onCallForwardingIndicatorChanged(): " + this.mSubId + " " + visible);
             mCFIStatus.put(this.mSubId, visible);
-            mApplication.notificationMgr.updateCfi(this.mSubId, visible);
+            updatePhoneStateListeners();
         }
     };
 

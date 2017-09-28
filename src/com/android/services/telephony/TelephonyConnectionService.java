@@ -63,6 +63,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -885,7 +886,9 @@ public class TelephonyConnectionService extends ConnectionService {
 
     private Pair<WeakReference<TelephonyConnection>, List<Phone>> makeCachedConnectionPhonePair(
             TelephonyConnection c) {
+        // List of GsmCdmaPhone for each slot which haven't received permanent redial failure,
         List<Phone> phones = new ArrayList<>(mTelephonyManagerProxy.getPhoneCount());
+        // Check whether slot received permanent redial failure if not add phone to redial list.
         for (Phone phone : mPhoneFactoryProxy.getPhones()) {
             if (mIsPermDiscCauseReceived[phone.getPhoneId()] == false) {
                 phones.add(phone);
@@ -906,18 +909,30 @@ public class TelephonyConnectionService extends ConnectionService {
      * retry the call.
      */
     private Phone getPhoneForRedial(Phone phoneUsed) {
-        List<Phone> cachedPhones = mEmergencyRetryCache.second;
-        if ((cachedPhones.size() > 1) && cachedPhones.contains(phoneUsed)) {
-            Log.i(this, "getPhoneForRedial, removing Phone[" + phoneUsed.getPhoneId() +
-                    "] from the available Phone cache.");
-            cachedPhones.remove(phoneUsed);
+        Iterator<Phone> cachedPhones = mEmergencyRetryCache.second.iterator();
+        if (mEmergencyRetryCache.second.size() > 1) {
+            while (cachedPhones.hasNext()) {
+                Phone phone = cachedPhones.next();
+                // PhoneFactory getPhones returns GsmCdmaPhone for each slot, but
+                // TelephonyConnection getPhone may give ImsPhone object incase when
+                // Ims registered for a sub, hence compare slot ids of phones in redial list with
+                // previously used phone for emergency call if it matches remove corresponding
+                // GsmCdmaPhone from cachedPhones so that next phone will be selected for redial.
+                if (phone.getPhoneId() == phoneUsed.getPhoneId()) {
+                    Log.i(this, "getPhoneForRedial, removing Phone[" + phoneUsed.getPhoneId() +
+                            "] from the available Phone cache.");
+                    cachedPhones.remove();
+                    break;
+                }
+            }
         }
-        return cachedPhones.isEmpty() ? null : cachedPhones.get(0);
+        return mEmergencyRetryCache.second.isEmpty() ? null : mEmergencyRetryCache.second.get(0);
     }
 
     private void retryOutgoingOriginalConnection(
             TelephonyConnection c, boolean isPermanentFailure) {
         int phoneId = c.getPhone().getPhoneId();
+        // Update emergency temporary or permanent failure received
         mIsPermDiscCauseReceived[phoneId] = isPermanentFailure;
         // Regenerate cache connection phone pair based on disconnect cause received.
         mEmergencyRetryCache = makeCachedConnectionPhonePair(c);
