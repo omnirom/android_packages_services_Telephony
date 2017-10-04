@@ -629,23 +629,19 @@ public class NotificationMgr {
                     extTelephony.isVendorApkAvailable("com.qualcomm.qti.networksetting")) {
                 // Use Vendor NetworkSetting to handle the selection intent
                 intent.setComponent(new ComponentName("com.qualcomm.qti.networksetting",
-                        "com.qualcomm.qti.networksetting.NetworkSetting"));
+                        "com.qualcomm.qti.networksetting.MobileNetworkSettings"));
             } else {
                 // Use aosp NetworkSetting to handle the selection intent
-                /*intent.setComponent(new ComponentName(
-                        mContext.getString(R.string.network_operator_settings_package),
-                        mContext.getString(R.string.network_operator_settings_class)));*/
+                intent.setComponent(new ComponentName(
+                        mContext.getString(R.string.mobile_network_settings_package),
+                        mContext.getString(R.string.mobile_network_settings_class)));
             }
         } catch (RemoteException e) {
             // Use aosp NetworkSetting to handle the selection intent
-            /*intent.setComponent(new ComponentName(
-                    mContext.getString(R.string.network_operator_settings_package),
-                    mContext.getString(R.string.network_operator_settings_class)));*/
+            intent.setComponent(new ComponentName(
+                    mContext.getString(R.string.mobile_network_settings_package),
+                    mContext.getString(R.string.mobile_network_settings_class)));
         }
-        // Use MobileNetworkSettings to handle the selection intent
-        /*intent.setComponent(new ComponentName(
-                mContext.getString(R.string.mobile_network_settings_package),
-                mContext.getString(R.string.mobile_network_settings_class)));*/
         intent.putExtra(GsmUmtsOptions.EXTRA_SUB_ID, subId);
         builder.setContentIntent(PendingIntent.getActivity(mContext, 0, intent, 0));
         mNotificationManager.notifyAsUser(
