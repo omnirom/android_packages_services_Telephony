@@ -32,7 +32,6 @@ import android.telephony.SubscriptionManager;
 public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
         implements DialogInterface.OnClickListener, DialogInterface.OnCancelListener {
     private static final String LOG_TAG = "GsmUmtsCallForwardOptions";
-    private final boolean DBG = (PhoneGlobals.DBG_LEVEL >= 2);
 
     private static final String NUM_PROJECTION[] = {
         android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER
@@ -97,10 +96,10 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
 
         /*Retrieve Call Forward ServiceClass*/
         Intent intent = getIntent();
-        if (DBG) Log.d(LOG_TAG, "Intent is"+intent);
+        Log.d(LOG_TAG, "Intent is"+intent);
         mServiceClass = intent.getIntExtra(PhoneUtils.SERVICE_CLASS,
                 CommandsInterface.SERVICE_CLASS_VOICE);
-        if (DBG) Log.d(LOG_TAG, "serviceClass: " +mServiceClass);
+        Log.d(LOG_TAG, "serviceClass: " +mServiceClass);
 
         mFirstResume = true;
         mIcicle = icicle;
@@ -158,7 +157,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
                 return;
             }
             if (promptForDataRoaming) {
-                   if (DBG) Log.d(LOG_TAG, "Show alert dialog if data roaming is disabled");
+                   Log.d(LOG_TAG, "Show alert dialog if data roaming is disabled");
                    String title = (String)this.getResources()
                            .getText(R.string.no_mobile_data_roaming);
                    String message = (String)this.getResources()
@@ -208,7 +207,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
         int slotId = SubscriptionManager.getSlotIndex(sub);
 
         if (sub != defaultDataSub) {
-            if (DBG) Log.d(LOG_TAG, "Show alert dialog if data sub in not on current sub");
+            Log.d(LOG_TAG, "Show alert dialog if data sub in not on current sub");
             String title = (String)this.getResources().getText(R.string.no_mobile_data);
             String message = (String)this.getResources()
                     .getText(R.string.switch_dds_to_sub_alert) + String.valueOf(slotId);
@@ -238,7 +237,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
 
         if (mFirstResume) {
             if (mIcicle == null) {
-                if (DBG) Log.d(LOG_TAG, "start to init ");
+                Log.d(LOG_TAG, "start to init ");
                 mPreferences.get(mInitIndex).init(this, false, mPhone, mServiceClass);
             } else {
                 mInitIndex = mPreferences.size();
@@ -294,9 +293,9 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (DBG) Log.d(LOG_TAG, "onActivityResult: done");
+        Log.d(LOG_TAG, "onActivityResult: done");
         if (resultCode != RESULT_OK) {
-            if (DBG) Log.d(LOG_TAG, "onActivityResult: contact picker result not OK.");
+            Log.d(LOG_TAG, "onActivityResult: contact picker result not OK.");
             return;
         }
         Cursor cursor = null;
@@ -304,7 +303,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
             cursor = getContentResolver().query(data.getData(),
                 NUM_PROJECTION, null, null, null);
             if ((cursor == null) || (!cursor.moveToFirst())) {
-                if (DBG) Log.d(LOG_TAG, "onActivityResult: bad contact data, no results found.");
+                Log.d(LOG_TAG, "onActivityResult: bad contact data, no results found.");
                 return;
             }
 
