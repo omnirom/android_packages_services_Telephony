@@ -638,14 +638,7 @@ public class TelephonyConnectionService extends ConnectionService {
         // If there is an incoming emergency CDMA Call (while the phone is in ECBM w/ No SIM),
         // make sure the PhoneAccount lookup retrieves the default Emergency Phone.
         PhoneAccountHandle accountHandle = request.getAccountHandle();
-        boolean isEmergency = false;
-        if (accountHandle != null && PhoneUtils.EMERGENCY_ACCOUNT_HANDLE_ID.equals(
-                accountHandle.getId())) {
-            Log.i(this, "Emergency PhoneAccountHandle is being used for incoming call... " +
-                    "Treat as an Emergency Call.");
-            isEmergency = true;
-        }
-        Phone phone = getPhoneForAccount(accountHandle, isEmergency);
+        Phone phone = getPhoneForAccount(accountHandle, false);
         if (phone == null) {
             return Connection.createFailedConnection(
                     DisconnectCauseUtil.toTelecomDisconnectCause(
@@ -698,6 +691,7 @@ public class TelephonyConnectionService extends ConnectionService {
         if (connection instanceof TelephonyConnection) {
             TelephonyConnection telephonyConnection = (TelephonyConnection) connection;
             maybeSendInternationalCallEvent(telephonyConnection);
+            maybeSendPhoneAccountUpdateEvent(telephonyConnection);
         }
     }
 
@@ -715,14 +709,7 @@ public class TelephonyConnectionService extends ConnectionService {
         // Use the registered emergency Phone if the PhoneAccountHandle is set to Telephony's
         // Emergency PhoneAccount
         PhoneAccountHandle accountHandle = request.getAccountHandle();
-        boolean isEmergency = false;
-        if (accountHandle != null && PhoneUtils.EMERGENCY_ACCOUNT_HANDLE_ID.equals(
-                accountHandle.getId())) {
-            Log.i(this, "Emergency PhoneAccountHandle is being used for unknown call... " +
-                    "Treat as an Emergency Call.");
-            isEmergency = true;
-        }
-        Phone phone = getPhoneForAccount(accountHandle, isEmergency);
+        Phone phone = getPhoneForAccount(accountHandle, false);
         if (phone == null) {
             return Connection.createFailedConnection(
                     DisconnectCauseUtil.toTelecomDisconnectCause(
@@ -1076,7 +1063,14 @@ public class TelephonyConnectionService extends ConnectionService {
         if (subId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
             int phoneId = mSubscriptionManagerProxy.getPhoneId(subId);
             chosenPhone = mPhoneFactoryProxy.getPhone(phoneId);
-        }
+        } else {
+            for (Phone phone : mPhoneFactoryProxy.getPhones()) {
+                Call call = phone.getRingingCall();
+                if (call.getState().isRinging()) {
+                    return phone;
+                }
+            }
+         }
         return chosenPhone;
     }
 
@@ -1360,4 +1354,12 @@ public class TelephonyConnectionService extends ConnectionService {
             }
         }
     }
+
+    private void maybeSendPhoneAccountUpdateEvent(TelephonyConnection telephonyConnection) {
+        if (telephonyConnection == null || telephonyConnection.getPhone() == null) {
+            return;
+        }
+        updatePhoneAccount(telephonyConnection,
+                mPhoneFactoryProxy.getPhone(telephonyConnection.getPhone().getPhoneId()));
+   }
 }
