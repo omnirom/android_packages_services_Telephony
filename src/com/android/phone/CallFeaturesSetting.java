@@ -45,6 +45,8 @@ import android.telephony.CarrierConfigManager;
 import android.telephony.ims.feature.ImsFeature;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.MenuItem;
@@ -118,6 +120,9 @@ public class CallFeaturesSetting extends PreferenceActivity
     private PreferenceScreen mVoicemailSettingsScreen;
     private SwitchPreference mEnableVideoCalling;
     private PreferenceScreen mImsSettingsScreen;
+
+    private int[] mCallState = null;
+    private PhoneStateListener[] mPhoneStateListener = null;
 
     /*
      * Click Listeners, handle click based on objects attached to UI.
@@ -199,6 +204,8 @@ public class CallFeaturesSetting extends PreferenceActivity
         mPhone = mSubscriptionInfoHelper.getPhone();
         mTelecomManager = TelecomManager.from(this);
         updateImsManager(mPhone);
+        mPhoneStateListener = new PhoneStateListener[TelephonyManager.getDefault().getPhoneCount()];
+        mCallState = new int[mPhoneStateListener.length];
     }
 
     private void updateImsManager(Phone phone) {
@@ -212,22 +219,10 @@ public class CallFeaturesSetting extends PreferenceActivity
         }
     }
 
-    private final PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
-        @Override
-        public void onCallStateChanged(int state, String incomingNumber) {
-            if (DBG) log("PhoneStateListener onCallStateChanged: state is " + state);
-            if (mEnableVideoCalling != null) {
-                mEnableVideoCalling.setEnabled(state == TelephonyManager.CALL_STATE_IDLE);
-            }
-        }
-    };
-
     @Override
     protected void onPause() {
         super.onPause();
-        TelephonyManager telephonyManager =
-                (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        telephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+        unRegisterPhoneStateListeners();
     }
 
     @Override
@@ -243,7 +238,7 @@ public class CallFeaturesSetting extends PreferenceActivity
 
         TelephonyManager telephonyManager =
                 (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        telephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
+        registerPhoneStateListeners();
 
         Preference phoneAccountSettingsPreference = findPreference(PHONE_ACCOUNT_SETTINGS_KEY);
         if (telephonyManager.isMultiSimEnabled() || !SipUtil.isVoipSupported(mPhone.getContext())) {
@@ -491,6 +486,53 @@ public class CallFeaturesSetting extends PreferenceActivity
         }
     }
 
+    private void registerPhoneStateListeners() {
+        TelephonyManager tm =
+                (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        SubscriptionManager subMgr = SubscriptionManager.from(mPhone.getContext());
+        if (tm == null || subMgr == null) {
+            Log.e(LOG_TAG, "TelephonyManager or SubscriptionManager is null");
+            return;
+        }
+
+        for (int i = 0; i < mPhoneStateListener.length; i++) {
+            final SubscriptionInfo subInfo =
+                    subMgr.getActiveSubscriptionInfoForSimSlotIndex(i);
+            if (subInfo == null) {
+                Log.e(LOG_TAG, "registerPhoneStateListener subInfo : " + subInfo +
+                        " for phone Id: " + i);
+                continue;
+            }
+
+            final int phoneId = i;
+            mPhoneStateListener[i]  = new PhoneStateListener(subInfo.getSubscriptionId()) {
+                @Override
+                public void onCallStateChanged(int state, String incomingNumber) {
+                    if (DBG) log("PhoneStateListener onCallStateChanged: state is " + state +
+                            " SubId: " + mSubId);
+                    mCallState[phoneId] = state;
+                    if (mEnableVideoCalling != null) {
+                        mEnableVideoCalling.setEnabled(isCallStateIdle());
+                    }
+                }
+            };
+            log("Register for call state change for phone Id: " + i);
+            tm.listen(mPhoneStateListener[i], PhoneStateListener.LISTEN_CALL_STATE);
+        }
+    }
+
+    private void unRegisterPhoneStateListeners() {
+        TelephonyManager tm =
+               (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        for (int i = 0; i < mPhoneStateListener.length; i++) {
+            if (mPhoneStateListener[i] != null) {
+                log("unRegister for call state change for phone Id: " + i);
+                tm.listen(mPhoneStateListener[i], PhoneStateListener.LISTEN_NONE);
+                mPhoneStateListener[i] = null;
+            }
+        }
+    }
+
     /**
      * Hides the top level voicemail settings entry point if the default dialer contains a
      * particular manifest metadata key. This is required when the default dialer wants to display
@@ -582,5 +624,14 @@ public class CallFeaturesSetting extends PreferenceActivity
             }
         }
         return false;
+    }
+
+    private boolean isCallStateIdle() {
+        for (int i = 0; i < mCallState.length; i++) {
+            if (TelephonyManager.CALL_STATE_IDLE != mCallState[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }
