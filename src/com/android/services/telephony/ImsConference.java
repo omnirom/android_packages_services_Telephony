@@ -228,6 +228,8 @@ public class ImsConference extends Conference {
 
     private TelecomAccountRegistry mTelecomAccountRegistry;
 
+    private static final int DEFAULT_PHONE_ID = 0;
+
     /**
      * The known conference participant connections.  The HashMap is keyed by a Pair containing
      * the handle and endpoint Uris.
@@ -1035,8 +1037,15 @@ public class ImsConference extends Conference {
                 if (mConferenceHost == null) {
                     disconnectCause = new DisconnectCause(DisconnectCause.CANCELED);
                 } else {
-                    disconnectCause = DisconnectCauseUtil.toTelecomDisconnectCause(
-                            mConferenceHost.getOriginalConnection().getDisconnectCause());
+                    if (mConferenceHost.getPhone() != null) {
+                        disconnectCause = DisconnectCauseUtil.toTelecomDisconnectCause(
+                                mConferenceHost.getOriginalConnection().getDisconnectCause(),
+                                mConferenceHost.getPhone().getPhoneId());
+                    } else {
+                        disconnectCause = DisconnectCauseUtil.toTelecomDisconnectCause(
+                                mConferenceHost.getOriginalConnection().getDisconnectCause(),
+                                DEFAULT_PHONE_ID);
+                    }
                 }
                 setDisconnected(disconnectCause);
                 disconnectConferenceParticipants();
