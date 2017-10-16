@@ -37,10 +37,12 @@ import android.preference.SwitchPreference;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
+import android.telephony.ims.feature.ImsFeature;
 import android.telephony.SubscriptionManager;
 import android.util.Log;
 import android.view.MenuItem;
 
+import com.android.ims.ImsException;
 import com.android.ims.ImsManager;
 import com.android.internal.telephony.imsphone.ImsPhone;
 import com.android.internal.telephony.Phone;
@@ -92,6 +94,14 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
             return false;
         }
         ImsManager imsMgr = ImsManager.getInstance(this, phone.getPhoneId());
+        try {
+            if (imsMgr.getImsServiceStatus() != ImsFeature.STATE_READY) {
+                Log.d(LOG_TAG, "ImsServiceStatus is not ready!");
+                return false;
+            }
+        } catch (ImsException ex) {
+            Log.d(LOG_TAG, "Exception when trying to get ImsServiceStatus: " + ex);
+        }
         return imsMgr.isEnhanced4gLteModeSettingEnabledByUserForSlot()
             && imsMgr.isNonTtyOrTtyOnVolteEnabledForSlot()
             && !phone.isImsRegistered()
