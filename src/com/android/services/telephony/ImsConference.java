@@ -38,6 +38,8 @@ import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneNumberUtils;
 import android.util.Pair;
 import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
+import android.telephony.SubscriptionInfo;
 
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallStateException;
@@ -1080,8 +1082,19 @@ public class ImsConference extends Conference {
             Phone phone = mConferenceHost.getPhone();
             if (phone != null) {
                 Context context = phone.getContext();
+                String displaySubId = null;
+                if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+                    final int phoneId = mConferenceHost.getPhone().getPhoneId();
+                    SubscriptionInfo sub = SubscriptionManager.from(
+                            mConferenceHost.getPhone().getContext())
+                        .getActiveSubscriptionInfoForSimSlotIndex(phoneId);
+                    if (sub != null) {
+                        displaySubId = sub.getDisplayName().toString();
+                        displaySubId  = " " + displaySubId;
+                    }
+                }
                 setStatusHints(new StatusHints(
-                        context.getString(R.string.status_hint_label_wifi_call),
+                        context.getString(R.string.status_hint_label_wifi_call) + displaySubId,
                         Icon.createWithResource(
                                 context.getResources(),
                                 R.drawable.ic_signal_wifi_4_bar_24dp),

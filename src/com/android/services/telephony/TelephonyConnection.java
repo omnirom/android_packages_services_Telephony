@@ -2056,13 +2056,23 @@ abstract class TelephonyConnection extends Connection
         boolean isIncoming = isValidRingingCall();
         if (mIsWifi && (isIncoming || getState() == STATE_ACTIVE) &&
                 (getPhone() != null)) {
-            int labelId = isIncoming
+            final int labelId = isIncoming
                     ? R.string.status_hint_label_incoming_wifi_call
                     : R.string.status_hint_label_wifi_call;
+            String displaySubId = null;
+            if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+                final int phoneId = getPhone().getPhoneId();
+                SubscriptionInfo sub = SubscriptionManager.from(getPhone().getContext())
+                    .getActiveSubscriptionInfoForSimSlotIndex(phoneId);
+                if (sub != null) {
+                    displaySubId = sub.getDisplayName().toString();
+                    displaySubId  = " " + displaySubId;
+                }
+            }
 
             Context context = getPhone().getContext();
             setStatusHints(new StatusHints(
-                    context.getString(labelId),
+                    context.getString(labelId) + displaySubId,
                     Icon.createWithResource(
                             context.getResources(),
                             R.drawable.ic_signal_wifi_4_bar_24dp),
