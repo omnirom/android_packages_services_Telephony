@@ -14,7 +14,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.SystemProperties;
 import android.telephony.PhoneNumberUtils;
-import android.telephony.ServiceState;
+import android.telephony.TelephonyManager;
 import android.text.BidiFormatter;
 import android.text.SpannableString;
 import android.text.TextDirectionHeuristics;
@@ -50,6 +50,8 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
     private Phone mPhone;
     CallForwardInfo callForwardInfo;
     private TimeConsumingPreferenceListener mTcpListener;
+    // Should we replace CF queries containing an invalid number with "Voicemail"
+    private boolean mReplaceInvalidCFNumber = false;
 
     boolean isTimerEnabled;
     boolean mAllowSetCallFwding = false;
@@ -83,12 +85,14 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
     }
 
     void init(TimeConsumingPreferenceListener listener, boolean skipReading, Phone phone,
-            int serviceClass) {
+            boolean replaceInvalidCFNumber, int serviceClass) {
         mServiceClass = serviceClass;
         mPhone = phone;
         mTcpListener = listener;
         isTimerEnabled = isTimerEnabled();
         Log.d(LOG_TAG, "isTimerEnabled="+isTimerEnabled);
+        mReplaceInvalidCFNumber = replaceInvalidCFNumber;
+
         if (!skipReading) {
             if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL && isTimerEnabled) {
                 setTimeSettingVisibility(true);
@@ -249,6 +253,16 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
             mEndHour = 0;
             mEndMinute = 0;
         }
+        // In some cases, the network can send call forwarding URIs for voicemail that violate the
+        // 3gpp spec. This can cause us to receive "numbers" that are sequences of letters. In this
+        // case, we must detect these series of characters and replace them with "Voicemail".
+        // PhoneNumberUtils#formatNumber returns null if the number is not valid.
+        if (mReplaceInvalidCFNumber && (PhoneNumberUtils.formatNumber(callForwardInfo.number,
+                getCurrentCountryIso()) == null)) {
+            callForwardInfo.number = getContext().getString(R.string.voicemail);
+            Log.i(LOG_TAG, "handleGetCFResponse: Overridding CF number");
+        }
+
         setToggled(callForwardInfo.status == 1);
         setPhoneNumber(callForwardInfo.number);
     }
@@ -340,6 +354,19 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
     //used to check if timer infor is valid
     private boolean isTimerValid() {
         return mStartHour != 0 || mStartMinute != 0 || mEndHour != 0 || mEndMinute != 0;
+    }
+
+    /**
+     * @return The ISO 3166-1 two letters country code of the country the user is in based on the
+     *      network location.
+     */
+    private String getCurrentCountryIso() {
+        final TelephonyManager telephonyManager =
+                (TelephonyManager) getContext().getSystemService(Context.TELEPHONY_SERVICE);
+        if (telephonyManager == null) {
+            return "";
+        }
+        return telephonyManager.getNetworkCountryIso().toUpperCase();
     }
 
     // Message protocol:
