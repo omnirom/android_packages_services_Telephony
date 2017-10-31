@@ -176,6 +176,7 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         // Allow this activity to be displayed in front of the keyguard / lockscreen.
         WindowManager.LayoutParams lp = getWindow().getAttributes();
         lp.flags |= WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;
+        lp.flags |= WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON;
 
         // When no proximity sensor is available, use a shorter timeout.
         // TODO: Do we enable this for non proximity devices any more?
