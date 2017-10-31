@@ -52,6 +52,12 @@ public class ImsConferenceController {
 
             mImsConferences.remove(conference);
         }
+
+        @Override
+        public void onStateChanged(Conference conference, int oldState, int newState) {
+            Log.v(this, "onStateChanged: Conference = " + conference);
+            recalculate();
+        }
     };
 
     /**
