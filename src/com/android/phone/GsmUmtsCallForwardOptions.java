@@ -61,7 +61,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
     private Phone mPhone;
     private SubscriptionInfoHelper mSubscriptionInfoHelper;
     private int mServiceClass;
-    private final BroadcastReceiver mReceiver = new PhoneAppBroadcastReceiver();
+    private BroadcastReceiver mReceiver = null;
     private SubscriptionManager mSubscriptionManager;
 
     private static final String CARRIER_MODE_CMCC = "cmcc";
@@ -234,6 +234,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
         if (mIsCMCC) {
             IntentFilter intentFilter = new IntentFilter();
             intentFilter.addAction(TelephonyIntents.ACTION_ANY_DATA_CONNECTION_STATE_CHANGED);
+            mReceiver = new PhoneAppBroadcastReceiver();
             registerReceiver(mReceiver, intentFilter);
             final SubscriptionManager mSubscriptionManager = SubscriptionManager.from(this);
             checkDataStatus();
@@ -305,7 +306,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
     @Override
     public void onPause() {
         super.onPause();
-        if (mReceiver != null) {
+        if (mIsCMCC && mReceiver != null) {
             unregisterReceiver(mReceiver);
         }
 

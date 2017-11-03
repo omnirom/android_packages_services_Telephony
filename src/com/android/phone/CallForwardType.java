@@ -41,6 +41,7 @@ import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import android.preference.Preference.OnPreferenceClickListener;
 
+import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 public class CallForwardType extends PreferenceActivity {
     private static final String LOG_TAG = "CallForwardType";
@@ -94,7 +95,9 @@ public class CallForwardType extends PreferenceActivity {
              }
         });
 
-        if (!(mPhone.isUtEnabled() && mPhone.isVideoEnabled() )) {
+        boolean removeVtCfOption = QtiImsExtUtils.isCarrierConfigEnabled(mPhone.getPhoneId(),
+                mPhone.getContext(), "config_hide_vt_callforward_option");
+        if (removeVtCfOption || !(mPhone.isUtEnabled() && mPhone.isVideoEnabled())) {
              Log.d(LOG_TAG, "VT or/and Ut Service is not enabled");
             getPreferenceScreen().removePreference(mVideoPreference);
         }
