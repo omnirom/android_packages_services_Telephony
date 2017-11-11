@@ -102,17 +102,17 @@
     <string name="puk_unlocked">Your SIM card has been unblocked. Your phone is unlocking\u2026</string>
     <!-- network depersonalization -->
     <!-- Label text for PIN entry widget on SIM Network Depersonalization panel -->
-    <string name="label_ndp">SIM network unlock PIN</string>
+    <string name="PERSOSUBSTATE_SIM_NETWORK_ENTRY">SIM network unlock PIN</string>
     <!-- Button label on SIM Network Depersonalization panel -->
     <string name="sim_ndp_unlock_text">Unlock</string>
     <!-- Button label on SIM Network Depersonalization panel -->
     <string name="sim_ndp_dismiss_text">Dismiss</string>
     <!-- Status message displayed on SIM Network Depersonalization panel -->
-    <string name="requesting_unlock">Requesting network unlock\u2026</string>
+    <string name="PERSOSUBSTATE_SIM_NETWORK_IN_PROGRESS">Requesting SIM network unlock\u2026</string>
     <!-- Error message displayed on SIM Network Depersonalization panel -->
-    <string name="unlock_failed">Network unlock request unsuccessful.</string>
+    <string name="PERSOSUBSTATE_SIM_NETWORK_ERROR">SIM Network unlock request unsuccessful.</string>
     <!-- Success message displayed on SIM Network Depersonalization panel -->
-    <string name="unlock_success">Network unlock successful.</string>
+    <string name="PERSOSUBSTATE_SIM_NETWORK_SUCCESS">SIM Network unlock successful.</string>
 
     <!-- settings strings -->
 
@@ -123,6 +123,9 @@
     <!-- GSM Call settings screen, setting option name with label indicating the SIM the settings
          are applied to. [CHAR LIMIT=40] -->
     <string name="labelGsmMore_with_label">GSM call settings (<xliff:g id="subscriptionlabel" example="T-Mobile">%s</xliff:g>)</string>
+    <string name="labelCFType">Call Forward Setting</string>
+    <string name="labelCFVoice">Voice</string>
+    <string name="labelCFVideo">Video</string>
     <!-- CDMA Call settings screen, setting option name -->
     <string name="labelCDMAMore">CDMA call settings</string>
     <!-- CDMA Call settings screen, setting option name with label indicating the SIM the settings
@@ -232,6 +235,22 @@
     <!-- Call forwarding settings screen, setting summary text when Always forward is disabled -->
     <string name="sum_cfu_disabled">Off</string>
 
+    <!-- Call forwarding settings screen, setting timer info for cfut case -->
+    <string name="set_time_period">Set time period</string>
+    <string name="all_day">\u0020All day\u0020</string>
+    <string name="time_interval_char">: </string>
+    <string name="time_start">\u0020From\u0020</string>
+    <string name="time_start_hour">time start hour</string>
+    <string name="time_start_minute">time start minute</string>
+    <string name="time_end">\u0020To\u0020</string>
+    <string name="time_next_day">\u0020next day\u0020</string>
+    <string name="time_end_hour">time end hour</string>
+    <string name="time_end_minute">time end minute</string>
+    <string name="time_formate_am">AM</string>
+    <string name="time_formate_pm">PM</string>
+    <string name="cf_setting_mobile_data_alert">Please turn on mobile data and make sure that WLAN is off</string>
+    <string name="cf_setting_mobile_data_roaming_alert">Please turn on data roaming</string>
+
     <!-- Call forwarding settings screen, setting option name -->
     <string name="labelCFB">When busy</string>
     <!-- Call forwarding dialog box, text field label -->
@@ -288,6 +307,7 @@
     <string name="stk_cc_ss_to_dial_error">SS request modified to DIAL request.</string>
     <string name="stk_cc_ss_to_ussd_error">SS request modified to USSD request.</string>
     <string name="stk_cc_ss_to_ss_error">SS request modified to new SS request.</string>
+    <string name="stk_cc_ss_to_dial_video_error">SS request modified to Video DIAL request.</string>
 
     <!-- Status message displayed in the "Call settings error" dialog when operation fails due to FDN
          [CHAR LIMIT=NONE] -->
@@ -429,6 +449,11 @@
      <string name="preferred_network_mode_lte_cdma_summary">Preferred network mode: LTE / CDMA</string>
      <!-- Mobile network settings, summary for preferred network mode TDSCDMTA [CHAR LIMIT=100] -->
      <string name="preferred_network_mode_tdscdma_summary">Preferred network mode: TDSCDMA</string>
+    <!-- In-call screen: call failure reason (call denied because call barring
+            is ON on MT side ) -->
+    <string name="callFailed_incoming_cb_enabled">Party has barred all Incoming calls.</string>
+    <!-- In-call screen: status label for an incoming call that is not answered and forwarded  -->
+    <string name="callUnanswered_forwarded">Call Unanswered and Forwarded</string>
 
     <string-array name="preferred_network_mode_choices">
         <item>LTE / WCDMA</item>
@@ -492,6 +517,7 @@
     <string name="ussd_dialog_sep" translatable="false">----------</string>
 
     <string name="gsm_umts_options">GSM/UMTS Options</string>
+    <string name="call_forward_option">CallForward Options</string>
     <string name="cdma_options">CDMA Options</string>
 
     <!-- Screen option on the mobile network settings to go into data usage settings -->
@@ -971,6 +997,47 @@
     <string name="card_title_hanging_up">Hanging up</string>
     <!-- In-call screen: status label for a call that's in CDMA flash mode -->
     <string name="card_title_in_call">In call</string>
+    <!-- In-call screen: status label for Unconditional Call Forwarding enabled  -->
+    <string name="card_title_unconditionalCF">Unconditional call forwarding is enabled</string>
+    <!-- In-call screen: status label for Conditional Call Forwarding enabled  -->
+    <string name="card_title_conditionalCF">Conditional call forwarding is enabled</string>
+    <!-- In-call screen: status label for a forwarded MO call  -->
+    <string name="card_title_MOcall_forwarding">Outgoing Forwarded Call</string>
+    <!-- In-call screen: status label when Call waiting is enabled on remote party  -->
+    <string name="card_title_calliswaiting">Call Waiting</string>
+    <!-- In-call screen: status label for MO call, when the caller & callee both
+            belng to a CUG group -->
+    <string name="card_title_cugcall">Closed User Group Call</string>
+    <!-- In-call screen: status label when MO calls are barred -->
+    <string name="card_title_outgoing_barred">Outgoing Calls Barred</string>
+    <!-- In-call screen: status label for MO calls, when incoming calls are barred
+            at remote party -->
+    <string name="card_title_incoming_barred">Incoming Calls Barred</string>
+    <!-- In-call screen: status label for MO calls when CLIR Suppression is rejected -->
+    <string name="card_title_clir_suppression_rejected">Caller ID Suppression Rejected</string>
+    <!-- In-call screen: status label when MO call gets deflected to another party -->
+    <string name="card_title_call_deflected">Call Deflected</string>
+    <!-- In-call screen: status label for incoming call being forwarded to other remote party  -->
+    <string name="card_title_MTcall_forwarding">Incoming Call is Forwarded</string>
+    <!-- In-call screen: status label for incoming call forwarded from other remote party -->
+    <string name="card_title_forwarded_MTcall">Forwarded Incoming Call</string>
+    <!-- In-call screen: status label for incoming call which is answered & then put on hold  -->
+    <string name="card_title_callonhold">Put on Hold</string>
+    <!-- In-call screen: status label for incoming call put on hold & then retreived back -->
+    <string name="card_title_callretrieved">Call Retreived</string>
+    <!-- In-call screen: status label for incoming call which is part of MultiParty Call -->
+    <string name="card_title_multipartycall">Multiparty Call</string>
+    <!-- In-call screen: status label for incoming call which is answered,
+            put on hold & then released -->
+    <string name="card_title_callonhold_released">Call Released</string>
+    <!-- In-call screen: status label for incoming call forward check received -->
+    <string name="card_title_forwardcheckreceived">Forward Check Received</string>
+    <!-- In-call screen: status label for incoming call connecting through ECT -->
+    <string name="card_title_callconnectingect">Call connecting through explicit call transfer</string>
+    <!-- In-call screen: status label for incoming call connected through ECT -->
+    <string name="card_title_callconnectedect">Call connected through explicit call transfer</string>
+    <!-- In-call screen: status label for incoming call is a deflected call -->
+    <string name="card_title_deflectedcall">Deflected Call</string>
 
     <!-- Notification strings -->
     <!-- Label for the "Voicemail" notification item, when expanded. -->
@@ -1344,6 +1411,11 @@
     <string name="callFailed_cdma_call_limit">
         There are too many active calls. Please end or merge existing calls before placing a new one.
     </string>
+     <!-- Smart Divert Settings -->
+     <!-- Title for the Smart Divert Feature displayed in Call Settings -->
+     <string name="smart_divert_title">Smart-Divert</string>
+     <!-- Summary for the Smart Divert Feature displayed in Call Settings -->
+     <string name="smart_divert_summary">CFNRc Settings</string>
 
     <!-- Call failure reason: If the network does not accept the emergency call request, e.g., because IMEI was used as identification and this capability is not supported -->
     <string name="callFailed_imei_not_accepted">
@@ -1380,4 +1452,6 @@
     <string name="change_pin_succeeded">Voicemail PIN updated</string>
     <!-- The error message to show if the server reported an error while attempting to change the voicemail PIN -->
     <string name="change_pin_system_error">Unable to set PIN</string>
+    <string name="ut_not_support">UT is not available</string>
+    <string name="ct_ut_not_support_close_4glte">UT is not available, please turn off Enhanced 4G LTE Mode in Settings</string>
 </resources>

@@ -31,6 +31,8 @@ import android.content.pm.UserInfo;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.PersistableBundle;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -54,6 +56,7 @@ import android.widget.Toast;
 
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneFactory;
+import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.util.NotificationChannelController;
 import com.android.phone.settings.VoicemailSettingsActivity;
@@ -61,6 +64,8 @@ import com.android.phone.settings.VoicemailSettingsActivity;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
+import org.codeaurora.internal.IExtTelephony;
 
 /**
  * NotificationManager-related utility code for the Phone app.
@@ -260,7 +265,7 @@ public class NotificationMgr {
         Log.i(LOG_TAG, "updateMwi(): subId " + subId + " update to " + visible);
         mMwiVisible.put(subId, visible);
 
-        if (visible) {
+        if (visible && isUiccCardProvisioned(subId)) {
             if (phone == null) {
                 Log.w(LOG_TAG, "Found null phone for: " + subId);
                 return;
@@ -273,6 +278,10 @@ public class NotificationMgr {
             }
 
             int resId = android.R.drawable.stat_notify_voicemail;
+            if (mTelephonyManager.getPhoneCount() > 1) {
+                resId = (phone.getPhoneId() == 0) ? R.drawable.stat_notify_voicemail_sub1
+                        : R.drawable.stat_notify_voicemail_sub2;
+            }
 
             // This Notification can get a lot fancier once we have more
             // information about the current voicemail messages.
@@ -474,7 +483,7 @@ public class NotificationMgr {
      */
     /* package */ void updateCfi(int subId, boolean visible) {
         if (DBG) log("updateCfi(): " + visible);
-        if (visible) {
+        if (visible && isUiccCardProvisioned(subId)) {
             // If Unconditional Call Forwarding (forward all calls) for VOICE
             // is enabled, just show a notification.  We'll default to expanded
             // view for now, so the there is less confusion about the icon.  If
@@ -493,14 +502,18 @@ public class NotificationMgr {
             }
 
             String notificationTitle;
+            int resId = R.drawable.stat_sys_phone_call_forward;
             if (mTelephonyManager.getPhoneCount() > 1) {
+                int mSlotId = SubscriptionController.getInstance().getSlotIndex(subId);
+                resId = (mSlotId == 0) ? R.drawable.stat_sys_phone_call_forward_sub1
+                                : R.drawable.stat_sys_phone_call_forward_sub2;
                 notificationTitle = subInfo.getDisplayName().toString();
             } else {
                 notificationTitle = mContext.getString(R.string.labelCF);
             }
 
             Notification.Builder builder = new Notification.Builder(mContext)
-                    .setSmallIcon(R.drawable.stat_sys_phone_call_forward)
+                    .setSmallIcon(resId)
                     .setColor(subInfo.getIconTint())
                     .setContentTitle(notificationTitle)
                     .setContentText(mContext.getString(R.string.sum_cfu_enabled_indicator))
@@ -531,10 +544,18 @@ public class NotificationMgr {
                         userHandle);
             }
         } else {
-            mNotificationManager.cancelAsUser(
-                    Integer.toString(subId) /* tag */,
-                    CALL_FORWARD_NOTIFICATION,
-                    UserHandle.ALL);
+            List<UserInfo> users = mUserManager.getUsers(true);
+            for (int i = 0; i < users.size(); i++) {
+                final UserInfo user = users.get(i);
+                if (user.isManagedProfile()) {
+                    continue;
+                }
+                UserHandle userHandle = user.getUserHandle();
+                mNotificationManager.cancelAsUser(
+                        Integer.toString(subId) /* tag */,
+                        CALL_FORWARD_NOTIFICATION,
+                        userHandle);
+            }
         }
     }
 
@@ -548,6 +569,29 @@ public class NotificationMgr {
 
         // "Mobile network settings" screen / dialog
         Intent intent = new Intent(mContext, com.android.phone.MobileNetworkSettings.class);
+
+        boolean isVendorNetworkSettingApkAvailable = false;
+        IExtTelephony extTelephony =
+                IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+        try {
+            if (extTelephony != null &&
+                    extTelephony.isVendorApkAvailable("com.qualcomm.qti.networksetting")) {
+                isVendorNetworkSettingApkAvailable = true;
+            }
+        } catch (RemoteException ex) {
+            // could not connect to extphone service, launch the default activity
+            log("couldn't connect to extphone service, launch the default activity");
+        }
+
+        if (isVendorNetworkSettingApkAvailable) {
+            // prepare intent to start qti MobileNetworkSettings activity
+            intent.setComponent(new ComponentName("com.qualcomm.qti.networksetting",
+                    "com.qualcomm.qti.networksetting.MobileNetworkSettings"));
+        } else {
+            // vendor MobileNetworkSettings not available, launch the default activity
+            log("vendor MobileNetworkSettings is not available");
+        }
+
         PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
 
         final CharSequence contentText = mContext.getText(R.string.roaming_reenable_message);
@@ -566,6 +610,9 @@ public class NotificationMgr {
                 continue;
             }
             UserHandle userHandle = user.getUserHandle();
+            if (isVendorNetworkSettingApkAvailable) {
+                builder.setAutoCancel(true);
+            }
             builder.setContentIntent(user.isAdmin() ? contentIntent : null);
             final Notification notif =
                     new Notification.BigTextStyle(builder).bigText(contentText).build();
@@ -603,10 +650,26 @@ public class NotificationMgr {
         Intent intent = new Intent(Intent.ACTION_MAIN);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                 Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-        // Use NetworkSetting to handle the selection intent
-        intent.setComponent(new ComponentName(
-                mContext.getString(R.string.network_operator_settings_package),
-                mContext.getString(R.string.network_operator_settings_class)));
+        IExtTelephony extTelephony =
+                IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+        try {
+            if (extTelephony != null &&
+                    extTelephony.isVendorApkAvailable("com.qualcomm.qti.networksetting")) {
+                // Use Vendor NetworkSetting to handle the selection intent
+                intent.setComponent(new ComponentName("com.qualcomm.qti.networksetting",
+                        "com.qualcomm.qti.networksetting.NetworkSetting"));
+            } else {
+                // Use aosp NetworkSetting to handle the selection intent
+                intent.setComponent(new ComponentName(
+                        mContext.getString(R.string.network_operator_settings_package),
+                        mContext.getString(R.string.network_operator_settings_class)));
+            }
+        } catch (RemoteException e) {
+            // Use aosp NetworkSetting to handle the selection intent
+            intent.setComponent(new ComponentName(
+                    mContext.getString(R.string.network_operator_settings_package),
+                    mContext.getString(R.string.network_operator_settings_class)));
+        }
         intent.putExtra(GsmUmtsOptions.EXTRA_SUB_ID, subId);
         PendingIntent contentIntent = PendingIntent.getActivity(mContext, 0, intent, 0);
 
@@ -663,7 +726,8 @@ public class NotificationMgr {
                         serviceState + " new network " + networkSelection);
 
                 if (serviceState == ServiceState.STATE_OUT_OF_SERVICE
-                        && !TextUtils.isEmpty(networkSelection)) {
+                        && !TextUtils.isEmpty(networkSelection)
+                        && isUiccCardProvisioned(subId)) {
                     showNetworkSelection(networkSelection, subId);
                     mSelectedUnavailableNotify = true;
                 } else {
@@ -691,4 +755,24 @@ public class NotificationMgr {
     private void log(String msg) {
         Log.d(LOG_TAG, msg);
     }
+
+    private boolean isUiccCardProvisioned(int subId) {
+        final int PROVISIONED = 1;
+        final int INVALID_STATE = -1;
+        int provisionStatus = INVALID_STATE;
+        IExtTelephony mExtTelephony = IExtTelephony.Stub
+                .asInterface(ServiceManager.getService("extphone"));
+        int slotId = SubscriptionController.getInstance().getSlotIndex(subId);
+        try {
+            //get current provision state of the SIM.
+            provisionStatus = mExtTelephony.getCurrentUiccCardProvisioningStatus(slotId);
+        } catch (RemoteException ex) {
+            provisionStatus = INVALID_STATE;
+            if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
+        } catch (NullPointerException ex) {
+            provisionStatus = INVALID_STATE;
+            if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
+        }
+        return provisionStatus == PROVISIONED;
+   }
 }

@@ -38,7 +38,8 @@ public class TelephonyConference extends Conference {
                 Connection.CAPABILITY_SUPPORT_HOLD |
                 Connection.CAPABILITY_HOLD |
                 Connection.CAPABILITY_MUTE |
-                Connection.CAPABILITY_MANAGE_CONFERENCE);
+                Connection.CAPABILITY_MANAGE_CONFERENCE |
+                Connection.CAPABILITY_CANNOT_DOWNGRADE_VIDEO_TO_AUDIO);
         setActive();
     }
 
@@ -88,6 +89,11 @@ public class TelephonyConference extends Conference {
         } catch (CallStateException e) {
             Log.e(this, e, "Exception thrown trying to separate a conference call");
         }
+    }
+
+    @Override
+    public void onAddParticipant(String participant) {
+        Log.e(this, new Exception(), "Add participant not supported for GSM conference call.");
     }
 
     @Override
