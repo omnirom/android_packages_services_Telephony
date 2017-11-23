@@ -1082,7 +1082,7 @@ public class ImsConference extends Conference {
             Phone phone = mConferenceHost.getPhone();
             if (phone != null) {
                 Context context = phone.getContext();
-                String displaySubId = null;
+                String displaySubId = "";
                 if (TelephonyManager.getDefault().getPhoneCount() > 1) {
                     final int phoneId = mConferenceHost.getPhone().getPhoneId();
                     SubscriptionInfo sub = SubscriptionManager.from(

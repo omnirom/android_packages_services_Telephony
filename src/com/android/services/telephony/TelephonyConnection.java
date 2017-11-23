@@ -2059,7 +2059,7 @@ abstract class TelephonyConnection extends Connection
             final int labelId = isIncoming
                     ? R.string.status_hint_label_incoming_wifi_call
                     : R.string.status_hint_label_wifi_call;
-            String displaySubId = null;
+            String displaySubId = "";
             if (TelephonyManager.getDefault().getPhoneCount() > 1) {
                 final int phoneId = getPhone().getPhoneId();
                 SubscriptionInfo sub = SubscriptionManager.from(getPhone().getContext())
