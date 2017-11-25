@@ -29,6 +29,9 @@ import android.preference.Preference;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 
@@ -73,7 +76,8 @@ public class AccountSelectionPreference extends ListPreference implements
             TelecomManager telecomManager,
             List<PhoneAccountHandle> accountsList,
             PhoneAccountHandle currentSelection,
-            CharSequence nullSelectionString) {
+            CharSequence nullSelectionString,
+            TelephonyManager telephonyManager) {
 
         mAccounts = accountsList.toArray(new PhoneAccountHandle[accountsList.size()]);
         mEntryValues = new String[mAccounts.length + 1];
@@ -86,8 +90,12 @@ public class AccountSelectionPreference extends ListPreference implements
         for ( ; i < mAccounts.length; i++) {
             PhoneAccount account = telecomManager.getPhoneAccount(mAccounts[i]);
             CharSequence label = account.getLabel();
-            if (label != null) {
-                label = pm.getUserBadgedLabel(label, mAccounts[i].getUserHandle());
+            int subId = telephonyManager.getSubIdForPhoneAccount(account);
+            if (subId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+                final SubscriptionInfo sir = SubscriptionManager.from(getContext()).getActiveSubscriptionInfo(subId);
+                if (sir != null) {
+                    label = getSubscriptionDisplayName(sir);
+                }
             }
             boolean isSimAccount =
                     account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION);
@@ -142,5 +150,15 @@ public class AccountSelectionPreference extends ListPreference implements
         mListener.onAccountSelectionDialogShow(this);
 
         super.onPrepareDialogBuilder(builder);
+    }
+
+    private String getSubscriptionDisplayName(SubscriptionInfo sir) {
+        return sir.getDisplayName() + " - " + getSubscriptionCarrierName(sir);
+    }
+
+    private String getSubscriptionCarrierName(SubscriptionInfo sir) {
+        CharSequence simCarrierName = sir.getCarrierName();
+        return !TextUtils.isEmpty(simCarrierName) ? simCarrierName.toString() :
+                getContext().getString(com.android.internal.R.string.unknownName);
     }
 }

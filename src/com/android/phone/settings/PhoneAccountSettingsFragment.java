@@ -285,7 +285,8 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
                 mTelecomManager,
                 getCallingAccounts(true /* includeSims */, false /* includeDisabled */),
                 mTelecomManager.getUserSelectedOutgoingPhoneAccount(),
-                getString(R.string.phone_accounts_ask_every_time));
+                getString(R.string.phone_accounts_ask_every_time),
+                mTelephonyManager);
     }
 
     private void initAccountList(List<PhoneAccountHandle> enabledAccounts) {
@@ -359,6 +360,7 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         for (PhoneAccount account : accounts) {
             PhoneAccountHandle handle = account.getAccountHandle();
             Intent intent = null;
+            SubscriptionInfo subInfo = null;
 
             // SIM phone accounts use a different setting intent and are thus handled differently.
             if (account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
@@ -367,7 +369,7 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
                 // if we are on a multi-SIM device. For single-SIM devices, the settings are
                 // more spread out so there is no good single place to take the user, so we don't.
                 if (isMultiSimDevice) {
-                    SubscriptionInfo subInfo = mSubscriptionManager.getActiveSubscriptionInfo(
+                    subInfo = mSubscriptionManager.getActiveSubscriptionInfo(
                             mTelephonyManager.getSubIdForPhoneAccount(account));
 
                     if (subInfo != null) {
@@ -383,6 +385,9 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
             // Create the preference & add the label
             Preference accountPreference = new Preference(getActivity());
             CharSequence accountLabel = account.getLabel();
+            if (subInfo != null) {
+                accountLabel = getSubscriptionDisplayName(subInfo);
+            }
             boolean isSimAccount =
                     account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION);
             accountPreference.setTitle((TextUtils.isEmpty(accountLabel) && isSimAccount)
@@ -495,5 +500,15 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         super.onDestroy();
         SubscriptionManager.from(getActivity()).removeOnSubscriptionsChangedListener(
                 mOnSubscriptionsChangeListener);
+    }
+
+    private String getSubscriptionDisplayName(SubscriptionInfo sir) {
+        return sir.getDisplayName() + " - " + getSubscriptionCarrierName(sir);
+    }
+
+    private String getSubscriptionCarrierName(SubscriptionInfo sir) {
+        CharSequence simCarrierName = sir.getCarrierName();
+        return !TextUtils.isEmpty(simCarrierName) ? simCarrierName.toString() :
+                getContext().getString(com.android.internal.R.string.unknownName);
     }
 }
