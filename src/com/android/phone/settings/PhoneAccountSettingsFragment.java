@@ -543,4 +543,14 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         SubscriptionManager.from(getActivity()).removeOnSubscriptionsChangedListener(
                 mOnSubscriptionsChangeListener);
     }
+
+    private String getSubscriptionDisplayName(SubscriptionInfo sir) {
+        return sir.getDisplayName() + " - " + getSubscriptionCarrierName(sir);
+    }
+
+    private String getSubscriptionCarrierName(SubscriptionInfo sir) {
+        CharSequence simCarrierName = sir.getCarrierName();
+        return !TextUtils.isEmpty(simCarrierName) ? simCarrierName.toString() :
+                getContext().getString(com.android.internal.R.string.unknownName);
+    }
 }
