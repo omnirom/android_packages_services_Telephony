@@ -21,13 +21,8 @@ import android.net.Uri;
 import android.telephony.mbms.FileInfo;
 import android.telephony.mbms.FileServiceInfo;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -67,7 +62,7 @@ public class FileServiceRepository {
     public List<FileServiceInfo> getFileServicesForClasses(
             List<String> serviceClasses) {
         return mIdToServiceInfo.values().stream()
-                .filter((info) -> serviceClasses.contains(info.getClassName()))
+                .filter((info) -> serviceClasses.contains(info.getServiceClassName()))
                 .collect(Collectors.toList());
     }
 
@@ -119,23 +114,6 @@ public class FileServiceRepository {
             return null;
         }
 
-        InputStream fileIn = mContext.getResources().openRawResource(mFileUriToResource.get(uri));
-        int fileSize;
-        byte[] buffer;
-        byte[] md5Sum;
-        try {
-            fileSize = fileIn.available();
-            buffer = new byte[fileIn.available()];
-            fileIn.read(buffer);
-        } catch (IOException e) {
-            // ignore and just return null
-            return null;
-        }
-        try {
-            md5Sum = MessageDigest.getInstance("MD5").digest(buffer);
-        } catch (NoSuchAlgorithmException e) {
-            return null;
-        }
-        return new FileInfo(uri, "application/octet-stream", fileSize, md5Sum);
+        return new FileInfo(uri, "application/octet-stream");
     }
 }

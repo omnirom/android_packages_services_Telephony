@@ -174,6 +174,7 @@
     <string name="preferred_network_mode_title" msgid="2336624679902659306">"ప్రాధాన్య నెట్‌వర్క్ రకం"</string>
     <string name="preferred_network_mode_summary" msgid="1434820673166126609">"నెట్‌వర్క్ ఆపరేటింగ్ మోడ్‌ను మార్చండి"</string>
     <string name="preferred_network_mode_dialogtitle" msgid="4048082093347807230">"ప్రాధాన్య నెట్‌వర్క్ రకం"</string>
+    <string name="forbidden_network" msgid="4384929668343563440">"(నిషేధించబడింది)"</string>
     <string name="preferred_network_mode_wcdma_perf_summary" msgid="8521677230113533809">"ప్రాధాన్య నెట్‌వర్క్ మోడ్: WCDMAకు ప్రాధాన్యత"</string>
     <string name="preferred_network_mode_gsm_only_summary" msgid="3352445413437453511">"ప్రాధాన్య నెట్‌వర్క్ మోడ్: GSM మాత్రమే"</string>
     <string name="preferred_network_mode_wcdma_only_summary" msgid="2836897236221063413">"ప్రాధాన్య నెట్‌వర్క్ మోడ్: WCDMA మాత్రమే"</string>
@@ -227,7 +228,7 @@
     <string name="keywords_carrier_settings_euicc" msgid="783429609643157743">"క్యారియర్, esim, sim, euicc"</string>
     <string name="carrier_settings_euicc_summary" msgid="5115001942761995457">"<xliff:g id="CARRIER_NAME">%1$s</xliff:g> — <xliff:g id="PHONE_NUMBER">%2$s</xliff:g>"</string>
     <string name="mobile_data_settings_title" msgid="4661165467914727157">"మొబైల్ డేటా"</string>
-    <string name="mobile_data_settings_summary" msgid="5087255915840576895">"మొబైల్ నెట్‌వర్క్‌ను ఉపయోగించి డేటాను ప్రాప్యత చేయండి"</string>
+    <string name="mobile_data_settings_summary" msgid="5087255915840576895">"మొబైల్ నెట్‌వర్క్‌ను ఉపయోగించి డేటాను యాక్సెస్ చేయండి"</string>
     <string name="data_usage_disable_mobile" msgid="3577275288809667615">"మొబైల్ డేటాని ఆఫ్ చేయాలా?"</string>
     <string name="sim_selection_required_pref" msgid="7049424902961844236">"ఎంపిక అవసరం"</string>
     <string name="sim_change_data_title" msgid="5332425991853799280">"డేటా SIMని మార్చాలా?"</string>
