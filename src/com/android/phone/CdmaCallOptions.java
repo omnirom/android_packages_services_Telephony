@@ -203,7 +203,9 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
             PreferenceScreen prefCW = (PreferenceScreen)
                 prefScreen.findPreference("button_cw_key");
 
-            if (phone.isUtEnabled()) {
+            ImsManager imsMgr = ImsManager.getInstance(this, phone.getPhoneId());
+            Boolean isEnhanced4G = imsMgr.isEnhanced4gLteModeSettingEnabledByUserForSlot();
+            if (phone.isUtEnabled() && isEnhanced4G) {
                 prefScreen.removePreference(prefCW);
                 mCWButton.init(this, false, phone);
             } else {
