@@ -206,6 +206,9 @@
     <uses-permission android:name="android.permission.BIND_TELEPHONY_DATA_SERVICE" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
 
+    <!-- Needed for some qti-telephony-common jars  -->
+    <uses-permission android:name="android.permission.OVERRIDE_WIFI_CONFIG" />
+
     <application android:name="PhoneApp"
             android:persistent="true"
             android:label="@string/phoneAppLabel"
