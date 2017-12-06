@@ -182,6 +182,9 @@
     <uses-permission android:name="android.permission.MANAGE_NETWORK_POLICY" />
     <uses-permission android:name="android.permission.READ_NETWORK_USAGE_HISTORY" />
 
+    <!-- Needed for some qti-telephony-common jars  -->
+    <uses-permission android:name="android.permission.OVERRIDE_WIFI_CONFIG" />
+
     <application android:name="PhoneApp"
             android:persistent="true"
             android:label="@string/phoneAppLabel"
