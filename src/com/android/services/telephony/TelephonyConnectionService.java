@@ -432,8 +432,12 @@ public class TelephonyConnectionService extends ConnectionService {
                             // Notify Telecom of the new Connection type.
                             // TODO: Switch out the underlying connection instead of creating a new
                             // one and causing UI Jank.
-                            addExistingConnection(PhoneUtils.makePstnPhoneAccountHandle(phone),
-                                    repConnection);
+                            PhoneAccountHandle repAccountHandle =
+                                    PhoneUtils.makePstnPhoneAccountHandle(phone);
+                            if (!isValidPhoneAccountHandle(repAccountHandle)) {
+                                repAccountHandle = request.getAccountHandle();
+                            }
+                            addExistingConnection(repAccountHandle, repConnection);
                             // Remove the old connection from Telecom after.
                             emergencyConnection.setDisconnected(
                                     DisconnectCauseUtil.toTelecomDisconnectCause(
@@ -482,6 +486,11 @@ public class TelephonyConnectionService extends ConnectionService {
             }
             return resultConnection;
         }
+    }
+
+    private boolean isValidPhoneAccountHandle(PhoneAccountHandle phoneAccountHandle) {
+        return phoneAccountHandle != null && !TextUtils.isEmpty(phoneAccountHandle.getId())
+                && !phoneAccountHandle.getId().equals("null");
     }
 
     /**

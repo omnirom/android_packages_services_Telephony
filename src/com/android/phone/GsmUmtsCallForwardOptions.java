@@ -157,14 +157,11 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
             boolean isDataRoaming = mPhone.getServiceState().getDataRoaming();
             boolean isDataRoamingEnabled = mPhone.getDataRoamingEnabled();
             boolean promptForDataRoaming = isDataRoaming && !isDataRoamingEnabled;
-            boolean dualLTECapability = this.getResources().getBoolean(
-                    com.android.internal.R.bool.config_dual_LTE_capability);
             Log.d(LOG_TAG, "activeNetworkType = " + getActiveNetworkType() + ", sub = " + sub +
                     ", defaultDataSub = " + defaultDataSub + ", isDataRoaming = " +
-                    isDataRoaming + ", isDataRoamingEnabled= " + isDataRoamingEnabled +
-                    " dualLTECapability: " + dualLTECapability);
+                    isDataRoaming + ", isDataRoamingEnabled= " + isDataRoamingEnabled);
             if (sub != defaultDataSub) {
-                if (dualLTECapability) {
+                if (mPhone.isUtEnabled()) {
                     Log.d(LOG_TAG, "Show data in use indication if data sub is not on current sub");
                     showDataInuseToast();
                     initCallforwarding();
@@ -270,7 +267,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
     private void showDataInuseToast() {
         String message = (String)this.getResources()
                 .getText(R.string.mobile_data_alert);
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
 
     private void showSwitchDdsDialog(int slotId) {
