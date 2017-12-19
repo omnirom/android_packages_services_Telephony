@@ -178,6 +178,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private static final int CMD_HANDLE_USSD_REQUEST = 47;
     private static final int CMD_GET_FORBIDDEN_PLMNS = 48;
     private static final int EVENT_GET_FORBIDDEN_PLMNS_DONE = 49;
+    private static final int CMD_SIM_GET_ATR = 50;
+    private static final int EVENT_SIM_GET_ATR_DONE = 51;
 
     /** The singleton instance. */
     private static PhoneInterfaceManager sInstance;
@@ -367,6 +369,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     request = (MainThreadRequest) msg.obj;
                     int answer_subId = request.subId;
                     answerRingingCallInternal(answer_subId);
+                    request.result = ""; // dummy result for notifying the waiting thread
+                    // Wake up the requesting thread
+                    synchronized (request) {
+                        request.notifyAll();
+                    }
                     break;
 
                 case CMD_END_CALL:
@@ -568,16 +575,22 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     ar = (AsyncResult) msg.obj;
                     request = (MainThreadRequest) ar.userObj;
                     IccOpenLogicalChannelResponse openChannelResp;
-                    if (ar.exception == null && ar.result != null) {
+                    int channelId = IccOpenLogicalChannelResponse.INVALID_CHANNEL;
+                    byte[] selectResponse = null;
+
+                    if (ar.result != null) {
                         int[] result = (int[]) ar.result;
-                        int channelId = result[0];
-                        byte[] selectResponse = null;
+                        channelId = result[0];
                         if (result.length > 1) {
                             selectResponse = new byte[result.length - 1];
                             for (int i = 1; i < result.length; ++i) {
                                 selectResponse[i - 1] = (byte) result[i];
                             }
                         }
+                    }
+
+                    if (ar.exception == null && ar.result != null) {
+                        Log.d(LOG_TAG, "iccOpenLogicalChannel: success response " + channelId);
                         openChannelResp = new IccOpenLogicalChannelResponse(channelId,
                             IccOpenLogicalChannelResponse.STATUS_NO_ERROR, selectResponse);
                     } else {
@@ -599,7 +612,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                             }
                         }
                         openChannelResp = new IccOpenLogicalChannelResponse(
-                            IccOpenLogicalChannelResponse.INVALID_CHANNEL, errorCode, null);
+                            channelId, errorCode, selectResponse);
                     }
                     request.result = openChannelResp;
                     synchronized (request) {
@@ -953,6 +966,42 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     onCompleted = obtainMessage(EVENT_GET_FORBIDDEN_PLMNS_DONE, request);
                     ((SIMRecords) uiccApp.getIccRecords()).getForbiddenPlmns(
                               onCompleted);
+                    break;
+
+                case CMD_SIM_GET_ATR:
+                    request = (MainThreadRequest) msg.obj;
+                    uiccCard = getUiccCardFromRequest(request);
+                    if (uiccCard == null) {
+                        loge("getAtr: No UICC");
+                        request.result = "";
+                         synchronized (request) {
+                            request.notifyAll();
+                        }
+                    } else {
+                        onCompleted = obtainMessage(EVENT_SIM_GET_ATR_DONE, request);
+                        uiccCard.getAtr(onCompleted);
+                    }
+                    break;
+
+                case EVENT_SIM_GET_ATR_DONE:
+                    ar = (AsyncResult) msg.obj;
+                    request = (MainThreadRequest) ar.userObj;
+                    if (ar.exception == null) {
+                        request.result = ar.result;
+                    } else {
+                        request.result = "";
+                        if (ar.result == null) {
+                            loge("ccExchangeSimIO: Empty Response");
+                        } else if (ar.exception instanceof CommandException) {
+                            loge("iccTransmitApduBasicChannel: CommandException: " +
+                                    ar.exception);
+                        } else {
+                            loge("iccTransmitApduBasicChannel: Unknown exception");
+                        }
+                    }
+                    synchronized (request) {
+                        request.notifyAll();
+                    }
                     break;
 
                 default:
@@ -1315,7 +1364,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     public int[] supplyPinReportResultForSubscriber(int subId, String pin) {
         enforceModifyPermission();
-        final UnlockSim checkSimPin = new UnlockSim(getPhone(subId).getIccCard());
+        Phone phone = getPhone(subId);
+        if (phone == null) return returnErrorForPinPukOperation();
+        final UnlockSim checkSimPin = new UnlockSim(phone.getIccCard());
         checkSimPin.start();
         return checkSimPin.unlockSim(null, pin);
     }
@@ -1327,9 +1378,20 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     public int[] supplyPukReportResultForSubscriber(int subId, String puk, String pin) {
         enforceModifyPermission();
-        final UnlockSim checkSimPuk = new UnlockSim(getPhone(subId).getIccCard());
+        Phone phone = getPhone(subId);
+        if (phone == null) return returnErrorForPinPukOperation();
+        final UnlockSim checkSimPuk = new UnlockSim(phone.getIccCard());
         checkSimPuk.start();
         return checkSimPuk.unlockSim(puk, pin);
+    }
+
+    private int[] returnErrorForPinPukOperation() {
+        int[] resultArray = new int[2];
+        resultArray[0] = PhoneConstants.PIN_GENERAL_FAILURE;
+        //This field is for attempts remaining, anything < 0 is considered
+        //as invalid. This is returned in case of actual PIN FAILURE from UIM.
+        resultArray[1] = -1;
+        return resultArray;
     }
 
     /**
@@ -2177,7 +2239,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public int getNetworkType() {
-        final Phone phone = getPhone(getDefaultSubscription());
+        final Phone phone = getPhone(mSubscriptionController.getDefaultDataSubId());
         if (phone != null) {
             return phone.getServiceState().getDataNetworkType();
         } else {
@@ -2207,7 +2269,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public int getDataNetworkType(String callingPackage) {
-        return getDataNetworkTypeForSubscriber(getDefaultSubscription(), callingPackage);
+        return getDataNetworkTypeForSubscriber(mSubscriptionController.getDefaultDataSubId(),
+                callingPackage);
     }
 
     /**
@@ -3869,6 +3932,26 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
     }
 
+    public byte[] getAtr() {
+        return getAtrUsingSubId(getDefaultSubscription());
+    }
+
+    @Override
+    public byte[] getAtrUsingSubId(int subId) {
+        if (Binder.getCallingUid() != Process.NFC_UID) {
+            throw new SecurityException("Only Smartcard API may access UICC");
+        }
+        Log.d(LOG_TAG, "SIM_GET_ATR ");
+        String response = (String)sendRequest(CMD_SIM_GET_ATR, null, subId);
+        if (response != null && response.length() != 0) {
+            try{
+                return IccUtils.hexStringToBytes(response);
+            } catch(RuntimeException re) {
+                Log.e(LOG_TAG, "Invalid format of the response string");
+            }
+        }
+        return null;
+    }
     /**
      * Get the current signal strength information for the given subscription.
      * Because this information is not updated when the device is in a low power state

@@ -19,7 +19,11 @@ package com.android.services.telephony;
 import android.content.Context;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
+import android.os.AsyncResult;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.os.PersistableBundle;
 import android.telecom.Conference;
 import android.telecom.ConferenceParticipant;
@@ -33,6 +37,9 @@ import android.telecom.VideoProfile;
 import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneNumberUtils;
 import android.util.Pair;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
+import android.telephony.SubscriptionInfo;
 
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallStateException;
@@ -223,6 +230,8 @@ public class ImsConference extends Conference {
 
     private TelecomAccountRegistry mTelecomAccountRegistry;
 
+    private static final int DEFAULT_PHONE_ID = 0;
+
     /**
      * The known conference participant connections.  The HashMap is keyed by a Pair containing
      * the handle and endpoint Uris.
@@ -239,6 +248,70 @@ public class ImsConference extends Conference {
      * will cause duplicate participant info to be added.
      */
     private final Object mUpdateSyncRoot = new Object();
+
+    private static final int EVENT_REQUEST_ADD_PARTICIPANTS = 1;
+    private static final int EVENT_ADD_PARTICIPANTS_DONE = 2;
+    private static final String PARTICIPANTS_LIST_SEPARATOR = ";";
+    // Pending participants to invite to conference
+    private ArrayList<String> mPendingParticipantsList = new ArrayList<String>(0);
+
+    private Handler mHandler = new Handler(Looper.getMainLooper()) {
+        @Override public void handleMessage (Message msg) {
+            AsyncResult ar;
+            Log.i(this, "handleMessage what=" + msg.what);
+            switch (msg.what) {
+                case EVENT_REQUEST_ADD_PARTICIPANTS:
+                    if (msg.obj instanceof String) {
+                        processAddParticipantsList((String)msg.obj);
+                    }
+                    break;
+                case EVENT_ADD_PARTICIPANTS_DONE:
+                    ar = (AsyncResult)msg.obj;
+                    processAddParticipantResponse((ar.exception == null));
+                    break;
+            }
+        }
+    };
+
+    private void processAddParticipantsList(String dialString) {
+        boolean initAdding = false;
+        String[] participantsArr = dialString.split(PARTICIPANTS_LIST_SEPARATOR);
+        int numOfParticipants = ((participantsArr == null) ? 0 : participantsArr.length);
+        Log.d(this,"processAddParticipantsList: no of particpants = " + numOfParticipants
+                + " pending = " + mPendingParticipantsList.size());
+        if (numOfParticipants > 0) {
+            if (mPendingParticipantsList.size() == 0) {
+                //directly add participant if no pending participants.
+                initAdding = true;
+            }
+            for (String participant: participantsArr) {
+                mPendingParticipantsList.add(participant);
+            }
+            if (initAdding) {
+                processNextParticipant();
+            }
+        }
+    }
+
+    private void processNextParticipant() {
+        if (mPendingParticipantsList.size() > 0) {
+            if (addParticipantInternal(mPendingParticipantsList.get(0))) {
+                Log.d(this,"processNextParticipant: sent request");
+            } else {
+                Log.d(this,"processNextParticipant: failed. Clear pending list.");
+                mPendingParticipantsList.clear();
+            }
+        }
+    }
+
+    private void processAddParticipantResponse(boolean success) {
+        Log.d(this,"processAddParticipantResponse: success = " + success + " pending = " +
+                (mPendingParticipantsList.size() - 1));
+        if (mPendingParticipantsList.size() > 0) {
+            mPendingParticipantsList.remove(0);
+            processNextParticipant();
+        }
+    }
 
     public void updateConferenceParticipantsAfterCreation() {
         if (mConferenceHost != null) {
@@ -280,7 +353,8 @@ public class ImsConference extends Conference {
         setConferenceHost(conferenceHost);
 
         int capabilities = Connection.CAPABILITY_MUTE |
-                Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN;
+                Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN |
+                Connection.CAPABILITY_ADD_PARTICIPANT;
         if (canHoldImsCalls()) {
             capabilities |= Connection.CAPABILITY_SUPPORT_HOLD | Connection.CAPABILITY_HOLD;
         }
@@ -449,6 +523,35 @@ public class ImsConference extends Conference {
         } catch (CallStateException e) {
             Log.e(this, e, "Exception thrown trying to merge call into a conference");
         }
+    }
+
+    /**
+     * Invoked when the conference adds a participant to the conference call.
+     *
+     * @param participant The participant to be added with conference call.
+     */
+    @Override
+    public void onAddParticipant(String participant) {
+        if (participant == null || participant.isEmpty()) {
+            return;
+        }
+        mHandler.sendMessage(mHandler.obtainMessage(EVENT_REQUEST_ADD_PARTICIPANTS, participant));
+    }
+
+    private boolean addParticipantInternal(String participant) {
+        try {
+            Phone phone = (mConferenceHost != null) ? mConferenceHost.getPhone() : null;
+            Log.d(this, "onAddParticipant mConferenceHost = " + mConferenceHost
+                    + " Phone = " + phone);
+            if (phone != null) {
+                phone.addParticipant(participant,
+                        mHandler.obtainMessage(EVENT_ADD_PARTICIPANTS_DONE));
+                return true;
+            }
+        } catch (CallStateException e) {
+            Log.e(this, e, "Exception thrown trying to add a participant into conference");
+        }
+        return false;
     }
 
     /**
@@ -657,7 +760,18 @@ public class ImsConference extends Conference {
                 if (!mConferenceParticipantConnections.containsKey(userEntity)) {
                     // Some carriers will also include the conference host in the CEP.  We will
                     // filter that out here.
-                    if (!isParticipantHost(mConferenceHostAddress, participant.getHandle())) {
+                    // Also make sure the parent connection is not null.
+                    boolean disableFilter = false;
+                    Phone phone = parent.getPhone();
+                    if (phone != null) {
+                        Context context = phone.getContext();
+                        final int subId = phone.getSubId();
+                        disableFilter = SubscriptionManager.getResourcesForSubId(context, subId)
+                                .getBoolean(R.bool.disable_filter_out_conference_host);
+                    }
+                    if ((!isParticipantHost(mConferenceHostAddress, participant.getHandle())
+                            || disableFilter) && (parent.getOriginalConnection() != null)) {
+                        Log.i(this, "Create participant connection, participant = %s", participant);
                         createConferenceParticipantConnection(parent, participant);
                         newParticipants.add(participant);
                         newParticipantsAdded = true;
@@ -886,12 +1000,9 @@ public class ImsConference extends Conference {
                         mConferenceHost.isOutgoingCall());
                 // This is a newly created conference connection as a result of SRVCC
                 c.setConferenceSupported(true);
-                c.addCapability(Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN);
-                c.setConnectionProperties(
-                        c.getConnectionProperties() | Connection.PROPERTY_IS_DOWNGRADED_CONFERENCE);
                 c.updateState();
                 // Copy the connect time from the conferenceHost
-                c.setConnectTimeMillis(mConferenceHost.getConnectTimeMillis());
+                c.setConnectTimeMillis(originalConnection.getConnectTime());
                 mTelephonyConnectionService.addExistingConnection(phoneAccountHandle, c);
                 mTelephonyConnectionService.addConnectionToConferenceController(c);
             } // CDMA case not applicable for SRVCC
@@ -928,8 +1039,15 @@ public class ImsConference extends Conference {
                 if (mConferenceHost == null) {
                     disconnectCause = new DisconnectCause(DisconnectCause.CANCELED);
                 } else {
-                    disconnectCause = DisconnectCauseUtil.toTelecomDisconnectCause(
-                            mConferenceHost.getOriginalConnection().getDisconnectCause());
+                    if (mConferenceHost.getPhone() != null) {
+                        disconnectCause = DisconnectCauseUtil.toTelecomDisconnectCause(
+                                mConferenceHost.getOriginalConnection().getDisconnectCause(),
+                                mConferenceHost.getPhone().getPhoneId());
+                    } else {
+                        disconnectCause = DisconnectCauseUtil.toTelecomDisconnectCause(
+                                mConferenceHost.getOriginalConnection().getDisconnectCause(),
+                                DEFAULT_PHONE_ID);
+                    }
                 }
                 setDisconnected(disconnectCause);
                 disconnectConferenceParticipants();
@@ -964,8 +1082,19 @@ public class ImsConference extends Conference {
             Phone phone = mConferenceHost.getPhone();
             if (phone != null) {
                 Context context = phone.getContext();
+                String displaySubId = "";
+                if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+                    final int phoneId = mConferenceHost.getPhone().getPhoneId();
+                    SubscriptionInfo sub = SubscriptionManager.from(
+                            mConferenceHost.getPhone().getContext())
+                        .getActiveSubscriptionInfoForSimSlotIndex(phoneId);
+                    if (sub != null) {
+                        displaySubId = sub.getDisplayName().toString();
+                        displaySubId  = " " + displaySubId;
+                    }
+                }
                 setStatusHints(new StatusHints(
-                        context.getString(R.string.status_hint_label_wifi_call),
+                        context.getString(R.string.status_hint_label_wifi_call) + displaySubId,
                         Icon.createWithResource(
                                 context.getResources(),
                                 R.drawable.ic_signal_wifi_4_bar_24dp),

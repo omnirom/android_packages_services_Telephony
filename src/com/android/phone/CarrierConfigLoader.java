@@ -45,6 +45,7 @@ import android.service.carrier.ICarrierService;
 import android.telephony.CarrierConfigManager;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.internal.telephony.ICarrierConfigLoader;
@@ -135,6 +136,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     // SharedPreferences key for last known build fingerprint.
     private static final String KEY_FINGERPRINT = "build_fingerprint";
 
+    private static final String KEY_OPERATOR = "operator_number";
+
     // Handler to process various events.
     //
     // For each phoneId, the event sequence should be:
@@ -162,6 +165,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
             String carrierPackageName;
             CarrierServiceConnection conn;
             PersistableBundle config;
+            String operatorNumeric;
             switch (msg.what) {
                 case EVENT_CLEAR_CONFIG:
 
@@ -208,19 +212,26 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
 
                 case EVENT_FETCH_DEFAULT:
                     iccid = getIccIdForPhoneId(phoneId);
-                    config = restoreConfigFromXml(mPlatformCarrierConfigPackage, iccid);
+                    operatorNumeric = TelephonyManager.from(mContext)
+                            .getSimOperatorNumericForPhone(phoneId);
+                    config = restoreConfigFromXml(mPlatformCarrierConfigPackage, iccid,
+                            operatorNumeric);
                     if (config != null) {
-                        log("Loaded config from XML. package=" + mPlatformCarrierConfigPackage
-                                + " phoneId=" + phoneId);
+                        log(
+                                "Loaded config from XML. package="
+                                        + mPlatformCarrierConfigPackage
+                                        + " phoneId="
+                                        + phoneId
+                                        + " operator=" + operatorNumeric);
                         mConfigFromDefaultApp[phoneId] = config;
                         Message newMsg = obtainMessage(EVENT_LOADED_FROM_DEFAULT, phoneId, -1);
                         newMsg.getData().putBoolean("loaded_from_xml", true);
                         mHandler.sendMessage(newMsg);
                     } else {
-                        if (bindToConfigPackage(mPlatformCarrierConfigPackage,
-                                phoneId, EVENT_CONNECTED_TO_DEFAULT)) {
-                            sendMessageDelayed(obtainMessage(EVENT_BIND_DEFAULT_TIMEOUT, phoneId, -1),
-                                    BIND_TIMEOUT_MILLIS);
+                        if (bindToConfigPackage(mPlatformCarrierConfigPackage, phoneId,
+                                    EVENT_CONNECTED_TO_DEFAULT, operatorNumeric)) {
+                        sendMessageDelayed(obtainMessage(EVENT_BIND_DEFAULT_TIMEOUT, phoneId, -1),
+                                BIND_TIMEOUT_MILLIS);
                         } else {
                             // Send bcast if bind fails
                             broadcastConfigChangedIntent(phoneId);
@@ -230,6 +241,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
 
                 case EVENT_CONNECTED_TO_DEFAULT:
                     removeMessages(EVENT_BIND_DEFAULT_TIMEOUT);
+                    operatorNumeric = msg.getData().getString(KEY_OPERATOR, "");
                     carrierId = getCarrierIdForPhoneId(phoneId);
                     conn = (CarrierServiceConnection) msg.obj;
                     // If new service connection has been created, unbind.
@@ -242,7 +254,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                                 .asInterface(conn.service);
                         config = carrierService.getCarrierConfig(carrierId);
                         iccid = getIccIdForPhoneId(phoneId);
-                        saveConfigToXml(mPlatformCarrierConfigPackage, iccid, config);
+                        saveConfigToXml(mPlatformCarrierConfigPackage, iccid, operatorNumeric,
+                                config);
                         mConfigFromDefaultApp[phoneId] = config;
                         sendMessage(obtainMessage(EVENT_LOADED_FROM_DEFAULT, phoneId, -1));
                     } catch (Exception ex) {
@@ -261,14 +274,18 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                 case EVENT_LOADED_FROM_DEFAULT:
                     // If we attempted to bind to the app, but the service connection is null, then
                     // config was cleared while we were waiting and we should not continue.
+                    operatorNumeric = msg.getData().getString(KEY_OPERATOR, "");
                     if (!msg.getData().getBoolean("loaded_from_xml", false)
                             && mServiceConnection[phoneId] == null) {
                         break;
                     }
                     carrierPackageName = getCarrierPackageForPhoneId(phoneId);
                     if (carrierPackageName != null) {
-                        log("Found carrier config app: " + carrierPackageName);
-                        sendMessage(obtainMessage(EVENT_FETCH_CARRIER, phoneId));
+                        log("Found carrier config app: " + carrierPackageName + " operator: "
+                                + operatorNumeric);
+                        Message newMsg = obtainMessage(EVENT_FETCH_CARRIER, phoneId);
+                        newMsg.getData().putString(KEY_OPERATOR, operatorNumeric);
+                        sendMessage(newMsg);
                     } else {
                         broadcastConfigChangedIntent(phoneId);
                     }
@@ -277,18 +294,24 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                 case EVENT_FETCH_CARRIER:
                     carrierPackageName = getCarrierPackageForPhoneId(phoneId);
                     iccid = getIccIdForPhoneId(phoneId);
-                    config = restoreConfigFromXml(carrierPackageName, iccid);
+                    operatorNumeric = msg.getData().getString(KEY_OPERATOR, "");
+                    config =
+                            restoreConfigFromXml(carrierPackageName, iccid, operatorNumeric);
                     if (config != null) {
-                        log("Loaded config from XML. package=" + carrierPackageName + " phoneId="
-                                + phoneId);
+                        log(
+                                "Loaded config from XML. package="
+                                        + carrierPackageName
+                                        + " phoneId="
+                                        + phoneId
+                                        + " operator=" + operatorNumeric);
                         mConfigFromCarrierApp[phoneId] = config;
                         Message newMsg = obtainMessage(EVENT_LOADED_FROM_CARRIER, phoneId, -1);
                         newMsg.getData().putBoolean("loaded_from_xml", true);
                         sendMessage(newMsg);
                     } else {
                         if (carrierPackageName != null
-                            && bindToConfigPackage(carrierPackageName, phoneId,
-                                    EVENT_CONNECTED_TO_CARRIER)) {
+                                && bindToConfigPackage(carrierPackageName, phoneId,
+                                        EVENT_CONNECTED_TO_CARRIER, operatorNumeric)) {
                             sendMessageDelayed(obtainMessage(EVENT_BIND_CARRIER_TIMEOUT, phoneId, -1),
                                     BIND_TIMEOUT_MILLIS);
                         } else {
@@ -300,6 +323,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
 
                 case EVENT_CONNECTED_TO_CARRIER:
                     removeMessages(EVENT_BIND_CARRIER_TIMEOUT);
+                    operatorNumeric = msg.getData().getString(KEY_OPERATOR, "");
                     carrierId = getCarrierIdForPhoneId(phoneId);
                     conn = (CarrierServiceConnection) msg.obj;
                     // If new service connection has been created, unbind.
@@ -314,7 +338,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                         config = carrierService.getCarrierConfig(carrierId);
                         carrierPackageName = getCarrierPackageForPhoneId(phoneId);
                         iccid = getIccIdForPhoneId(phoneId);
-                        saveConfigToXml(carrierPackageName, iccid, config);
+                        saveConfigToXml(carrierPackageName, iccid, operatorNumeric, config);
                         mConfigFromCarrierApp[phoneId] = config;
                         sendMessage(obtainMessage(EVENT_LOADED_FROM_CARRIER, phoneId, -1));
                     } catch (Exception ex) {
@@ -415,11 +439,12 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     }
 
     /** Binds to the default or carrier config app. */
-    private boolean bindToConfigPackage(String pkgName, int phoneId, int eventId) {
+    private boolean bindToConfigPackage(String pkgName, int phoneId, int eventId,
+            String operatorNumeric) {
         log("Binding to " + pkgName + " for phone " + phoneId);
         Intent carrierService = new Intent(CarrierService.CARRIER_SERVICE_INTERFACE);
         carrierService.setPackage(pkgName);
-        mServiceConnection[phoneId] = new CarrierServiceConnection(phoneId, eventId);
+        mServiceConnection[phoneId] = new CarrierServiceConnection(phoneId, eventId, operatorNumeric);
         try {
             return mContext.bindService(carrierService, mServiceConnection[phoneId],
                     Context.BIND_AUTO_CREATE);
@@ -487,7 +512,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
      * @param iccid the ICCID of the subscription for which this bundle was fetched.
      * @param config the bundle to be written. Null will be treated as an empty bundle.
      */
-    private void saveConfigToXml(String packageName, String iccid, PersistableBundle config) {
+    private void saveConfigToXml(String packageName, String iccid, String operator,
+            PersistableBundle config) {
         if (packageName == null || iccid == null) {
             loge("Cannot save config with null packageName or iccid.");
             return;
@@ -505,6 +531,9 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         if (version == null) {
             loge("Failed to get package version for: " + packageName);
             return;
+        }
+        if (!TextUtils.isEmpty(operator)) {
+            iccid += "-" + operator;
         }
 
         FileOutputStream outFile = null;
@@ -548,7 +577,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
      * @return the bundle from the XML file. Returns null if there is no saved config, the saved
      *         version does not match, or reading config fails.
      */
-    private PersistableBundle restoreConfigFromXml(String packageName, String iccid) {
+    private PersistableBundle restoreConfigFromXml(String packageName, String iccid,
+            String operator) {
         final String version = getPackageVersion(packageName);
         if (version == null) {
             loge("Failed to get package version for: " + packageName);
@@ -557,6 +587,9 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         if (packageName == null || iccid == null) {
             loge("Cannot restore config with null packageName or iccid.");
             return null;
+        }
+        if (!TextUtils.isEmpty(operator)) {
+            iccid += "-" + operator;
         }
 
         PersistableBundle restoredBundle = null;
@@ -783,18 +816,22 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     private class CarrierServiceConnection implements ServiceConnection {
         int phoneId;
         int eventId;
+        String operatorNumeric;
         IBinder service;
 
-        public CarrierServiceConnection(int phoneId, int eventId) {
+        public CarrierServiceConnection(int phoneId, int eventId, String operatorNumeric) {
             this.phoneId = phoneId;
             this.eventId = eventId;
+            this.operatorNumeric = operatorNumeric;
         }
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             log("Connected to config app: " + name.flattenToString());
             this.service = service;
-            mHandler.sendMessage(mHandler.obtainMessage(eventId, phoneId, -1, this));
+            Message msg = mHandler.obtainMessage(eventId, phoneId, -1, this);
+            msg.getData().putString(KEY_OPERATOR, operatorNumeric);
+            mHandler.sendMessage(msg);
         }
 
         @Override

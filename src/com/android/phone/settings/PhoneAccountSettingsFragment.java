@@ -18,6 +18,7 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
+import android.telephony.SubscriptionManager.OnSubscriptionsChangedListener;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -45,6 +46,8 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
 
     private static final String DEFAULT_OUTGOING_ACCOUNT_KEY = "default_outgoing_account";
     private static final String ALL_CALLING_ACCOUNTS_KEY = "phone_account_all_calling_accounts";
+
+    private static final String BUTTON_SMART_DIVERT_KEY = "button_smart_divert";
 
     private static final String SIP_SETTINGS_CATEGORY_PREF_KEY =
             "phone_accounts_sip_settings_category_key";
@@ -151,6 +154,16 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
             getPreferenceScreen().removePreference(mAccountList);
         }
 
+        if (TelephonyManager.getDefault().getMultiSimConfiguration() !=
+                 TelephonyManager.MultiSimVariants.DSDS) {
+            Preference mSmartDivertPref = getPreferenceScreen()
+                .findPreference(BUTTON_SMART_DIVERT_KEY);
+            if (mSmartDivertPref != null) {
+                Log.d(LOG_TAG, "Remove smart divert preference: ");
+                getPreferenceScreen().removePreference(mSmartDivertPref);
+            }
+        }
+
         if (isPrimaryUser() && SipUtil.isVoipSupported(getActivity())) {
             mSipPreferences = new SipPreferences(getActivity());
 
@@ -183,6 +196,9 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
             getPreferenceScreen().removePreference(
                     getPreferenceScreen().findPreference(SIP_SETTINGS_CATEGORY_PREF_KEY));
         }
+
+        SubscriptionManager.from(getActivity()).addOnSubscriptionsChangedListener(
+                mOnSubscriptionsChangeListener);
     }
 
     /**
@@ -211,6 +227,19 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         }
         return false;
     }
+
+    private final SubscriptionManager.OnSubscriptionsChangedListener mOnSubscriptionsChangeListener
+            = new SubscriptionManager.OnSubscriptionsChangedListener() {
+        @Override
+        public void onSubscriptionsChanged() {
+            // clean the ineffective accounts in the entire section at all
+            List<PhoneAccountHandle> ineffectiveAccounts =
+                    getCallingAccounts(false /* includeSims */, false /* includeDisabled */);
+            if (ineffectiveAccounts != null) {
+                initAccountList(ineffectiveAccounts);
+            }
+        }
+    };
 
     /**
      * Handles a phone account selection for the default outgoing phone account.
@@ -471,5 +500,12 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         final UserManager userManager = (UserManager) getActivity()
                 .getSystemService(Context.USER_SERVICE);
         return userManager.isPrimaryUser();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        SubscriptionManager.from(getActivity()).removeOnSubscriptionsChangedListener(
+                mOnSubscriptionsChangeListener);
     }
 }
