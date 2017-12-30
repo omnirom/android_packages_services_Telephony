@@ -54,4 +54,6 @@
 
     <color name="dialer_dialpad_touch_tint">#330288d1</color>
     <color name="floating_action_button_touch_tint">#80ffffff</color>
+
+    <color name="ic_launcher_background">#F1F1F1</color>
 </resources>
