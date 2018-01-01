@@ -77,6 +77,7 @@
     <protected-broadcast android:name= "com.android.phone.vvm.omtp.sms.REQUEST_SENT" />
     <protected-broadcast android:name= "com.android.phone.vvm.ACTION_VISUAL_VOICEMAIL_SERVICE_EVENT" />
     <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_VVM_PACKAGE_INSTALLED" />
+    <protected-broadcast android:name= "com.android.imscontection.DISCONNECTED" />
     <protected-broadcast android:name= "org.codeaurora.VOIP_VOPS_SSAC_STATUS" />
     <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_UICC_MANUAL_PROVISION_STATUS_CHANGED" />
     <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_RADIO_CAPABILITY_UPDATED" />
