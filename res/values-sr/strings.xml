@@ -58,7 +58,7 @@
     <string name="labelGsmMore_with_label" msgid="2674012918829238901">"Подешавања GSM позива (<xliff:g id="SUBSCRIPTIONLABEL">%s</xliff:g>)"</string>
     <string name="labelCDMAMore" msgid="1630676740428229339">"CDMA подешавања позива"</string>
     <string name="labelCdmaMore_with_label" msgid="6333588719319970399">"Подешавања CDMA позива (<xliff:g id="SUBSCRIPTIONLABEL">%s</xliff:g>)"</string>
-    <string name="apn_settings" msgid="9043423184895642077">"Називи прист. тачака"</string>
+    <string name="apn_settings" msgid="9043423184895642077">"Називи приступних тачака"</string>
     <string name="settings_label" msgid="3876743539816984008">"Мрежна подешавања"</string>
     <string name="phone_accounts" msgid="6376603393888116364">"Налози за позивање"</string>
     <string name="phone_accounts_make_calls_with" msgid="1969188078933152231">"Упућујте позиве помоћу"</string>
@@ -532,7 +532,8 @@
     <string name="hac_mode_summary" msgid="6833851160514929341">"Укључи компатибилност са слушним апаратом"</string>
     <string name="rtt_mode_title" msgid="6954652435543570121">"Позив са текстом у реалном времену (RTT)"</string>
     <string name="rtt_mode_summary" msgid="5146344277246544580">"Дозволите размену порука у аудио позиву"</string>
-    <string name="rtt_mode_more_information" msgid="8587829103563257193">"Текст у реалном времену (RTT) помаже позиваоцима који су глуви, слабо чују, имају говорне тешкоће или којима је потребно нешто више од гласа.&lt;br&gt; &lt;a href=<xliff:g id="URL">http://support.google.com/mobile?p=telephony_rtt</xliff:g>&gt;Сазнајте више&lt;/a&gt;\n       &lt;br&gt;&lt;br&gt; – RTT позиви се чувају као транскрипт поруке\n       &lt;br&gt; – RTT није доступан за видео позиве"</string>
+    <!-- no translation found for rtt_mode_more_information (6080420780730383030) -->
+    <skip />
   <string-array name="tty_mode_entries">
     <item msgid="512950011423868021">"TTY је искључен"</item>
     <item msgid="3971695875449640648">"TTY је пун"</item>

@@ -95,6 +95,7 @@ import com.android.internal.telephony.CommandException;
 import com.android.internal.telephony.DefaultPhoneNotifier;
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.telephony.IccCard;
+import com.android.internal.telephony.LocaleTracker;
 import com.android.internal.telephony.MccTable;
 import com.android.internal.telephony.NetworkScanRequestTracker;
 import com.android.internal.telephony.OperatorInfo;
@@ -105,9 +106,9 @@ import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.ProxyController;
 import com.android.internal.telephony.RIL;
 import com.android.internal.telephony.RILConstants;
+import com.android.internal.telephony.ServiceStateTracker;
 import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.TelephonyPermissions;
-import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.euicc.EuiccConnector;
 import com.android.internal.telephony.uicc.IccIoResult;
 import com.android.internal.telephony.uicc.IccUtils;
@@ -168,6 +169,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private static final int EVENT_SET_PREFERRED_NETWORK_TYPE_DONE = 24;
     private static final int CMD_SEND_ENVELOPE = 25;
     private static final int EVENT_SEND_ENVELOPE_DONE = 26;
+    private static final int CMD_INVOKE_OEM_RIL_REQUEST_RAW = 27;
+    private static final int EVENT_INVOKE_OEM_RIL_REQUEST_RAW_DONE = 28;
     private static final int CMD_TRANSMIT_APDU_BASIC_CHANNEL = 29;
     private static final int EVENT_TRANSMIT_APDU_BASIC_CHANNEL_DONE = 30;
     private static final int CMD_EXCHANGE_SIM_IO = 31;
@@ -743,6 +746,21 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
                 case EVENT_SET_PREFERRED_NETWORK_TYPE_DONE:
                     handleNullReturnEvent(msg, "setPreferredNetworkType");
+                    break;
+
+                case CMD_INVOKE_OEM_RIL_REQUEST_RAW:
+                    request = (MainThreadRequest)msg.obj;
+                    onCompleted = obtainMessage(EVENT_INVOKE_OEM_RIL_REQUEST_RAW_DONE, request);
+                    mPhone.invokeOemRilRequestRaw((byte[])request.argument, onCompleted);
+                    break;
+
+                case EVENT_INVOKE_OEM_RIL_REQUEST_RAW_DONE:
+                    ar = (AsyncResult)msg.obj;
+                    request = (MainThreadRequest)ar.userObj;
+                    request.result = ar;
+                    synchronized (request) {
+                        request.notifyAll();
+                    }
                     break;
 
                 case CMD_SET_VOICEMAIL_NUMBER:
@@ -1699,6 +1717,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         final long identity = Binder.clearCallingIdentity();
         try {
             final int subId = mSubscriptionController.getSubIdUsingPhoneId(phoneId);
+            // Todo: fix this when we can get the actual cellular network info when the device
+            // is on IWLAN.
             if (TelephonyManager.NETWORK_TYPE_IWLAN
                     == getVoiceNetworkTypeForSubscriber(subId, mApp.getPackageName())) {
                 return "";
@@ -1706,8 +1726,18 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
-        return TelephonyManager.getTelephonyProperty(
-                phoneId, TelephonyProperties.PROPERTY_OPERATOR_ISO_COUNTRY, "");
+
+        Phone phone = PhoneFactory.getPhone(phoneId);
+        if (phone != null) {
+            ServiceStateTracker sst = phone.getServiceStateTracker();
+            if (sst != null) {
+                LocaleTracker lt = sst.getLocaleTracker();
+                if (lt != null) {
+                    return lt.getCurrentCountry();
+                }
+            }
+        }
+        return "";
     }
 
     @Override
@@ -2736,7 +2766,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @hide
      */
     public boolean setImsService(int slotId, boolean isCarrierImsService, String packageName) {
-        enforceModifyPermission();
+        int[] subIds = SubscriptionManager.getSubId(slotId);
+        TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(mApp,
+                (subIds != null ? subIds[0] : SubscriptionManager.INVALID_SUBSCRIPTION_ID),
+                "setImsService");
+
         return PhoneFactory.getImsResolver().overrideImsServiceConfiguration(slotId,
                 isCarrierImsService, packageName);
     }
@@ -2750,7 +2784,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @return the package name of the ImsService configuration.
      */
     public String getImsService(int slotId, boolean isCarrierImsService) {
-        enforceReadPrivilegedPermission();
+        int[] subIds = SubscriptionManager.getSubId(slotId);
+        TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(mApp,
+                (subIds != null ? subIds[0] : SubscriptionManager.INVALID_SUBSCRIPTION_ID),
+                "getImsService");
+
         return PhoneFactory.getImsResolver().getImsServiceConfiguration(slotId,
                 isCarrierImsService);
     }
@@ -3320,6 +3358,39 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
+    @Deprecated
+    public int invokeOemRilRequestRaw(byte[] oemReq, byte[] oemResp) {
+        enforceModifyPermission();
+
+        int returnValue = 0;
+        try {
+            AsyncResult result = (AsyncResult)sendRequest(CMD_INVOKE_OEM_RIL_REQUEST_RAW, oemReq);
+            if(result.exception == null) {
+                if (result.result != null) {
+                    byte[] responseData = (byte[])(result.result);
+                    if(responseData.length > oemResp.length) {
+                        Log.w(LOG_TAG, "Buffer to copy response too small: Response length is " +
+                                responseData.length +  "bytes. Buffer Size is " +
+                                oemResp.length + "bytes.");
+                    }
+                    System.arraycopy(responseData, 0, oemResp, 0, responseData.length);
+                    returnValue = responseData.length;
+                }
+            } else {
+                CommandException ex = (CommandException) result.exception;
+                returnValue = ex.getCommandError().ordinal();
+                if(returnValue > 0) returnValue *= -1;
+            }
+        } catch (RuntimeException e) {
+            Log.w(LOG_TAG, "sendOemRilRequestRaw: Runtime Exception");
+            returnValue = (CommandException.Error.GENERIC_FAILURE.ordinal());
+            if(returnValue > 0) returnValue *= -1;
+        }
+
+        return returnValue;
+    }
+
+    @Override
     public void setRadioCapability(RadioAccessFamily[] rafs) {
         try {
             ProxyController.getInstance().setRadioCapability(rafs);
@@ -3395,6 +3466,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         boolean isDeviceSupported =
                 mPhone.getContext().getResources().getBoolean(R.bool.config_support_rtt);
         return isCarrierSupported && isDeviceSupported;
+    }
+
+    public boolean isRttEnabled() {
+        return isRttSupported() && Settings.Secure.getInt(mPhone.getContext().getContentResolver(),
+                Settings.Secure.RTT_CALLING_MODE, 0) != 0;
     }
 
     /**
@@ -4138,12 +4214,22 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         enforceReadPrivilegedPermission();
 
         UiccSlot[] slots = UiccController.getInstance().getUiccSlots();
-        if (slots == null) return null;
+        if (slots == null) {
+            Rlog.i(LOG_TAG, "slots is null.");
+            return null;
+        }
+
         UiccSlotInfo[] infos = new UiccSlotInfo[slots.length];
         for (int i = 0; i < slots.length; i++) {
             UiccSlot slot = slots[i];
 
-            String cardId = UiccController.getInstance().getUiccCard(i).getCardId();
+            String cardId;
+            UiccCard card = slot.getUiccCard();
+            if (card != null) {
+                cardId = card.getCardId();
+            } else {
+                cardId = slot.getIccId();
+            }
 
             int cardState = 0;
             switch (slot.getCardState()) {
@@ -4191,6 +4277,37 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
 
         phone.setRadioIndicationUpdateMode(filters, mode);
+    }
+
+    /**
+     * A test API to reload the UICC profile.
+     *
+     * <p>Requires that the calling app has permission
+     * {@link android.Manifest.permission#MODIFY_PHONE_STATE MODIFY_PHONE_STATE}.
+     * @hide
+     */
+    @Override
+    public void refreshUiccProfile(int subId) {
+        enforceModifyPermission();
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            Phone phone = getPhone(subId);
+            if (phone == null) {
+                return;
+            }
+            UiccCard uiccCard = phone.getUiccCard();
+            if (uiccCard == null) {
+                return;
+            }
+            UiccProfile uiccProfile = uiccCard.getUiccProfile();
+            if (uiccProfile == null) {
+                return;
+            }
+            uiccProfile.refresh();
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
     }
 
     /**
