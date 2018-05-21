@@ -532,8 +532,7 @@
     <string name="hac_mode_summary" msgid="6833851160514929341">"启用助听器兼容模式"</string>
     <string name="rtt_mode_title" msgid="6954652435543570121">"实时信息 (RTT) 通话"</string>
     <string name="rtt_mode_summary" msgid="5146344277246544580">"允许在语音通话中发送信息"</string>
-    <!-- no translation found for rtt_mode_more_information (6080420780730383030) -->
-    <skip />
+    <string name="rtt_mode_more_information" msgid="6080420780730383030">"RTT 可为以下类型的来电者提供协助：失聪者、听力障碍人士、语言障碍人士或需要语音以外服务的人。&lt;br&gt; &lt;a href=<xliff:g id="URL">http://support.google.com/mobile?p=telephony_rtt</xliff:g>&gt;了解详情&lt;/a&gt;\n       &lt;br&gt;&lt;br&gt; - 系统会以信息转录的方式存储 RTT 通话\n       &lt;br&gt; - 视频通话不支持 RTT"</string>
   <string-array name="tty_mode_entries">
     <item msgid="512950011423868021">"TTY 关闭"</item>
     <item msgid="3971695875449640648">"TTY 完整"</item>
@@ -752,7 +751,6 @@
     <string name="srvcc_message">"4G网络不可用，4G语音电话降级到2G/3G语音电话."</string>
     <string name="ut_not_support">UT补充业务不可用</string>
     <string name="ct_ut_not_support_close_4glte">UT补充业务不可用，请在设置中关闭增强4G LTE选项</string>
-    <string name="cf_setting_mobile_data_alert">请开启手机数据连接，并确保WLAN已关闭</string>
     <!-- Call forwarding settings screen, setting timer info for cfut case -->
     <string name="set_time_period">设置时间区间</string>
     <string name="all_day">" 全天"</string>
@@ -770,4 +768,13 @@
     <string name="labelCFVoice">"语音"</string>
     <string name="labelCFVideo">"视频"</string>
     <string name="call_forward_option">"呼叫转移选项"</string>
+
+    <string name="cf_setting_mobile_data_alert">请开启手机数据连接，并确保WLAN已关闭</string>
+    <string name="no_mobile_data">移动数据连接不可用</string>
+    <string name="cf_setting_mobile_data_alert_roaming">请开启数据漫游</string>
+    <string name="no_mobile_data_roaming">数据漫游不可用</string>
+    <!--alert user to switch DDS when user is making UT supplementary service on non-DDS sub -->
+    <string name="switch_dds_to_sub_alert">请将移动数据切到卡槽</string>
+    <string name="mobile_data_alert">副卡可能会产生数据流量</string>
+    <string name="mobile_data">移动数据</string>
 </resources>
