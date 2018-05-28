@@ -22,6 +22,7 @@ import android.preference.Preference;
 import android.preference.PreferenceScreen;
 import android.telephony.CarrierConfigManager;
 import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.MenuItem;
 import android.widget.Toast;
@@ -29,7 +30,6 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyIntents;
 
 import java.util.ArrayList;
-
 
 public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
     implements DialogInterface.OnClickListener, DialogInterface.OnCancelListener {
@@ -153,6 +153,17 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
         int slotId = mSubscriptionManager.getSlotIndex(sub);
         int defaultDataSub = mSubscriptionManager.getDefaultDataSubscriptionId();
         Log.d(LOG_TAG, "isUtEnabled = " + mPhone.isUtEnabled() + ", checkData= " + mCheckData);
+        // Find out if the sim card is ready.
+        boolean isSimReady = TelephonyManager.from(this).getSimState(slotId)
+                == TelephonyManager.SIM_STATE_READY;
+        if (!isSimReady) {
+            Log.d(LOG_TAG, "SIM is not ready!");
+            String title = (String)this.getResources().getText(R.string.sim_is_not_ready);
+            String message = (String)this.getResources()
+                .getText(R.string.sim_is_not_ready);
+            showAlertDialog(title, message);
+            return;
+        }
         if (mPhone != null) {
             int activeNetworkType = getActiveNetworkType();
             boolean isDataRoaming = mPhone.getServiceState().getDataRoaming();

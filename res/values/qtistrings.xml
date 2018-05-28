@@ -256,4 +256,5 @@ ul.</string>
     <!--alert user to switch DDS when user is making UT supplementary service on non-DDS sub -->
     <string name="switch_dds_to_sub_alert">Please switch mobile data to SIM</string>
     <string name="mobile_data_alert">Data traffic may be generated on secondary card</string>
+    <string name="sim_is_not_ready">SIM card is not ready</string>
 </resources>
