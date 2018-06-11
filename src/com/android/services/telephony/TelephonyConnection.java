@@ -205,15 +205,6 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                         mSsNotification =
                                 (SuppServiceNotification)((AsyncResult) msg.obj).result;
                         if (mOriginalConnection != null) {
-                            if (mSsNotification.history != null) {
-                                Bundle lastForwardedNumber = new Bundle();
-                                Log.v(TelephonyConnection.this,
-                                        "Updating call history info in extras.");
-                                lastForwardedNumber.putStringArrayList(
-                                        Connection.EXTRA_LAST_FORWARDED_NUMBER,
-                                        new ArrayList(Arrays.asList(mSsNotification.history)));
-                                putExtras(lastForwardedNumber);
-                            }
                             handleSuppServiceNotification(mSsNotification);
                         }
                     }
@@ -1981,6 +1972,9 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
         capabilities = changeBitmask(capabilities, CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL,
                 can(mOriginalConnectionCapabilities, Capability.SUPPORTS_VT_LOCAL_BIDIRECTIONAL));
+
+        capabilities = changeBitmask(capabilities, CAPABILITY_SUPPORTS_RTT_REMOTE,
+                can(mOriginalConnectionCapabilities, Capability.SUPPORTS_RTT_REMOTE));
 
         return capabilities;
     }

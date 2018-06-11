@@ -561,6 +561,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         String imsi = "";
         String gid1 = "";
         String gid2 = "";
+        String iccid = "";
         String spn = TelephonyManager.from(mContext).getSimOperatorNameForPhone(phoneId);
         String simOperator = TelephonyManager.from(mContext).getSimOperatorNumericForPhone(phoneId);
         // A valid simOperator should be 5 or 6 digits, depending on the length of the MNC.
@@ -573,9 +574,10 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
             imsi = phone.getSubscriberId();
             gid1 = phone.getGroupIdLevel1();
             gid2 = phone.getGroupIdLevel2();
+            iccid = phone.getIccSerialNumber();
         }
 
-        return new CarrierIdentifier(mcc, mnc, spn, imsi, gid1, gid2);
+        return new CarrierIdentifier(mcc, mnc, spn, imsi, gid1, gid2, iccid);
     }
 
     /** Returns the package name of a priveleged carrier app, or null if there is none. */
