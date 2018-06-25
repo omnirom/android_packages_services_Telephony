@@ -135,6 +135,8 @@ public class PhoneUtils {
     /** Extra key to identify the service class voice or video */
     public static final String SERVICE_CLASS = "service_class";
 
+    private static final int PRIMARY_STACK_MODEM_ID = 0;
+
     private static class FgRingCalls {
         private Call fgCall;
         private Call ringing;
@@ -2338,6 +2340,11 @@ public class PhoneUtils {
         return null;
     }
 
+    public static boolean isValidPhoneAccountHandle(PhoneAccountHandle phoneAccountHandle) {
+        return phoneAccountHandle != null && !TextUtils.isEmpty(phoneAccountHandle.getId())
+                && !phoneAccountHandle.getId().equals("null");
+    }
+
 
     /**
      * Determine if a given phone account corresponds to an active SIM
@@ -2475,5 +2482,38 @@ public class PhoneUtils {
             Log.e("TelephonyConnectionService", "Exception : " + ex);
         }
         return phoneId;
+    }
+
+    public static int getPrimaryStackPhoneId() {
+        String modemUuId = null;
+        int primayStackPhoneId = SubscriptionManager.INVALID_PHONE_INDEX;
+
+        for (Phone phone : PhoneFactory.getPhones()) {
+            if (phone == null) continue;
+
+            Log.d(LOG_TAG, "Logical Modem id: " + phone.getModemUuId()
+                    + " phoneId: " + phone.getPhoneId());
+            modemUuId = phone.getModemUuId();
+            if ((modemUuId == null) || (modemUuId.length() <= 0) ||
+                    modemUuId.isEmpty()) {
+                continue;
+            }
+            // Select the phone id based on modemUuid
+            // if modemUuid is 0 for any phone instance, primary stack is mapped
+            // to it so return the phone id as the primary stack phone id.
+            if (Integer.parseInt(modemUuId) == PRIMARY_STACK_MODEM_ID) {
+                primayStackPhoneId = phone.getPhoneId();
+                Log.d(LOG_TAG, "Primay Stack phone id: " + primayStackPhoneId + " selected");
+                break;
+            }
+        }
+
+        // If phone id is invalid return default phone id
+        if (primayStackPhoneId == SubscriptionManager.INVALID_PHONE_INDEX) {
+            Log.d(LOG_TAG, "Returning default phone id");
+            primayStackPhoneId = 0;
+        }
+
+        return primayStackPhoneId;
     }
 }

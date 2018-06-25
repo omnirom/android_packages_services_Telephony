@@ -505,7 +505,11 @@ public class TelephonyConnectionService extends ConnectionService {
                 // Notify Telecom of the new Connection type.
                 // TODO: Switch out the underlying connection instead of creating a new
                 // one and causing UI Jank.
-                addExistingConnection(PhoneUtils.makePstnPhoneAccountHandle(phone), repConnection);
+                PhoneAccountHandle repAccountHandle = PhoneUtils.makePstnPhoneAccountHandle(phone);
+                if (!PhoneUtils.isValidPhoneAccountHandle(repAccountHandle)) {
+                    repAccountHandle = request.getAccountHandle();
+                }
+                addExistingConnection(repAccountHandle, repConnection);
                 // Remove the old connection from Telecom after.
                 originalConnection.setDisconnected(
                         DisconnectCauseUtil.toTelecomDisconnectCause(
@@ -700,14 +704,7 @@ public class TelephonyConnectionService extends ConnectionService {
         // If there is an incoming emergency CDMA Call (while the phone is in ECBM w/ No SIM),
         // make sure the PhoneAccount lookup retrieves the default Emergency Phone.
         PhoneAccountHandle accountHandle = request.getAccountHandle();
-        boolean isEmergency = false;
-        if (accountHandle != null && PhoneUtils.EMERGENCY_ACCOUNT_HANDLE_ID.equals(
-                accountHandle.getId())) {
-            Log.i(this, "Emergency PhoneAccountHandle is being used for incoming call... " +
-                    "Treat as an Emergency Call.");
-            isEmergency = true;
-        }
-        Phone phone = getPhoneForAccount(accountHandle, isEmergency);
+        Phone phone = getPhoneForAccount(accountHandle, false);
         if (phone == null) {
             return Connection.createFailedConnection(
                     DisconnectCauseUtil.toTelecomDisconnectCause(
@@ -812,14 +809,19 @@ public class TelephonyConnectionService extends ConnectionService {
         // Use the registered emergency Phone if the PhoneAccountHandle is set to Telephony's
         // Emergency PhoneAccount
         PhoneAccountHandle accountHandle = request.getAccountHandle();
-        boolean isEmergency = false;
+        Phone phone = null;
         if (accountHandle != null && PhoneUtils.EMERGENCY_ACCOUNT_HANDLE_ID.equals(
                 accountHandle.getId())) {
             Log.i(this, "Emergency PhoneAccountHandle is being used for unknown call... " +
                     "Treat as an Emergency Call.");
-            isEmergency = true;
+            for (Phone phoneSelected : mPhoneFactoryProxy.getPhones()) {
+                if (phoneSelected.getState() == PhoneConstants.State.OFFHOOK) {
+                    phone = phoneSelected;
+                    break;
+                }
+            }
         }
-        Phone phone = getPhoneForAccount(accountHandle, isEmergency);
+        if (phone == null) phone = getPhoneForAccount(accountHandle, false);
         if (phone == null) {
             return Connection.createFailedConnection(
                     DisconnectCauseUtil.toTelecomDisconnectCause(
@@ -1032,7 +1034,7 @@ public class TelephonyConnectionService extends ConnectionService {
         }
 
         Queue<Phone> cachedPhones = mEmergencyRetryCache.second;
-        Phone phoneUsed = c.getPhone();
+        Phone phoneUsed = mPhoneFactoryProxy.getPhone(c.getPhone().getPhoneId());
         if (phoneUsed == null) {
             return;
         }
@@ -1217,7 +1219,14 @@ public class TelephonyConnectionService extends ConnectionService {
         if (subId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
             int phoneId = mSubscriptionManagerProxy.getPhoneId(subId);
             chosenPhone = mPhoneFactoryProxy.getPhone(phoneId);
-        }
+        } else {
+            for (Phone phone : mPhoneFactoryProxy.getPhones()) {
+                Call call = phone.getRingingCall();
+                if (call.getState().isRinging()) {
+                    return phone;
+                }
+            }
+         }
         return chosenPhone;
     }
 

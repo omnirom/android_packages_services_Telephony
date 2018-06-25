@@ -53,7 +53,9 @@ import android.text.TextUtils;
 
 import com.android.ims.ImsManager;
 import com.android.internal.telephony.Phone;
+import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.PhoneUtils;
 import com.android.phone.R;
@@ -909,11 +911,15 @@ final class TelecomAccountRegistry {
                 // IExtTelephony.getCurrentUiccCardProvisioningStatus()can return
                 final int PROVISIONED = 1;
                 final int INVALID_STATE = -1;
+                boolean isInEcm = false;
 
                 for (Phone phone : phones) {
                     int provisionStatus = PROVISIONED;
                     int subscriptionId = phone.getSubId();
                     int slotId = phone.getPhoneId();
+                    isInEcm = Boolean.parseBoolean(mTelephonyManager.getTelephonyProperty(slotId,
+                            TelephonyProperties.PROPERTY_INECM_MODE, "false"));
+                    boolean isAccountAdded = false;
 
                     if (mTelephonyManager.getPhoneCount() > 1) {
                         IExtTelephony mExtTelephony = IExtTelephony.Stub
@@ -943,15 +949,42 @@ final class TelecomAccountRegistry {
                         activeSubscriptionId = subscriptionId;
                         mAccounts.add(new AccountEntry(phone, false /* emergency */,
                                 false /* isDummy */));
+                        isAccountAdded = true;
+                    } else {
+                        // If device configured in dsds mode, a SIM removed and if corresponding
+                        // phone is in ECM then add emergency account to that sub so that
+                        // incoming emergency call can be processed.
+                        Phone phoneInEcm = PhoneGlobals.getInstance().getPhoneInEcm();
+                        if ((mTelephonyManager.getPhoneCount() > 1)
+                                && isInEcm && (phoneInEcm != null)
+                                && phoneInEcm.getPhoneId() == phone.getPhoneId()) {
+                            mAccounts.add(new AccountEntry(phoneInEcm, true /* emergency */,
+                                    false /* isDummy */));
+                            isAccountAdded = true;
+                        }
+                    }
+	            // Speacial case where one sub sim locked other sub reporting emergency service
+                    // emergency call placed will initiate on primary sub i.e sub which is reporting
+                    // limited/emergency service, if phone switches when emergency call is
+                    // in progress, there will missing phone account which can notify phantom call
+                    // to upper layer add emergency if for a phone no account added and if phone
+                    // reporting emergency service and other subs oos or if phone has running call
+                    if (!isAccountAdded && ((phone.getServiceState().isEmergencyOnly()
+                                && !isOtherPhoneInService(phone))
+                                || (phone.getState() == PhoneConstants.State.OFFHOOK))) {
+                        Log.i(this, "Adding emergency account to phone id: "+phone.getPhoneId());
+                        mAccounts.add(new AccountEntry(phone, true /* emergency */,
+                                false /* isDummy */));
                     }
                 }
             }
 
-            // If we did not list ANY accounts, we need to provide a "default" SIM account
-            // for emergency numbers since no actual SIM is needed for dialing emergency
-            // numbers but a phone account is.
+            // If we did not list ANY accounts, we need to provide a "default" SIM account for a
+            // slot which is bound to primary modem stack, for emergency numbers since
+            // no actual SIM is needed for dialing emergency numbers but a phone account is.
             if (mAccounts.isEmpty()) {
-                mAccounts.add(new AccountEntry(PhoneFactory.getDefaultPhone(), true /* emergency */,
+                mAccounts.add(new AccountEntry(PhoneFactory.getPhone(
+                        PhoneUtils.getPrimaryStackPhoneId()), true /* emergency */,
                         false /* isDummy */));
             }
 
@@ -997,6 +1030,21 @@ final class TelecomAccountRegistry {
                 mTelecomManager.setUserSelectedOutgoingPhoneAccount(phoneAccountHandle);
             }
         }
+    }
+
+    private boolean isOtherPhoneInService(Phone currentPhone) {
+        TelephonyManager tm = TelephonyManager.getDefault();
+        int phoneCount = tm.getPhoneCount();
+        for (int phId = 0; phId < phoneCount; phId++) {
+            Phone phone = PhoneFactory.getPhone(phId);
+            if (currentPhone.getPhoneId() == phone.getPhoneId()) continue;
+            int ss = phone.getServiceState().getState();
+            Log.i(this, "Phone Id: %d Service State: %d",phone.getPhoneId(), ss);
+            if (ss == ServiceState.STATE_IN_SERVICE) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isNonSimAccountFound() {
