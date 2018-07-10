@@ -42,6 +42,8 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
         android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER
     };
 
+    public static final String CALL_FORWARD_INTENT = "org.codeaurora.settings.CDMA_CALL_FORWARDING";
+
     private static final String BUTTON_CFU_KEY   = "button_cfu_key";
     private static final String BUTTON_CFB_KEY   = "button_cfb_key";
     private static final String BUTTON_CFNRY_KEY = "button_cfnry_key";
@@ -377,9 +379,32 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
     @Override
     public void onFinished(Preference preference, boolean reading) {
         if (mInitIndex < mPreferences.size()-1 && !isFinishing()) {
-            mInitIndex++;
-            mPreferences.get(mInitIndex).init(this, false, mPhone, mReplaceInvalidCFNumbers,
-                    mServiceClass);
+            if (mInitIndex == 0 && mButtonCFU.isAutoRetryCfu()) {
+                Log.i(LOG_TAG, "auto retry case: ");
+                CarrierConfigManager carrierConfig = (CarrierConfigManager)
+                    getSystemService(CARRIER_CONFIG_SERVICE);
+                if(carrierConfig != null && mPhone != null
+                        && carrierConfig.getConfigForSubId(mPhone.getSubId())
+                            .getBoolean(CarrierConfigManager.KEY_CDMA_CW_CF_ENABLED_BOOL)) {
+                    if (isPromptTurnOffEnhance4GLTE(mPhone)) {
+                        String title = (String)this.getResources()
+                            .getText(R.string.ut_not_support);
+                        String msg = (String)this.getResources()
+                            .getText(R.string.ct_ut_not_support_close_4glte);
+                        showAlertDialog(title, msg);
+                    }else if (mPhone.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA ){ 
+                        Log.i(LOG_TAG, "auto retry and switch to cmda method UI.");
+                        Intent intent = new Intent(CALL_FORWARD_INTENT);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                        finish();
+                    }
+                }
+            } else {
+                mInitIndex++;
+                mPreferences.get(mInitIndex).init(this, false, mPhone, mReplaceInvalidCFNumbers,
+                        mServiceClass);
+            }
         }
 
         super.onFinished(preference, reading);

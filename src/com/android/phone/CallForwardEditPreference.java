@@ -59,6 +59,7 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
 
     private boolean isTimerEnabled;
     private boolean mAllowSetCallFwding = false;
+    private boolean mUtEnabled = false;
     /*Variables which holds CFUT response data*/
     private int mStartHour;
     private int mStartMinute;
@@ -94,6 +95,7 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         mTcpListener = listener;
         mReplaceInvalidCFNumber = replaceInvalidCFNumber;
         mServiceClass = serviceClass;
+        mUtEnabled = mPhone.isUtEnabled();
 
         isTimerEnabled = isTimerEnabled();
         Log.d(LOG_TAG, "isTimerEnabled=" + isTimerEnabled);
@@ -120,6 +122,23 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                 mTcpListener.onStarted(this, true);
             }
         }
+    }
+
+    public boolean isAutoRetryCfu() {
+        CarrierConfigManager cfgManager = (CarrierConfigManager)
+            mContext.getSystemService(Context.CARRIER_CONFIG_SERVICE);
+        boolean autoRetryCfu = false;
+        if (cfgManager != null) {
+            autoRetryCfu = cfgManager.getConfigForSubId(mPhone.getSubId())
+                .getBoolean("config_auto_retry_cfu_bool");
+        }
+        /**
+         * if UT is true at begginning and after query CFU fail with NW error 403 at
+         * Modem side,  Modem update UT to false at first and rasie error response
+         * to AP.
+         * At this condition, switch to query SS over cdma method UI.
+         */
+        return autoRetryCfu && mUtEnabled && !mPhone.isUtEnabled();
     }
 
     private boolean isTimerEnabled() {
@@ -417,8 +436,12 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
             if (ar.exception != null) {
                 Log.d(LOG_TAG, "handleGetCFResponse: ar.exception=" + ar.exception);
                 if (ar.exception instanceof CommandException) {
-                    mTcpListener.onException(CallForwardEditPreference.this,
-                            (CommandException) ar.exception);
+                    if (isAutoRetryCfu() && reason == CommandsInterface.CF_REASON_UNCONDITIONAL) {
+                         mUtEnabled = mPhone.isUtEnabled();
+                    } else {
+                        mTcpListener.onException(CallForwardEditPreference.this,
+                                (CommandException) ar.exception);
+                    }
                 } else {
                     // Most likely an ImsException and we can't handle it the same way as
                     // a CommandException. The best we can do is to handle the exception

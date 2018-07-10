@@ -44,6 +44,7 @@ import android.view.MenuItem;
 
 import com.android.ims.ImsException;
 import com.android.ims.ImsManager;
+import com.android.internal.telephony.CommandsInterface;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.SubscriptionController;
@@ -63,6 +64,10 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
     public static final String CALL_WAITING_INTENT = "org.codeaurora.settings.CDMA_CALL_WAITING";
 
     private CallWaitingSwitchPreference mCWButton;
+    private PreferenceScreen mPrefCW;
+    private boolean mUtEnabled = false;
+    private Phone mPhone = null;
+    private boolean mCdmaCfCwEnabled = false;
     private static final String BUTTON_CW_KEY = "button_cw_ut_key";
 
     private static boolean isActivityPresent(Context context, String intentName) {
@@ -159,12 +164,14 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
             carrierConfig = PhoneGlobals.getInstance().getCarrierConfig();
         }
 
-        Phone phone = subInfoHelper.getPhone();
+        mPhone = subInfoHelper.getPhone();
         Log.d(LOG_TAG, "sub id = " + subInfoHelper.getSubId() + " phone id = " +
-                phone.getPhoneId());
+                mPhone.getPhoneId());
 
+        mCdmaCfCwEnabled = carrierConfig
+            .getBoolean(CarrierConfigManager.KEY_CDMA_CW_CF_ENABLED_BOOL);
         PreferenceScreen prefScreen = getPreferenceScreen();
-        if (phone.getPhoneType() != PhoneConstants.PHONE_TYPE_CDMA ||
+        if (mPhone.getPhoneType() != PhoneConstants.PHONE_TYPE_CDMA ||
                 carrierConfig.getBoolean(CarrierConfigManager.KEY_VOICE_PRIVACY_DISABLE_UI_BOOL)) {
             CdmaVoicePrivacySwitchPreference prefPri = (CdmaVoicePrivacySwitchPreference)
                     prefScreen.findPreference("button_voice_privacy_key");
@@ -173,8 +180,8 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
             }
         }
 
-        if(phone.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA
-                && isPromptTurnOffEnhance4GLTE(phone)
+        if(mPhone.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA
+                && isPromptTurnOffEnhance4GLTE(mPhone)
                 && carrierConfig.getBoolean(CarrierConfigManager.KEY_CDMA_CW_CF_ENABLED_BOOL)) {
             String title = (String)this.getResources()
                 .getText(R.string.ut_not_support);
@@ -184,18 +191,17 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
         }
 
         mCWButton = (CallWaitingSwitchPreference) prefScreen.findPreference(BUTTON_CW_KEY);
-        if (phone.getPhoneType() != PhoneConstants.PHONE_TYPE_CDMA
+        if (mPhone.getPhoneType() != PhoneConstants.PHONE_TYPE_CDMA
                 || !carrierConfig.getBoolean(CarrierConfigManager.KEY_CDMA_CW_CF_ENABLED_BOOL)
                 || !isCdmaCallWaitingActivityPresent(this)) {
             Log.d(LOG_TAG, "Disabled CW CF");
-            PreferenceScreen prefCW = (PreferenceScreen)
-                    prefScreen.findPreference("button_cw_key");
+            mPrefCW = (PreferenceScreen) prefScreen.findPreference("button_cw_key");
             if (mCWButton != null) {
                  prefScreen.removePreference(mCWButton);
             }
 
-            if (prefCW != null) {
-                prefCW.setEnabled(false);
+            if (mPrefCW != null) {
+                mPrefCW.setEnabled(false);
             }
             PreferenceScreen prefCF = (PreferenceScreen)
                     prefScreen.findPreference("button_cf_expand_key");
@@ -204,25 +210,26 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
             }
         } else {
             Log.d(LOG_TAG, "Enabled CW CF");
-            PreferenceScreen prefCW = (PreferenceScreen)
-                    prefScreen.findPreference("button_cw_key");
+            mPrefCW = (PreferenceScreen) prefScreen.findPreference("button_cw_key");
 
-            ImsManager imsMgr = ImsManager.getInstance(this, phone.getPhoneId());
+            ImsManager imsMgr = ImsManager.getInstance(this, mPhone.getPhoneId());
             Boolean isEnhanced4G = imsMgr.isEnhanced4gLteModeSettingEnabledByUser();
-            if (phone.isUtEnabled() && isEnhanced4G) {
-                prefScreen.removePreference(prefCW);
-                mCWButton.init(this, false, phone);
+            if (mPhone.isUtEnabled() && isEnhanced4G) {
+                mUtEnabled = mPhone.isUtEnabled();
+                prefScreen.removePreference(mPrefCW);
+                mCWButton.init(this, false, mPhone);
             } else {
                 if (mCWButton != null) {
                     prefScreen.removePreference(mCWButton);
                 }
-                if (prefCW != null) {
-                    prefCW.setOnPreferenceClickListener(
+                if (mPrefCW != null) {
+                    mPrefCW.setOnPreferenceClickListener(
                             new Preference.OnPreferenceClickListener() {
                                 @Override
                                 public boolean onPreferenceClick(Preference preference) {
                                     Intent intent = new Intent(CALL_WAITING_INTENT);
-                                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, phone.getSubId());
+                                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                                        mPhone.getSubId());
                                     startActivity(intent);
                                     return true;
                                 }
@@ -236,17 +243,50 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
                         new Preference.OnPreferenceClickListener() {
                             @Override
                             public boolean onPreferenceClick(Preference preference) {
-                                Phone phone = subInfoHelper.getPhone();
-                                Intent intent = phone.isUtEnabled() ?
-                                    subInfoHelper.getIntent(CallForwardType.class)
+                                Intent intent = mPhone.isUtEnabled() ?
+                                    subInfoHelper.getIntent(GsmUmtsCallForwardOptions.class)
                                     : new Intent(CALL_FORWARD_INTENT);
-                                intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, phone.getSubId());
+                                intent.putExtra(PhoneUtils.SERVICE_CLASS,
+                                    CommandsInterface.SERVICE_CLASS_VOICE);
                                 startActivity(intent);
                                 return true;
                             }
                         });
             }
         }
+    }
+
+    @Override
+    public void onFinished(Preference preference, boolean reading) {
+        if (mCdmaCfCwEnabled && mUtEnabled && mPhone != null && !mPhone.isUtEnabled()) {
+            if (isPromptTurnOffEnhance4GLTE(mPhone)) {
+                String title = (String)this.getResources()
+                    .getText(R.string.ut_not_support);
+                String msg = (String)this.getResources()
+                    .getText(R.string.ct_ut_not_support_close_4glte);
+                showAlertDialog(title, msg);
+            }
+            mUtEnabled = false;
+            if (mCWButton != null) {
+                PreferenceScreen prefScreen = getPreferenceScreen();
+                prefScreen.removePreference(mCWButton);
+                prefScreen.addPreference(mPrefCW);
+                if (mPrefCW != null) {
+                    mPrefCW.setOnPreferenceClickListener(
+                            new Preference.OnPreferenceClickListener() {
+                                @Override
+                                public boolean onPreferenceClick(Preference preference) {
+                                    Intent intent = new Intent(CALL_WAITING_INTENT);
+                                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                                        mPhone.getSubId());
+                                    startActivity(intent);
+                                    return true;
+                                }
+                            });
+                }
+            }
+        }
+        super.onFinished(preference, reading);
     }
 
     @Override
