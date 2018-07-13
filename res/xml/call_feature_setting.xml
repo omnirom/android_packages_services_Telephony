@@ -39,14 +39,7 @@
     <PreferenceScreen
         android:key="@string/wifi_calling_settings_key"
         android:title="@string/wifi_calling"
-        android:persistent="false" >
-
-        <intent android:action="android.intent.action.MAIN"
-            android:targetPackage="com.android.settings"
-            android:targetClass="com.android.settings.Settings$WifiCallingSettingsActivity">
-                <extra android:name="show_drawer_menu" android:value="true" />
-        </intent>
-
+        android:persistent="false" />
     </PreferenceScreen>
 
     <SwitchPreference
