@@ -252,10 +252,43 @@ public class TelephonyConnectionService extends ConnectionService {
         }
 
         @Override
-        public void onOriginalConnectionRetry(TelephonyConnection c, boolean isPermanentFailure) {
-            retryOutgoingOriginalConnection(c, isPermanentFailure);
+        public void onOriginalConnectionRetry(TelephonyConnection c, int cause) {
+            if (cause == android.telephony.DisconnectCause.IMS_SIP_ALTERNATE_EMERGENCY_CALL) {
+                handleAlternateEmergencyCallDisconnectCause(c);
+            } else {
+                retryOutgoingOriginalConnection(c, (cause ==
+                        android.telephony.DisconnectCause.EMERGENCY_PERM_FAILURE));
+            }
         }
     };
+
+    private void handleAlternateEmergencyCallDisconnectCause(TelephonyConnection c) {
+        boolean isAirplaneModeOn = Settings.Global.getInt(getContentResolver(),
+                Settings.Global.AIRPLANE_MODE_ON, 0) > 0;
+        if (isAirplaneModeOn) {
+            if (mRadioOnHelper == null) {
+                mRadioOnHelper = new RadioOnHelper(this);
+            }
+            Log.i(this, "Exit airplane mode");
+            mRadioOnHelper.triggerRadioOnAndListen(new RadioOnStateListener.Callback() {
+                @Override
+                public void onComplete(RadioOnStateListener listener, boolean isRadioReady) {
+                    Log.i(this, "Redialing the call after exiting airplane mode");
+                    placeOutgoingConnection(c, c.getPhone(), c.getVideoState(), c.getExtras());
+                }
+
+                @Override
+                public boolean isOkToCall(Phone phone, int serviceState) {
+                    return (phone.getState() == PhoneConstants.State.OFFHOOK)
+                            || phone.getServiceStateTracker().isRadioOn();
+                }
+            });
+        } else {
+            //User might have turned off Airplane mode after dialing the call.
+            //So just retry the call if Alternate emergency call disconnect cause is received.
+            placeOutgoingConnection(c, c.getPhone(), c.getVideoState(), c.getExtras());
+        }
+    }
 
     private List<ConnectionRemovedListener> mConnectionRemovedListeners =
             new CopyOnWriteArrayList<>();
