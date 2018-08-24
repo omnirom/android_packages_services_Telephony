@@ -1107,19 +1107,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         updateConnectionProperties();
         if (mOriginalConnection != null) {
             Uri address;
-            boolean showOrigDialString = false;
-            Phone phone = getPhone();
-            if (phone != null && (phone.getPhoneType() == TelephonyManager.PHONE_TYPE_CDMA)
-                    && !mOriginalConnection.isIncoming()) {
-                CarrierConfigManager configManager = (CarrierConfigManager)phone.getContext().
-                        getSystemService(Context.CARRIER_CONFIG_SERVICE);
-                PersistableBundle pb = configManager.getConfigForSubId(phone.getSubId());
-                if (pb != null) {
-                    showOrigDialString = pb.getBoolean("config_show_orig_dial_string_for_cdma");
-                    Log.d(this, "showOrigDialString: " + showOrigDialString);
-                }
-            }
-            if (showOrigDialString) {
+            if (isShowingOriginalDialString()
+                    && mOriginalConnection.getOrigDialString() != null) {
                 address = getAddressFromNumber(mOriginalConnection.getOrigDialString());
             } else {
                 address = getAddressFromNumber(mOriginalConnection.getAddress());
@@ -1158,6 +1147,14 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
     void setOriginalConnection(com.android.internal.telephony.Connection originalConnection) {
         Log.v(this, "new TelephonyConnection, originalConnection: " + originalConnection);
+        if (mOriginalConnection != null && originalConnection != null
+               && !originalConnection.isIncoming()
+               && originalConnection.getOrigDialString() == null
+               && isShowingOriginalDialString()) {
+            Log.i(this, "new original dial string is null, convert to: "
+                   +  mOriginalConnection.getOrigDialString());
+            originalConnection.setConverted(mOriginalConnection.getOrigDialString());
+        }
         clearOriginalConnection();
         mOriginalConnectionExtras.clear();
         mOriginalConnection = originalConnection;
@@ -2359,6 +2356,20 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         result.put(ImsCallProfile.EXTRA_DISPLAY_TEXT,
                 android.telecom.Connection.EXTRA_CALL_SUBJECT);
         return Collections.unmodifiableMap(result);
+    }
+
+    private boolean isShowingOriginalDialString() {
+        boolean showOrigDialString = false;
+        Phone phone = getPhone();
+        if (phone != null && (phone.getPhoneType() == TelephonyManager.PHONE_TYPE_CDMA)
+                && !mOriginalConnection.isIncoming()) {
+            PersistableBundle pb = getCarrierConfig();
+            if (pb != null) {
+                showOrigDialString = pb.getBoolean("config_show_orig_dial_string_for_cdma");
+                Log.d(this, "showOrigDialString: " + showOrigDialString);
+            }
+        }
+        return showOrigDialString;
     }
 
     /**

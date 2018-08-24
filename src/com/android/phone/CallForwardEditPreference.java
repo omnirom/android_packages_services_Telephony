@@ -241,6 +241,7 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                     } catch (QtiImsException e) {
                         Log.d(LOG_TAG, "setCallForwardUncondTimer exception!" +e);
                     }
+                    mAllowSetCallFwding = true;
                 } else {
                     mPhone.setCallForwardingOption(action,
                         reason,
@@ -353,7 +354,6 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
             if (DBG) Log.d(LOG_TAG, "onSetCallForwardTimer phoneId=" + phoneId +" status= "+status);
 
             try {
-                mAllowSetCallFwding = true;
                 mQtiImsExtManager.getCallForwardUncondTimer(phoneId,
                         reason,
                         mServiceClass,
@@ -384,7 +384,12 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         public void onUTReqFailed(int phoneId, int errCode, String errString) {
             if (DBG) Log.d(LOG_TAG, "onUTReqFailed phoneId=" + phoneId + " errCode= "
                     +errCode + "errString ="+ errString);
-            mTcpListener.onFinished(CallForwardEditPreference.this, true);
+            if (mAllowSetCallFwding) {
+                mTcpListener.onFinished(CallForwardEditPreference.this, false);
+                mAllowSetCallFwding = false;
+            } else {
+                mTcpListener.onFinished(CallForwardEditPreference.this, true);
+            }
             mTcpListener.onError(CallForwardEditPreference.this, RESPONSE_ERROR);
         }
     };
