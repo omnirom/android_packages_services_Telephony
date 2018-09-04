@@ -317,7 +317,7 @@ public class MobileNetworkSettings extends Activity  {
         private ImsManager mImsMgr;
         private MyHandler mHandler;
         private boolean mOkClicked;
-        private boolean mExpandAdvancedFields;
+        private boolean mExpandAdvancedFields = true;
 
         // We assume the the value returned by mTabHost.getCurrentTab() == slotId
         private TabHost mTabHost;
