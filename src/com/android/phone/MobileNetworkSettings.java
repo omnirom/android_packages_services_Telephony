@@ -577,15 +577,17 @@ public class MobileNetworkSettings extends Activity  {
                     // we can iterate though the tabs and subscription info in one loop. But
                     // we need to handle the case where a slot may be empty.
 
-                    Iterator<SubscriptionInfo> siIterator = mActiveSubInfos.listIterator();
-                    SubscriptionInfo si = siIterator.hasNext() ? siIterator.next() : null;
                     for (int simSlotIndex = 0; simSlotIndex  < mActiveSubInfos.size();
-                         simSlotIndex++) {
+                            simSlotIndex++) {
+                        final SubscriptionInfo si = mSubscriptionManager
+                                .getActiveSubscriptionInfoForSimSlotIndex(simSlotIndex);
                         String tabName;
-                        if (si != null && si.getSimSlotIndex() == simSlotIndex) {
-                            // Slot is not empty and we match
+                        if (si != null) {
+                            CharSequence subsCarrierName = si.getCarrierName();
                             tabName = String.valueOf(si.getDisplayName());
-                            si = siIterator.hasNext() ? siIterator.next() : null;
+                            if (!TextUtils.isEmpty(subsCarrierName)) {
+                                tabName += " - " + subsCarrierName;
+                            }
                         } else {
                             // Slot is empty, set name to unknown
                             tabName = getResources().getString(R.string.unknown);
