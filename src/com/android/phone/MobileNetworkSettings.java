@@ -577,15 +577,13 @@ public class MobileNetworkSettings extends Activity  {
                     // we can iterate though the tabs and subscription info in one loop. But
                     // we need to handle the case where a slot may be empty.
 
-                    Iterator<SubscriptionInfo> siIterator = mActiveSubInfos.listIterator();
-                    SubscriptionInfo si = siIterator.hasNext() ? siIterator.next() : null;
                     for (int simSlotIndex = 0; simSlotIndex  < mActiveSubInfos.size();
-                         simSlotIndex++) {
+                            simSlotIndex++) {
+                        final SubscriptionInfo si = mSubscriptionManager
+                                .getActiveSubscriptionInfoForSimSlotIndex(simSlotIndex);
                         String tabName;
-                        if (si != null && si.getSimSlotIndex() == simSlotIndex) {
-                            // Slot is not empty and we match
-                            tabName = String.valueOf(si.getDisplayName());
-                            si = siIterator.hasNext() ? siIterator.next() : null;
+                        if (si != null) {
+                            tabName = getSubscriptionDisplayName(si);
                         } else {
                             // Slot is empty, set name to unknown
                             tabName = getResources().getString(R.string.unknown);
@@ -621,6 +619,16 @@ public class MobileNetworkSettings extends Activity  {
             updatePhone(currentTab);
             updateBody();
             if (DBG) log("initializeSubscriptions:-");
+        }
+
+        private String getSubscriptionDisplayName(SubscriptionInfo sir) {
+            return sir.getDisplayName() + " - " + getSubscriptionCarrierName(sir);
+        }
+
+        private String getSubscriptionCarrierName(SubscriptionInfo sir) {
+            CharSequence simCarrierName = sir.getCarrierName();
+            return !TextUtils.isEmpty(simCarrierName) ? simCarrierName.toString() :
+                    getContext().getString(com.android.internal.R.string.unknownName);
         }
 
         private MobileNetworkSettings.TabState isUpdateTabsNeeded(List<SubscriptionInfo> newSil) {
