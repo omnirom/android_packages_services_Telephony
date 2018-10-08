@@ -28,19 +28,28 @@
 
 package com.android.phone;
 
-import android.content.Intent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
 import android.telephony.CarrierConfigManager;
+import android.telephony.ims.feature.ImsFeature;
+import android.telephony.ims.feature.MmTelFeature;
+import android.telephony.SubscriptionManager;
 import android.util.Log;
 import android.view.MenuItem;
 
+import com.android.ims.ImsException;
+import com.android.ims.ImsManager;
 import com.android.internal.telephony.CommandsInterface;
+import com.android.internal.telephony.IccCardConstants;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.TelephonyIntents;
 import android.preference.Preference.OnPreferenceClickListener;
 
 public class CallForwardType extends PreferenceActivity {
@@ -54,7 +63,70 @@ public class CallForwardType extends PreferenceActivity {
     private Preference mVideoPreference;
     private Phone mPhone;
     private SubscriptionInfoHelper mSubscriptionInfoHelper;
+    private boolean mIsUtCapable = false;
+    private boolean mIsVtCapable = false;
+    boolean mHideVtCfOption = false;
+    private ImsManager.Connector mImsManagerConnector;
+    private int mPhoneId;
+    private IntentFilter mIntentFilter;
 
+     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+         @Override
+         public void onReceive(Context context, Intent intent) {
+             Log.d(LOG_TAG, "onReceive intent : " + intent);
+                 int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY,
+                         SubscriptionManager.INVALID_PHONE_INDEX);
+             if (TelephonyIntents.ACTION_SIM_STATE_CHANGED.equals(intent.getAction())) {
+                 if (phoneId == mPhoneId &&
+                         IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(
+                             intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE))) {
+                     Log.d(LOG_TAG, "onSimAbsent, exit");
+                     finish();
+                 }
+             }
+         }
+     };
+
+    private ImsFeature.CapabilityCallback mCapabilityCallback =
+        new ImsFeature.CapabilityCallback() {
+            @Override
+            public void onCapabilitiesStatusChanged(ImsFeature.Capabilities config) {
+                    boolean isUtCapable = config.isCapable(
+                            MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_UT);
+                    boolean isVtCapable = config.isCapable(
+                            MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VIDEO);
+                    if (isUtCapable ==  mIsUtCapable && isVtCapable == mIsVtCapable) {
+                        return;
+                    }
+                    mIsUtCapable = isUtCapable;
+                    mIsVtCapable = isVtCapable;
+                    showVideoOption(mIsUtCapable && mIsVtCapable && !mHideVtCfOption);
+            }
+    };
+
+    private void setListeners() throws ImsException {
+        ImsManager imsMgr = ImsManager.getInstance(mPhone.getContext(), mPhone.getPhoneId());
+        imsMgr.addCapabilitiesCallback(mCapabilityCallback);
+    }
+
+    private void removeListeners() {
+        ImsManager imsMgr = ImsManager.getInstance(mPhone.getContext(), mPhone.getPhoneId());
+        try {
+            imsMgr.removeCapabilitiesCallback(mCapabilityCallback);
+        } catch (ImsException e) {
+            Log.d(LOG_TAG, "unable to remove callback.");
+        }
+    }
+
+    private void showVideoOption(boolean show) {
+        if (!show){
+            Log.d(LOG_TAG, "remove video option");
+            getPreferenceScreen().removePreference(mVideoPreference);
+        } else {
+            Log.d(LOG_TAG, "enable video option");
+            getPreferenceScreen().addPreference(mVideoPreference);
+        }
+    }
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -63,6 +135,23 @@ public class CallForwardType extends PreferenceActivity {
         addPreferencesFromResource(R.xml.call_forward_type);
         mSubscriptionInfoHelper = new SubscriptionInfoHelper(this, getIntent());
         mPhone = mSubscriptionInfoHelper.getPhone();
+        mPhoneId = mPhone.getPhoneId();
+        mIsUtCapable = mPhone.isUtEnabled();
+        mIsVtCapable = mPhone.isVideoEnabled();
+        mImsManagerConnector = new ImsManager.
+            Connector(mPhone.getContext(), mPhone.getPhoneId(),
+                new ImsManager.Connector.Listener() {
+                    @Override
+                    public void connectionReady(ImsManager manager) throws ImsException {
+                        Log.d(LOG_TAG, "ImsManager: connection ready.");
+                        setListeners();
+                    }
+
+                    public void connectionUnavailable() {
+                        Log.d(LOG_TAG, "ImsManager: connection unavailable.");
+                        removeListeners();
+                    }
+                });
 
         /*Voice Button*/
         mVoicePreference = (Preference) findPreference(BUTTON_CF_KEY_VOICE);
@@ -85,30 +174,43 @@ public class CallForwardType extends PreferenceActivity {
 
              /*onClicking Video Button*/
              public boolean onPreferenceClick(Preference pref) {
-                 Intent intent = mSubscriptionInfoHelper.getIntent(GsmUmtsCallForwardOptions.class);
-                 Log.d(LOG_TAG, "Video button clicked!");
-                 intent.putExtra(PhoneUtils.SERVICE_CLASS,
-                        (CommandsInterface.SERVICE_CLASS_DATA_SYNC +
-                         CommandsInterface.SERVICE_CLASS_PACKET));
-                 startActivity(intent);
-                 return true;
+                Intent intent = mSubscriptionInfoHelper.getIntent(GsmUmtsCallForwardOptions.class);
+                Log.d(LOG_TAG, "Video button clicked!");
+                intent.putExtra(PhoneUtils.SERVICE_CLASS,
+                       (CommandsInterface.SERVICE_CLASS_DATA_SYNC +
+                        CommandsInterface.SERVICE_CLASS_PACKET));
+                startActivity(intent);
+                return true;
              }
         });
-
-        boolean hideVtCfOption = false;
+        mIntentFilter = new IntentFilter();
+        mIntentFilter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
         CarrierConfigManager cfgManager = (CarrierConfigManager)
                 mPhone.getContext().getSystemService(Context.CARRIER_CONFIG_SERVICE);
         if (cfgManager != null) {
-            hideVtCfOption = cfgManager.getConfigForSubId(mPhone.getSubId())
+            mHideVtCfOption = cfgManager.getConfigForSubId(mPhone.getSubId())
                 .getBoolean("config_hide_vt_callforward_option");
-        }
-
-        if (hideVtCfOption || !(mPhone.isUtEnabled() && mPhone.isVideoEnabled() )) {
-             Log.d(LOG_TAG, "VT or/and Ut Service is not enabled");
-            getPreferenceScreen().removePreference(mVideoPreference);
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(mBroadcastReceiver, mIntentFilter);
+        mImsManagerConnector.connect();
+
+        if (mHideVtCfOption || !(mPhone.isUtEnabled() && mPhone.isVideoEnabled())) {
+            Log.d(LOG_TAG, "VT or/and Ut Service is not enabled");
+            showVideoOption(false);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mImsManagerConnector.disconnect();
+        unregisterReceiver(mBroadcastReceiver);
+    }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         final int itemId = item.getItemId();

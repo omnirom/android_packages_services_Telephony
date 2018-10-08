@@ -1782,4 +1782,5 @@
     <string name="srvcc_message">"4G voice call is downgraded to 2G/3G voice call due to 4G network is not available."</string>
     <string name="ut_not_support">UT is not available</string>
     <string name="ct_ut_not_support_close_4glte">UT is not available, please turn off Enhanced 4G LTE Mode in Settings</string>
+    <string name="switch_dds_to_sub_alert_msg">Please switch mobile data to CT SIM</string>
 </resources>

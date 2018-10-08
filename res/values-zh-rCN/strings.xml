@@ -778,4 +778,5 @@
     <string name="mobile_data_alert">副卡可能会产生数据流量</string>
     <string name="mobile_data">移动数据</string>
     <string name="sim_is_not_ready">SIM卡未就绪</string>
+    <string name="switch_dds_to_sub_alert_msg">请将移动数据切到电信所在的卡</string>
 </resources>

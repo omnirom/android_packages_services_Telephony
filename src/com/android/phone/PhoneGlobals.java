@@ -110,6 +110,7 @@ public class PhoneGlobals extends ContextWrapper {
     private static final int EVENT_RESTART_SIP = 13;
     private static final int EVENT_DATA_ROAMING_SETTINGS_CHANGED = 14;
     private static final int EVENT_MOBILE_DATA_SETTINGS_CHANGED = 15;
+    private static final int EVENT_DATA_CONNECTION_ATTACHED = 17;
 
     // The MMI codes are also used by the InCallScreen.
     public static final int MMI_INITIATE = 51;
@@ -264,6 +265,14 @@ public class PhoneGlobals extends ContextWrapper {
                 case EVENT_DATA_ROAMING_SETTINGS_CHANGED:
                 case EVENT_MOBILE_DATA_SETTINGS_CHANGED:
                     updateDataRoamingStatus();
+                    break;
+                case EVENT_DATA_CONNECTION_ATTACHED:
+                    int subId = (Integer)((AsyncResult)msg.obj).userObj;
+                    if (!mNoDataDueToRoaming
+                            && subId == mDefaultDataSubId) {
+                        if (VDBG) Log.v(LOG_TAG, "EVENT_DATA_CONNECTION_ATTACHED");
+                        updateDataRoamingStatus();
+                    }
                     break;
             }
         }
@@ -710,6 +719,10 @@ public class PhoneGlobals extends ContextWrapper {
                 }
                 handleAirplaneModeChange(context, airplaneMode);
             } else if ((action.equals(TelephonyIntents.ACTION_SIM_STATE_CHANGED))) {
+                int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY, 0);
+                int subId = intent.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX,
+                        SubscriptionManager.INVALID_SIM_SLOT_INDEX);
+                String simStatus = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
                 PhoneUtils.registerIccStatus(mHandler, EVENT_SIM_NETWORK_LOCKED);
                 if (mPUKEntryActivity != null) {
                     // if an attempt to un-PUK-lock the device was made, while we're
@@ -721,6 +734,17 @@ public class PhoneGlobals extends ContextWrapper {
                 }
                 mHandler.sendMessage(mHandler.obtainMessage(EVENT_SIM_STATE_CHANGED_CHECKREADY,
                         intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE)));
+                Phone phone = PhoneFactory.getPhone(phoneId);
+                if (phone != null) {
+                    if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(simStatus)) {
+                        phone.getServiceStateTracker().registerForDataConnectionAttached(
+                                mHandler, EVENT_DATA_CONNECTION_ATTACHED, subId);
+                    } else if (IccCardConstants.INTENT_VALUE_ICC_ABSENT.equals(simStatus)
+                            || IccCardConstants.INTENT_VALUE_ICC_CARD_IO_ERROR.equals(simStatus)) {
+                        phone.getServiceStateTracker()
+                                .unregisterForDataConnectionAttached(mHandler);
+                    }
+                }
             } else if (action.equals(TelephonyIntents.ACTION_RADIO_TECHNOLOGY_CHANGED)) {
                 String newPhone = intent.getStringExtra(PhoneConstants.PHONE_NAME_KEY);
                 Log.d(LOG_TAG, "Radio technology switched. Now " + newPhone + " is active.");

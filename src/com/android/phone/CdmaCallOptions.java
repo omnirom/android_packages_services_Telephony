@@ -39,6 +39,7 @@ import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
 import android.telephony.ims.feature.ImsFeature;
 import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.MenuItem;
 
@@ -116,6 +117,56 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
             && !phone.isVideoEnabled();
     }
 
+    /*
+     * Some operators ask to prompt user to switch DDS to sub which query CF/CW over UT
+     */
+    private  boolean maybePromptUserToSwitchDds() {
+        // check the active data sub.
+        int sub = mPhone.getSubId();
+        final SubscriptionManager subMgr = SubscriptionManager.from(this);
+        int slotId = subMgr.getSlotIndex(sub);
+        int defaultDataSub = subMgr.getDefaultDataSubscriptionId();
+        Log.d(LOG_TAG, "isUtEnabled = " + mPhone.isUtEnabled() + ", need to check DDS ");
+        // Find out if the sim card is ready.
+        boolean isSimReady = TelephonyManager.from(this).getSimState(slotId)
+             == TelephonyManager.SIM_STATE_READY;
+        if (mPhone != null && sub != defaultDataSub && !mPhone.isUtEnabled()) {
+            Log.d(LOG_TAG, "Show dds switch dialog if data sub is not on current sub");
+            showSwitchDdsDialog(slotId);
+            return true;
+        }
+        return false;
+    }
+
+    private void showSwitchDdsDialog(int slotId) {
+        String title = (String)this.getResources().getText(R.string.no_mobile_data);
+        int simId = slotId + 1;
+        String message = (String)this.getResources()
+            .getText(R.string.switch_dds_to_sub_alert_msg) + String.valueOf(simId);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title);
+        builder.setMessage(message);
+        builder.setIconAttribute(android.R.attr.alertDialogIcon);
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Intent newIntent = new Intent("com.qualcomm.qti.simsettings.SIM_SETTINGS");
+                newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(newIntent);
+                finish();
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel,
+                new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                finish();
+            }
+        });
+        builder.create().show();
+    }
+
     private void showAlertDialog(String title, String message) {
         Dialog dialog = new AlertDialog.Builder(this)
             .setTitle(title)
@@ -180,6 +231,9 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
             }
         }
 
+        if(carrierConfig.getBoolean("check_mobile_data_for_cf") && maybePromptUserToSwitchDds()) {
+            return;
+        }
         if(mPhone.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA
                 && isPromptTurnOffEnhance4GLTE(mPhone)
                 && carrierConfig.getBoolean(CarrierConfigManager.KEY_CDMA_CW_CF_ENABLED_BOOL)) {
@@ -246,8 +300,13 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
                                 Intent intent = mPhone.isUtEnabled() ?
                                     subInfoHelper.getIntent(GsmUmtsCallForwardOptions.class)
                                     : new Intent(CALL_FORWARD_INTENT);
-                                intent.putExtra(PhoneUtils.SERVICE_CLASS,
-                                    CommandsInterface.SERVICE_CLASS_VOICE);
+                                if (mPhone.isUtEnabled()) {
+                                    intent.putExtra(PhoneUtils.SERVICE_CLASS,
+                                        CommandsInterface.SERVICE_CLASS_VOICE);
+                                } else {
+                                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                                        mPhone.getSubId());
+                                }
                                 startActivity(intent);
                                 return true;
                             }
