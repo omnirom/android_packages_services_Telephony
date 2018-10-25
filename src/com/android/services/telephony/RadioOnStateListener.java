@@ -58,6 +58,7 @@ public class RadioOnStateListener {
     public static final int MSG_RETRY_TIMEOUT = 3;
     @VisibleForTesting
     public static final int MSG_RADIO_ON = 4;
+    public static final int MSG_RADIO_OFF_OR_NOT_AVAILABLE = 5;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -79,6 +80,9 @@ public class RadioOnStateListener {
                     break;
                 case MSG_RADIO_ON:
                     onRadioOn();
+                    break;
+                case MSG_RADIO_OFF_OR_NOT_AVAILABLE:
+                    registerForRadioOn();
                     break;
                 case MSG_RETRY_TIMEOUT:
                     onRetryTimeout();
@@ -140,7 +144,9 @@ public class RadioOnStateListener {
         mCallback = callback;
 
         registerForServiceStateChanged();
-        registerForRadioOn();
+        // Register for RADIO_OFF to handle cases where emergency call is dialed before
+        // we receive UNSOL_RESPONSE_RADIO_STATE_CHANGED with RADIO_OFF.
+        registerForRadioOff();
         // Next step: when the SERVICE_STATE_CHANGED event comes in, we'll retry the call; see
         // onServiceStateChanged(). But also, just in case, start a timer to make sure we'll retry
         // the call even if the SERVICE_STATE_CHANGED event never comes in for some reason.
@@ -256,6 +262,7 @@ public class RadioOnStateListener {
         onComplete(false);
 
         unregisterForServiceStateChanged();
+        unregisterForRadioOff();
         unregisterForRadioOn();
         cancelRetryTimer();
 
@@ -289,8 +296,21 @@ public class RadioOnStateListener {
         mHandler.removeMessages(MSG_SERVICE_STATE_CHANGED);  // Clean up any pending messages too
     }
 
-    private void registerForRadioOn() {
+    private void registerForRadioOff() {
         unregisterForServiceStateChanged();
+        mPhone.mCi.registerForOffOrNotAvailable(mHandler, MSG_RADIO_OFF_OR_NOT_AVAILABLE, null);
+    }
+
+    private void unregisterForRadioOff() {
+        // This method is safe to call even if we haven't set mPhone yet.
+        if (mPhone != null) {
+            mPhone.mCi.unregisterForOffOrNotAvailable(mHandler);  // Safe even if unnecessary
+        }
+        mHandler.removeMessages(MSG_RADIO_OFF_OR_NOT_AVAILABLE);  // Clean up any pending messages
+    }
+
+    private void registerForRadioOn() {
+        unregisterForRadioOff();
         mPhone.mCi.registerForOn(mHandler, MSG_RADIO_ON, null);
     }
 
