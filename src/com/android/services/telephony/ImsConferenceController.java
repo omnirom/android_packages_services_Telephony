@@ -51,6 +51,12 @@ public class ImsConferenceController {
 
             mImsConferences.remove(conference);
         }
+
+        @Override
+        public void onStateChanged(Conference conference, int oldState, int newState) {
+            Log.v(this, "onStateChanged: Conference = " + conference);
+            recalculate();
+        }
     };
 
     /**
@@ -389,5 +395,8 @@ public class ImsConferenceController {
                         android.telephony.DisconnectCause.IMS_MERGED_SUCCESSFULLY)));
         connection.destroy();
         mImsConferences.add(conference);
+        // If one of the participants failed to join the conference, recalculate will set the
+        // conferenceable connections for the conference to show merge calls option
+        recalculate();
     }
 }
