@@ -32,6 +32,9 @@ import android.telecom.StatusHints;
 import android.telecom.VideoProfile;
 import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.util.Pair;
 
 import com.android.internal.telephony.Call;
@@ -282,7 +285,8 @@ public class ImsConference extends Conference implements Holdable {
         setConferenceHost(conferenceHost);
 
         int capabilities = Connection.CAPABILITY_MUTE |
-                Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN;
+                Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN |
+                Connection.CAPABILITY_ADD_PARTICIPANT;
         if (canHoldImsCalls()) {
             capabilities |= Connection.CAPABILITY_SUPPORT_HOLD | Connection.CAPABILITY_HOLD;
             mIsHoldable = true;
@@ -451,6 +455,25 @@ public class ImsConference extends Conference implements Holdable {
             }
         } catch (CallStateException e) {
             Log.e(this, e, "Exception thrown trying to merge call into a conference");
+        }
+    }
+
+    /**
+     * Invoked when the conference adds a participant to the conference call.
+     *
+     * @param participant The participant to be added with conference call.
+     */
+    @Override
+    public void onAddParticipant(String participant) {
+        try {
+            Phone phone = (mConferenceHost != null) ? mConferenceHost.getPhone() : null;
+            Log.d(this, "onAddParticipant mConferenceHost = " + mConferenceHost
+                    + " Phone = " + phone);
+            if (phone != null) {
+                phone.addParticipant(participant);
+            }
+        } catch (CallStateException e) {
+            Log.e(this, e, "Exception thrown trying to add a participant into conference");
         }
     }
 
@@ -681,7 +704,20 @@ public class ImsConference extends Conference implements Holdable {
                 if (!mConferenceParticipantConnections.containsKey(userEntity)) {
                     // Some carriers will also include the conference host in the CEP.  We will
                     // filter that out here.
-                    if (!isParticipantHost(mConferenceHostAddress, participant.getHandle())) {
+                    // Also make sure the parent connection is not null.
+                    boolean disableFilter = false;
+                    Phone phone = parent.getPhone();
+                    if (phone != null) {
+                        CarrierConfigManager cfgManager = (CarrierConfigManager)
+                                phone.getContext().getSystemService(Context.CARRIER_CONFIG_SERVICE);
+                        if (cfgManager != null) {
+                            disableFilter = cfgManager.getConfigForSubId(phone.getSubId())
+                                    .getBoolean("disable_filter_out_conference_host");
+                        }
+                    }
+                    if ((!isParticipantHost(mConferenceHostAddress, participant.getHandle())
+                            || disableFilter) && (parent.getOriginalConnection() != null)) {
+                        Log.i(this, "Create participant connection, participant = %s", participant);
                         createConferenceParticipantConnection(parent, participant);
                         newParticipants.add(participant);
                         newParticipantsAdded = true;
@@ -914,7 +950,7 @@ public class ImsConference extends Conference implements Holdable {
                         c.getConnectionProperties() | Connection.PROPERTY_IS_DOWNGRADED_CONFERENCE);
                 c.updateState();
                 // Copy the connect time from the conferenceHost
-                c.setConnectTimeMillis(mConferenceHost.getConnectTimeMillis());
+                c.setConnectTimeMillis(originalConnection.getConnectTime());
                 mTelephonyConnectionService.addExistingConnection(phoneAccountHandle, c);
                 mTelephonyConnectionService.addConnectionToConferenceController(c);
             } // CDMA case not applicable for SRVCC
@@ -951,8 +987,14 @@ public class ImsConference extends Conference implements Holdable {
                 if (mConferenceHost == null) {
                     disconnectCause = new DisconnectCause(DisconnectCause.CANCELED);
                 } else {
-                    disconnectCause = DisconnectCauseUtil.toTelecomDisconnectCause(
-                            mConferenceHost.getOriginalConnection().getDisconnectCause());
+                    if (mConferenceHost.getPhone() != null) {
+                        disconnectCause = DisconnectCauseUtil.toTelecomDisconnectCause(
+                                mConferenceHost.getOriginalConnection().getDisconnectCause(),
+                                null, mConferenceHost.getPhone().getPhoneId());
+                    } else {
+                        disconnectCause = DisconnectCauseUtil.toTelecomDisconnectCause(
+                                mConferenceHost.getOriginalConnection().getDisconnectCause());
+                    }
                 }
                 setDisconnected(disconnectCause);
                 disconnectConferenceParticipants();
@@ -987,8 +1029,19 @@ public class ImsConference extends Conference implements Holdable {
             Phone phone = mConferenceHost.getPhone();
             if (phone != null) {
                 Context context = phone.getContext();
+                String displaySubId = "";
+                if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+                    final int phoneId = mConferenceHost.getPhone().getPhoneId();
+                    SubscriptionInfo sub = SubscriptionManager.from(
+                            mConferenceHost.getPhone().getContext())
+                        .getActiveSubscriptionInfoForSimSlotIndex(phoneId);
+                    if (sub != null) {
+                        displaySubId = sub.getDisplayName().toString();
+                        displaySubId  = " " + displaySubId;
+                    }
+                }
                 setStatusHints(new StatusHints(
-                        context.getString(R.string.status_hint_label_wifi_call),
+                        context.getString(R.string.status_hint_label_wifi_call) + displaySubId,
                         Icon.createWithResource(
                                 context.getResources(),
                                 R.drawable.ic_signal_wifi_4_bar_24dp),

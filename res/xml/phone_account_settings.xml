@@ -30,6 +30,7 @@
             android:order="1" />
 
         <PreferenceScreen
+            android:key="phone_account_all_calling_accounts"
             android:title="@string/phone_accounts_all_calling_accounts"
             android:summary="@string/phone_accounts_all_calling_accounts_summary"
             android:persistent="false"
@@ -38,6 +39,17 @@
             <intent android:action="android.intent.action.MAIN"
                 android:targetPackage="com.android.server.telecom"
                 android:targetClass="com.android.server.telecom.settings.EnableAccountPreferenceActivity" />
+        </PreferenceScreen>
+
+        <PreferenceScreen
+          android:key="button_smart_divert"
+          android:title="@string/smart_divert_title"
+          android:summary="@string/smart_divert_summary"
+          android:persistent="false"
+          android:order="1500">
+          <intent android:action="android.intent.action.MAIN"
+             android:targetPackage="com.qti.xdivert"
+             android:targetClass="com.qti.xdivert.XDivertSetting" />
         </PreferenceScreen>
 
     </PreferenceCategory>

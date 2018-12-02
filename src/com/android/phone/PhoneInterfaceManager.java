@@ -2259,7 +2259,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public int getNetworkType() {
-        final Phone phone = getPhone(getDefaultSubscription());
+        final Phone phone = getPhone(mSubscriptionController.getDefaultDataSubId());
         if (phone != null) {
             return phone.getServiceState().getDataNetworkType();
         } else {
@@ -2290,7 +2290,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public int getDataNetworkType(String callingPackage) {
-        return getDataNetworkTypeForSubscriber(getDefaultSubscription(), callingPackage);
+        return getDataNetworkTypeForSubscriber(mSubscriptionController.getDefaultDataSubId(),
+                callingPackage);
     }
 
     /**
@@ -3570,8 +3571,20 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     UserManager.DISALLOW_CONFIG_MOBILE_NETWORKS)) {
                 setUserDataEnabled(subId, getDefaultDataEnabled());
                 setNetworkSelectionModeAutomatic(subId);
+                // Set preferred mobile network type to the best available
+
+                String defaultNetworkMode = TelephonyManager.getTelephonyProperty(
+                        mSubscriptionController.getPhoneId(subId),
+                        "ro.telephony.default_network", null);
+                int networkType = !TextUtils.isEmpty(defaultNetworkMode)
+                        ? Integer.parseInt(defaultNetworkMode) : Phone.PREFERRED_NT_MODE;
                 setPreferredNetworkType(subId, getDefaultNetworkType(subId));
-                mPhone.setDataRoamingEnabled(getDefaultDataRoamingEnabled(subId));
+
+                // Turn off roaming
+                Phone phone = getPhone(subId);
+                phone = phone != null ? phone : mPhone;
+                phone.setDataRoamingEnabled(getDefaultDataRoamingEnabled(subId));
+                // Remove IMSI encryption keys from Carrier DB.
                 CarrierInfoManager.deleteAllCarrierKeysForImsiEncryption(mPhone.getContext());
             }
         } finally {

@@ -89,8 +89,7 @@ public class AccountSelectionPreference extends ListPreference implements
             CharSequence label = account.getLabel();
             int subId = telephonyManager.getSubIdForPhoneAccount(account);
             if (subId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
-                final SubscriptionInfo sir = SubscriptionManager.from(getContext())
-                        .getActiveSubscriptionInfo(subId);
+                final SubscriptionInfo sir = SubscriptionManager.from(getContext()).getActiveSubscriptionInfo(subId);
                 if (sir != null) {
                     label = getSubscriptionDisplayName(sir);
                 }

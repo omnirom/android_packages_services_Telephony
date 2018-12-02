@@ -180,11 +180,12 @@
     </style>
 
     <style name="NetworkOperatorsSettingsTheme" parent="@android:style/Theme.DeviceDefault.Settings">
-        <item name="android:switchPreferenceStyle">@style/SettingsSwitchPreference</item>
+        <!--<item name="android:switchPreferenceStyle">@style/SettingsSwitchPreference</item>
         <item name="android:preferenceCategoryStyle">@style/SettingsPreferenceCategory</item>
         <item name="android:preferenceStyle">@style/SettingsPreference</item>
         <item name="android:dialogPreferenceStyle">@style/SettingsDialogPreference</item>
-        <item name="android:preferenceScreenStyle">@style/SettingsPreferenceScreen</item>
+        <item name="android:preferenceScreenStyle">@style/SettingsPreferenceScreen</item>-->
+        <item name="preferenceTheme">@style/PreferenceTheme</item>
     </style>
 
     <style name="TrimmedHorizontalProgressBar" parent="android:Widget.Material.ProgressBar.Horizontal">
@@ -312,5 +313,11 @@
 
     <style name="CallSettingsWithoutDividerTheme" parent="SettingsLight">
         <item name="android:listDivider">@null</item>
+    </style>
+    <style name="cfut_value">
+        <item name="android:layout_width">80dip</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textAppearance">?android:attr/textAppearanceSmall</item>
+        <item name="android:singleLine">true</item>
     </style>
 </resources>
