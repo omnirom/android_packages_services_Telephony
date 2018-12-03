@@ -727,7 +727,7 @@ public class GsmUmtsCallBarringOptions extends TimeConsumingPreferenceActivity
             mBuilder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    Intent newIntent = new Intent("com.qualcomm.qti.simsettings.SIM_SETTINGS");
+                    Intent newIntent = new Intent("com.android.settings.sim.SIM_SUB_INFO_SETTINGS");
                     newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(newIntent);
                 }
