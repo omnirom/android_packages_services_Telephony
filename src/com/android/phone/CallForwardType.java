@@ -37,6 +37,7 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
 import android.telephony.CarrierConfigManager;
+import android.telephony.ims.ImsMmTelManager;
 import android.telephony.ims.feature.ImsFeature;
 import android.telephony.ims.feature.MmTelFeature;
 import android.telephony.SubscriptionManager;
@@ -87,13 +88,13 @@ public class CallForwardType extends PreferenceActivity {
          }
      };
 
-    private ImsFeature.CapabilityCallback mCapabilityCallback =
-        new ImsFeature.CapabilityCallback() {
+    private ImsMmTelManager.CapabilityCallback mCapabilityCallback =
+        new ImsMmTelManager.CapabilityCallback() {
             @Override
-            public void onCapabilitiesStatusChanged(ImsFeature.Capabilities config) {
-                    boolean isUtCapable = config.isCapable(
+            public void onCapabilitiesStatusChanged(MmTelFeature.MmTelCapabilities capabilities) {
+                    boolean isUtCapable = capabilities.isCapable(
                             MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_UT);
-                    boolean isVtCapable = config.isCapable(
+                    boolean isVtCapable = capabilities.isCapable(
                             MmTelFeature.MmTelCapabilities.CAPABILITY_TYPE_VIDEO);
                     if (isUtCapable ==  mIsUtCapable && isVtCapable == mIsVtCapable) {
                         return;
