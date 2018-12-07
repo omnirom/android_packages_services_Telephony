@@ -89,6 +89,15 @@
     <protected-broadcast android:name= "android.telephony.action.SIM_CARD_STATE_CHANGED" />
     <protected-broadcast android:name= "android.telephony.action.SIM_APPLICATION_STATE_CHANGED" />
     <protected-broadcast android:name= "android.telephony.action.SIM_SLOT_STATUS_CHANGED" />
+    <protected-broadcast android:name= "codeaurora.intent.action.ACTION_MANAGED_ROAMING_IND" />
+    <protected-broadcast android:name= "org.codeaurora.intent.action.SUBSCRIPTION_INFO_RECORD_ADDED" />
+    <protected-broadcast android:name= "org.codeaurora.intent.action.PRIMARY_CARD_CHANGED_IN_SERVICE" />
+    <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_SET_PRIMARY_CARD_DONE" />
+    <protected-broadcast android:name= "codeaurora.intent.action.ACTION_LTE_CONFIGURE" />
+    <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_UICC_MANUAL_PROVISION_STATUS_CHANGED" />
+    <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_RADIO_CAPABILITY_UPDATED" />
+    <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_NETWORK_SPECIFIER_SET" />
+    <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_DDS_SWITCH_DONE" />
     <protected-broadcast android:name= "android.telephony.action.SUBSCRIPTION_CARRIER_IDENTITY_CHANGED" />
 
     <uses-permission android:name="android.permission.BROADCAST_STICKY" />
@@ -324,6 +333,15 @@
 
         <activity android:name="GsmUmtsAdditionalCallOptions"
                 android:label="@string/labelGSMMore"
+                android:configChanges="orientation|screenSize|keyboardHidden"
+                android:theme="@style/SettingsLight">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name="CallForwardType"
+                android:label="@string/call_forward_option"
                 android:configChanges="orientation|screenSize|keyboardHidden"
                 android:theme="@style/SettingsLight">
             <intent-filter>
