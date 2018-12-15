@@ -45,6 +45,4 @@
 
     <style name="SettingsListPreference" parent="SettingsPreference"/>
 
-    <style name="PreferenceTheme" parent="@style/PreferenceThemeOverlay.SettingsBase">
-    </style>
 </resources>
