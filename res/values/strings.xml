@@ -554,6 +554,16 @@
 
     <!-- Mobile network 4G summary [CHAR LIMIT=80] -->
     <string name="enhanced_4g_lte_mode_summary">Use LTE services to improve voice and other communications (recommended)</string>
+    <string name="enhanced_4g_lte_mode_summary_o2">Use 4G services to improve voice and other communications (recommended)</string>
+    <!-- Carrier variant of Enhaced 4G LTE Mode summary.  [CHAR LIMIT=80] -->
+    <string-array name="enhanced_4g_lte_mode_sumary_variant">
+        <!-- 0: Default -->
+        <item>@string/enhanced_4g_lte_mode_summary</item>
+        <!-- 1: Verizon -->
+        <item>@string/enhanced_4g_lte_mode_summary</item>
+        <!-- 2: O2 UK -->
+        <item>@string/enhanced_4g_lte_mode_summary_o2</item>
+    </string-array>
 
     <!-- Mobile network settings screen, data enabling checkbox name -->
     <string name="data_enabled">Data enabled</string>
@@ -1840,6 +1850,11 @@
     <string name="ct_ut_not_support_close_4glte">UT is not available, please turn off Enhanced 4G LTE Mode in Settings</string>
     <string name="switch_dds_to_sub_alert_msg">Please switch mobile data to CT SIM</string>
 
+    <!-- In-call screen: error message shown when the user attempts to place a call, but the device
+         is currently in the process of being provisioned for service.  Provisioning is the process
+         by which a device confirms which services are available to the user by contacting the
+         mobile service provider. -->
+    <string name="callFailed_otasp_provisioning_in_process">Cannot place a call as the device is currently being provisioned.</string>
     <!-- In-call screen: error message shown when the user has attempted to place a new outgoing
          call, but there is already a call in dialing state. -->
     <string name="callFailed_already_dialing">Cannot place a call as another outgoing call is already dialing.</string>

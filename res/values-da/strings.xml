@@ -249,14 +249,14 @@
     <string name="roaming_warning" msgid="1603164667540144353">"Du kan risikere at skulle betale høje gebyrer."</string>
     <string name="roaming_check_price_warning" msgid="7497570906830902550">"Kontakt din netværksudbyder for at få oplyst priser."</string>
     <string name="roaming_alert_title" msgid="3654815360303826008">"Vil du tillade dataroaming?"</string>
-    <string name="data_usage_title" msgid="4042209259808900283">"Appens dataforbrug"</string>
+    <string name="data_usage_title" msgid="4042209259808900283">"Dataforbrug fra apps"</string>
     <string name="data_usage_template" msgid="8526428824844656364">"<xliff:g id="ID_1">%1$s</xliff:g> mobildata er brugt i perioden <xliff:g id="ID_2">%2$s</xliff:g>"</string>
     <string name="advanced_options_title" msgid="8074895510265488035">"Avanceret"</string>
     <string name="carrier_settings_euicc" msgid="6714062862127226405">"Mobilselskab"</string>
     <string name="keywords_carrier_settings_euicc" msgid="6861505396475991277">"mobilselskab, esim, sim-kort, euicc, skift mobilselskab, tilføj mobilselskab"</string>
     <string name="carrier_settings_euicc_summary" msgid="5115001942761995457">"<xliff:g id="CARRIER_NAME">%1$s</xliff:g> – <xliff:g id="PHONE_NUMBER">%2$s</xliff:g>"</string>
     <string name="mobile_data_settings_title" msgid="4661165467914727157">"Mobildata"</string>
-    <string name="mobile_data_settings_summary" msgid="5087255915840576895">"Få adgang til data via mobilnetværk"</string>
+    <string name="mobile_data_settings_summary" msgid="5087255915840576895">"Brug data via mobilnetværk"</string>
     <string name="data_usage_disable_mobile" msgid="3577275288809667615">"Vil du deaktivere mobildata?"</string>
     <string name="sim_selection_required_pref" msgid="7049424902961844236">"Du har ikke valgt endnu"</string>
     <string name="sim_change_data_title" msgid="5332425991853799280">"Skift SIM-kortet til data?"</string>
@@ -505,13 +505,13 @@
     <string name="incall_error_supp_service_resume" msgid="7147983409782027448">"Opkaldet kan ikke genoptages."</string>
     <string name="incall_error_supp_service_separate" msgid="7224393405134545246">"Kan ikke adskille opkald."</string>
     <string name="incall_error_supp_service_transfer" msgid="7235952238189391438">"Kan ikke overføre."</string>
-    <string name="incall_error_supp_service_conference" msgid="2505727299596357312">"Der kunne ikke oprettes mødeopkald."</string>
+    <string name="incall_error_supp_service_conference" msgid="2530955482970678150">"Opkaldene kunne ikke flettes."</string>
     <string name="incall_error_supp_service_reject" msgid="8998568661508655638">"Kan ikke afvise opkaldet."</string>
     <string name="incall_error_supp_service_hangup" msgid="7434513517153834426">"Kan ikke frigive et eller flere opkald."</string>
     <string name="incall_error_supp_service_hold" msgid="7967020511232222078">"Opkald kan ikke sættes i venteposition."</string>
     <string name="incall_error_wfc_only_no_wireless_network" msgid="1782466780452640089">"Opret forbindelse til et trådløst netværk for at foretage et opkald."</string>
     <string name="incall_error_promote_wfc" msgid="106510757624022064">"Aktivér Wi-Fi-opkald for at foretage et opkald."</string>
-    <string name="emergency_information_hint" msgid="399011533038204351">"Oplysninger i nødsituationer"</string>
+    <string name="emergency_information_hint" msgid="399011533038204351">"Info til nødsituationer"</string>
     <string name="emergency_information_owner_hint" msgid="688331472291637149">"Ejer"</string>
     <string name="emergency_information_confirm_hint" msgid="4039012670779853030">"Tryk igen for at se oplysninger"</string>
     <string name="emergency_enable_radio_dialog_title" msgid="4627849966634578257">"Nødopkald"</string>
@@ -768,12 +768,14 @@
     <string name="supp_service_forwarded_call" msgid="4509980341645679803">"Videresendt opkald."</string>
     <string name="supp_service_conference_call" msgid="4448616364004466832">"Du deltager i konferenceopkaldet."</string>
     <string name="supp_service_held_call_released" msgid="2030677825038709779">"Det parkerede opkald er blevet frigivet."</string>
-    <!-- no translation found for callFailed_already_dialing (4652915396769232226) -->
-    <skip />
-    <!-- no translation found for callFailed_already_ringing (7747655701540586943) -->
-    <skip />
-    <!-- no translation found for callFailed_calling_disabled (7257184079619449933) -->
-    <skip />
-    <!-- no translation found for callFailed_too_many_calls (3023051919216926990) -->
-    <skip />
+    <string name="callFailed_otasp_provisioning_in_process" msgid="6361786376484384454">"Opkaldet kan ikke foretages, fordi enheden pt. provisioneres."</string>
+    <string name="callFailed_already_dialing" msgid="4652915396769232226">"Der kan ikke foretages et opkald, fordi et udgående opkald allerede ringer."</string>
+    <string name="callFailed_already_ringing" msgid="7747655701540586943">"Der kan ikke foretages et opkald, fordi et indgående opkald ringer. Besvar eller afvis det indgående opkald, før du foretager et nyt opkald."</string>
+    <string name="callFailed_calling_disabled" msgid="7257184079619449933">"Der kan ikke foretages et opkald, fordi foretagelse af opkald er blevet deaktiveret ved hjælp af systemegenskaben ro.telephony.disable-call."</string>
+    <string name="callFailed_too_many_calls" msgid="3023051919216926990">"Der kan ikke foretages et opkald, fordi der allerede er to igangværende opkald. Afslut et af opkaldene, eller flet dem til et konferenceopkald, før du foretager et nyt opkald."</string>
+    <string name="supp_service_over_ut_precautions" msgid="2565837355815074278">"Hvis du vil bruge <xliff:g id="SUPP_SERVICE">%s</xliff:g>, skal du sørge for, at mobildata er slået til. Du kan ændre dette under indstillingerne for mobilnetværk."</string>
+    <string name="supp_service_over_ut_precautions_roaming" msgid="1597142936802114092">"Hvis du vil bruge <xliff:g id="SUPP_SERVICE">%s</xliff:g>, skal du sørge for, at mobildata og dataroaming er slået til. Du kan ændre dette under indstillingerne for mobilnetværk."</string>
+    <string name="supp_service_over_ut_precautions_dual_sim" msgid="1682814794340311300">"Hvis du vil bruge <xliff:g id="SUPP_SERVICE">%1$s</xliff:g>, skal du sørge for, at mobildata er slået til for SIM-kortet <xliff:g id="SIM_NUMBER">%2$d</xliff:g>. Du kan ændre dette under indstillingerne for mobilnetværk."</string>
+    <string name="supp_service_over_ut_precautions_roaming_dual_sim" msgid="8062345092837168385">"Hvis du vil bruge <xliff:g id="SUPP_SERVICE">%1$s</xliff:g>, skal du sørge for, at mobildata og dataroaming er slået til for SIM-kortet <xliff:g id="SIM_NUMBER">%2$d</xliff:g>. Du kan ændre dette under indstillingerne for mobilnetværk."</string>
+    <string name="supp_service_over_ut_precautions_dialog_dismiss" msgid="5061044213859557398">"Luk"</string>
 </resources>

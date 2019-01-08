@@ -62,7 +62,6 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.DialerKeyListener;
 import android.text.style.TtsSpan;
-import android.util.FeatureFlagUtils;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.HapticFeedbackConstants;
@@ -348,8 +347,26 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         // Allow turning screen on
         setTurnScreenOn(true);
 
-        mAreEmergencyDialerShortcutsEnabled = FeatureFlagUtils
-                .isEnabled(this, FeatureFlagUtils.EMERGENCY_DIAL_SHORTCUTS);
+        CarrierConfigManager configMgr = getSystemService(CarrierConfigManager.class);
+        PersistableBundle carrierConfig =
+                configMgr.getConfigForSubId(SubscriptionManager.getDefaultVoiceSubscriptionId());
+
+        // Disable emergency dialer shortcut when can't get the location information or inserting
+        // the SIM of the blacklisted carrier.
+        boolean isSupport = carrierConfig.getBoolean(
+                CarrierConfigManager.KEY_SUPPORT_EMERGENCY_DIALER_SHORTCUT_BOOL);
+        Log.d(LOG_TAG, "Is the carrier supported: " + isSupport);
+        TelephonyManager tm = getSystemService(TelephonyManager.class);
+        String countryIso = tm.getNetworkCountryIso();
+        mAreEmergencyDialerShortcutsEnabled = false;
+        if (isSupport && !TextUtils.isEmpty(countryIso)) {
+            if (EccInfoHelper.isCountryEccInfoAvailable(this, countryIso)) {
+                mAreEmergencyDialerShortcutsEnabled = true;
+            } else {
+                Log.d(LOG_TAG, "ECC info is unavailable. Disable emergency dialer shortcut.");
+            }
+        }
+        mAreEmergencyDialerShortcutsEnabled = false;
         Log.d(LOG_TAG, "Enable emergency dialer shortcut: "
                 + mAreEmergencyDialerShortcutsEnabled);
 
@@ -400,11 +417,6 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         // Check whether we should show the onscreen "Dial" button and co.
         // Read carrier config through the public API because PhoneGlobals is not available when we
         // run as a secondary user.
-        CarrierConfigManager configMgr =
-                (CarrierConfigManager) getSystemService(Context.CARRIER_CONFIG_SERVICE);
-        PersistableBundle carrierConfig =
-                configMgr.getConfigForSubId(SubscriptionManager.getDefaultVoiceSubscriptionId());
-
         if (carrierConfig.getBoolean(CarrierConfigManager.KEY_SHOW_ONSCREEN_DIAL_BUTTON_BOOL)) {
             mDialButton.setOnClickListener(this);
         } else {
@@ -451,7 +463,7 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         mEmergencyInfoGroup = (EmergencyInfoGroup) findViewById(R.id.emergency_info_button);
 
         if (mAreEmergencyDialerShortcutsEnabled) {
-            mEccInfoHelper = new EccInfoHelper(new IsoToEccProtobufRepository());
+            mEccInfoHelper = new EccInfoHelper(IsoToEccProtobufRepository.getInstance());
             setupEmergencyShortcutsView();
         }
     }
@@ -921,7 +933,7 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
         AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         int ringerMode = audioManager.getRingerMode();
         if ((ringerMode == AudioManager.RINGER_MODE_SILENT)
-            || (ringerMode == AudioManager.RINGER_MODE_VIBRATE)) {
+                || (ringerMode == AudioManager.RINGER_MODE_VIBRATE)) {
             return;
         }
 
@@ -1047,8 +1059,8 @@ public class EmergencyDialer extends Activity implements View.OnClickListener,
                 boolean isCellAvailable =
                         ss.getRilVoiceRadioTechnology() != RIL_RADIO_TECHNOLOGY_UNKNOWN;
                 Log.i(LOG_TAG, "showWfcWarningTask: isWfcAvailable=" + isWfcAvailable
-                                + " isCellAvailable=" + isCellAvailable
-                                + "(rat=" + ss.getRilVoiceRadioTechnology() + ")");
+                        + " isCellAvailable=" + isCellAvailable
+                        + "(rat=" + ss.getRilVoiceRadioTechnology() + ")");
                 return isWfcAvailable && !isCellAvailable;
             }
 

@@ -277,7 +277,7 @@ public final class TelecomAccountRegistry {
                 extras.putBoolean(PhoneAccount.EXTRA_PLAY_CALL_RECORDING_TONE, true);
             }
 
-            if (PhoneGlobals.getInstance().phoneMgr.isRttEnabled()) {
+            if (PhoneGlobals.getInstance().phoneMgr.isRttEnabled(subId)) {
                 capabilities |= PhoneAccount.CAPABILITY_RTT;
             }
 
@@ -542,7 +542,8 @@ public final class TelecomAccountRegistry {
         }
 
         public void updateRttCapability() {
-            boolean isRttEnabled = PhoneGlobals.getInstance().phoneMgr.isRttEnabled();
+            boolean isRttEnabled = PhoneGlobals.getInstance().phoneMgr
+                    .isRttEnabled(mPhone.getSubId());
             boolean oldRttEnabled = mAccount.hasCapabilities(PhoneAccount.CAPABILITY_RTT);
             if (isRttEnabled != oldRttEnabled) {
                 mAccount = registerPstnPhoneAccount(mIsEmergency, mIsDummy);

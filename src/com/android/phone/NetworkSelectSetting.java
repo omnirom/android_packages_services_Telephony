@@ -84,7 +84,7 @@ public class NetworkSelectSetting extends PreferenceFragment {
     private NetworkOperatorPreference mSelectedNetworkOperatorPreference;
     private TelephonyManager mTelephonyManager;
     private List<String> mForbiddenPlmns;
-    private boolean mShow4GForLTE = true;
+    private boolean mShow4GForLTE = false;
     private NetworkScanHelper mNetworkScanHelper;
     private final ExecutorService mNetworkScanExecutor = Executors.newFixedThreadPool(1);
 
@@ -418,7 +418,6 @@ public class NetworkSelectSetting extends PreferenceFragment {
 
                 mConnectedNetworkOperatorsPreference.addPreference(pref);
             } else {
-                loge("Invalid CellIfno: " + cellInfo.toString());
                 // Remove the connected network operators category
                 removeConnectedNetworkOperatorPreference();
             }
