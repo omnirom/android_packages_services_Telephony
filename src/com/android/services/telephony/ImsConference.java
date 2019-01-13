@@ -731,18 +731,6 @@ public class ImsConference extends Conference implements Holdable {
                 }
             }
 
-            // Set state of new participants.
-            if (newParticipantsAdded) {
-                // Set the state of the new participants at once and add to the conference
-                for (ConferenceParticipant newParticipant : newParticipants) {
-                    ConferenceParticipantConnection connection =
-                            mConferenceParticipantConnections.get(new Pair<>(
-                                    newParticipant.getHandle(),
-                                    newParticipant.getEndpoint()));
-                    connection.updateState(newParticipant.getState());
-                }
-            }
-
             // Finally, remove any participants from the conference that no longer exist in the
             // conference event package data.
             Iterator<Map.Entry<Pair<Uri, Uri>, ConferenceParticipantConnection>> entryIterator =

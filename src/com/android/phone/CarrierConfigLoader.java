@@ -901,6 +901,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                 mHandler.sendMessage(mHandler.obtainMessage(EVENT_CLEAR_CONFIG, phoneId, -1));
                 break;
             case IccCardConstants.INTENT_VALUE_ICC_LOADED:
+            case IccCardConstants.INTENT_VALUE_ICC_LOCKED:
                 updateConfigForPhoneId(phoneId);
                 break;
         }
