@@ -190,7 +190,7 @@ public class MobileNetworkSettings extends Activity  {
         final boolean inDeveloperMode =
                 Settings.Global.getInt(cr, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) != 0;
 
-        return (inDeveloperMode || euiccProvisioned
+        return (euiccProvisioned
                 || (!esimIgnoredDevice && enabledEsimUiByDefault && inEsimSupportedCountries));
     }
 
