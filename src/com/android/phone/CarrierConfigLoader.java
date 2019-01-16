@@ -538,10 +538,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT |
                 Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND);
         // Include subId extra only if SIM records are loaded
-        TelephonyManager telephonyManager = TelephonyManager.from(mContext);
-        int simApplicationState = telephonyManager.getSimApplicationState();
-        if (addSubIdExtra && (simApplicationState != TelephonyManager.SIM_STATE_UNKNOWN
-                && simApplicationState != TelephonyManager.SIM_STATE_NOT_READY)) {
+        if (addSubIdExtra) {
             SubscriptionManager.putPhoneIdAndSubIdExtra(intent, phoneId);
         }
         intent.putExtra(CarrierConfigManager.EXTRA_SLOT_INDEX, phoneId);
@@ -901,6 +898,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                 mHandler.sendMessage(mHandler.obtainMessage(EVENT_CLEAR_CONFIG, phoneId, -1));
                 break;
             case IccCardConstants.INTENT_VALUE_ICC_LOADED:
+            case IccCardConstants.INTENT_VALUE_ICC_LOCKED:
                 updateConfigForPhoneId(phoneId);
                 break;
         }

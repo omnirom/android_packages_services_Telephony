@@ -81,6 +81,7 @@ public class ConferenceParticipantConnection extends Connection {
         mEndpoint = participant.getEndpoint();
 
         setCapabilities();
+        updateState(participant.getState());
     }
 
     /**
