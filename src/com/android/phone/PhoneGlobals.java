@@ -25,6 +25,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.XmlResourceParser;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
@@ -46,6 +47,7 @@ import android.telephony.CarrierConfigManager;
 import android.telephony.ServiceState;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.telephony.data.ApnSetting;
 import android.util.LocalLog;
 import android.util.Log;
 import android.widget.Toast;
@@ -58,6 +60,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.SettingsObserver;
 import com.android.internal.telephony.TelephonyCapabilities;
+import com.android.internal.telephony.TelephonyComponentFactory;
 import com.android.internal.telephony.TelephonyIntents;
 import com.android.internal.telephony.dataconnection.DataConnectionReasons;
 import com.android.internal.telephony.dataconnection.DataConnectionReasons.DataDisallowedReasonType;
@@ -298,6 +301,9 @@ public class PhoneGlobals extends ContextWrapper {
         //   getPackageManager().hasSystemFeature(PackageManager.FEATURE_TELEPHONY_VOICE_CALLS);
 
         if (mCM == null) {
+            // Inject telephony component factory if configured using other jars.
+            XmlResourceParser parser = getResources().getXml(R.xml.telephony_injection);
+            TelephonyComponentFactory.getInstance().injectTheComponentFactory(parser);
             // Initialize the telephony framework
             PhoneFactory.makeDefaultPhones(this);
 
@@ -342,7 +348,7 @@ public class PhoneGlobals extends ContextWrapper {
             // The asynchronous caching will start just after this call.
             callerInfoCache = CallerInfoCache.init(this);
 
-            phoneMgr = PhoneInterfaceManager.init(this, PhoneFactory.getDefaultPhone());
+            phoneMgr = PhoneInterfaceManager.init(this);
 
             configLoader = CarrierConfigLoader.init(this);
 
@@ -749,7 +755,7 @@ public class PhoneGlobals extends ContextWrapper {
         }
 
         DataConnectionReasons reasons = new DataConnectionReasons();
-        boolean dataAllowed = phone.isDataAllowed(reasons);
+        boolean dataAllowed = phone.isDataAllowed(ApnSetting.TYPE_DEFAULT, reasons);
         mDataRoamingNotifLog.log("dataAllowed=" + dataAllowed + ", reasons=" + reasons);
         if (VDBG) Log.v(LOG_TAG, "dataAllowed=" + dataAllowed + ", reasons=" + reasons);
         if (!mNoDataDueToRoaming

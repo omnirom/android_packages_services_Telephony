@@ -365,6 +365,10 @@ public class DisconnectCauseUtil {
                 resourceId = R.string.callFailed_unobtainable_number;
                 break;
 
+            case android.telephony.DisconnectCause.VOICEMAIL_NUMBER_MISSING:
+                resourceId = R.string.incall_error_missing_voicemail_number;
+                break;
+
             case android.telephony.DisconnectCause.CALL_PULLED:
                 resourceId = R.string.callEnded_pulled;
                 break;
@@ -743,8 +747,6 @@ public class DisconnectCauseUtil {
                 break;
 
             case android.telephony.DisconnectCause.VOICEMAIL_NUMBER_MISSING:
-                // TODO: Need to bring up the "Missing Voicemail Number" dialog, which
-                // will ultimately take us to the Call Settings.
                 resourceId = R.string.incall_error_missing_voicemail_number;
                 break;
 

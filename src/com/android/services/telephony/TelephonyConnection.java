@@ -2456,6 +2456,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                 android.telecom.Connection.EXTRA_CHILD_ADDRESS);
         result.put(ImsCallProfile.EXTRA_DISPLAY_TEXT,
                 android.telecom.Connection.EXTRA_CALL_SUBJECT);
+        result.put(ImsCallProfile.EXTRA_ADDITIONAL_SIP_INVITE_FIELDS,
+                android.telecom.Connection.EXTRA_SIP_INVITE);
         return Collections.unmodifiableMap(result);
     }
 

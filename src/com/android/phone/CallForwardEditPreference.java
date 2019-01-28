@@ -37,6 +37,8 @@ import com.android.internal.telephony.CommandException;
 import com.android.internal.telephony.CommandsInterface;
 import com.android.internal.telephony.Phone;
 
+import java.util.HashMap;
+
 public class CallForwardEditPreference extends EditPhoneNumberPreference {
     private static final String LOG_TAG = "CallForwardEditPreference";
     private static final boolean DBG = (PhoneGlobals.DBG_LEVEL >= 2);
@@ -59,6 +61,14 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
     private TimeConsumingPreferenceListener mTcpListener;
     // Should we replace CF queries containing an invalid number with "Voicemail"
     private boolean mReplaceInvalidCFNumber = false;
+    private boolean mCallForwardByUssd = false;
+    private CarrierXmlParser mCarrierXmlParser;
+    private int mPreviousCommand = MyHandler.MESSAGE_GET_CF;
+    private Object mCommandException;
+    private CarrierXmlParser.SsEntry.SSAction mSsAction =
+            CarrierXmlParser.SsEntry.SSAction.UNKNOWN;
+    private int mAction;
+    private HashMap<String, String> mCfInfo;
 
     private boolean isTimerEnabled;
     private boolean mAllowSetCallFwding = false;
@@ -93,7 +103,7 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
     }
 
     void init(TimeConsumingPreferenceListener listener, boolean skipReading, Phone phone,
-            boolean replaceInvalidCFNumber, int serviceClass) {
+            boolean replaceInvalidCFNumber, int serviceClass, boolean callForwardByUssd) {
         mPhone = phone;
         mTcpListener = listener;
         mReplaceInvalidCFNumber = replaceInvalidCFNumber;
@@ -124,6 +134,17 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
             if (mTcpListener != null) {
                 mTcpListener.onStarted(this, true);
             }
+        }
+        mCallForwardByUssd = callForwardByUssd;
+        Log.d(LOG_TAG,
+                "init :mReplaceInvalidCFNumber " + mReplaceInvalidCFNumber + ", mCallForwardByUssd "
+                        + mCallForwardByUssd);
+        if (mCallForwardByUssd) {
+            mCfInfo = new HashMap<String, String>();
+            TelephonyManager telephonyManager = new TelephonyManager(getContext(),
+                    phone.getSubId());
+            mCarrierXmlParser = new CarrierXmlParser(getContext(),
+                    telephonyManager.getSimCarrierId());
         }
     }
 
@@ -268,6 +289,27 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                                 action,
                                 MyHandler.MESSAGE_SET_CF));
                 }
+
+                if (!mCallForwardByUssd) {
+                    // the interface of Phone.setCallForwardingOption has error:
+                    // should be action, reason...
+                    mPhone.setCallForwardingOption(action,
+                            reason,
+                            number,
+                            time,
+                            mHandler.obtainMessage(MyHandler.MESSAGE_SET_CF,
+                                    action,
+                                    MyHandler.MESSAGE_SET_CF));
+                } else {
+                    if (action == CommandsInterface.CF_ACTION_REGISTRATION) {
+                        mCfInfo.put(CarrierXmlParser.TAG_ENTRY_NUMBER, number);
+                        mCfInfo.put(CarrierXmlParser.TAG_ENTRY_TIME, Integer.toString(time));
+                    } else {
+                        mCfInfo.clear();
+                    }
+                    mHandler.sendMessage(mHandler.obtainMessage(mHandler.MESSAGE_SET_CF_USSD,
+                            action, MyHandler.MESSAGE_SET_CF));
+                }
                 if (mTcpListener != null) {
                     mTcpListener.onStarted(this, false);
                 }
@@ -328,11 +370,17 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
      * {@link TimeConsumingPreferenceListener#onError} if an error has occurred.
      */
     void startCallForwardOptionsQuery() {
-        mPhone.getCallForwardingOption(reason,
-                mHandler.obtainMessage(MyHandler.MESSAGE_GET_CF,
-                        // unused in this case
-                        CommandsInterface.CF_ACTION_DISABLE,
-                        MyHandler.MESSAGE_GET_CF, null));
+        if (!mCallForwardByUssd) {
+            mPhone.getCallForwardingOption(reason,
+                    mHandler.obtainMessage(MyHandler.MESSAGE_GET_CF,
+                            // unused in this case
+                            CommandsInterface.CF_ACTION_DISABLE,
+                            MyHandler.MESSAGE_GET_CF, null));
+        } else {
+            mHandler.sendMessage(mHandler.obtainMessage(mHandler.MESSAGE_GET_CF_USSD,
+                    // unused in this case
+                    CommandsInterface.CF_ACTION_DISABLE, MyHandler.MESSAGE_GET_CF, null));
+        }
         if (mTcpListener != null) {
             mTcpListener.onStarted(this, true);
         }
@@ -450,6 +498,47 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
     private class MyHandler extends Handler {
         static final int MESSAGE_GET_CF = 0;
         static final int MESSAGE_SET_CF = 1;
+        static final int MESSAGE_GET_CF_USSD = 2;
+        static final int MESSAGE_SET_CF_USSD = 3;
+
+        TelephonyManager.UssdResponseCallback mUssdCallback =
+                new TelephonyManager.UssdResponseCallback() {
+                    @Override
+                    public void onReceiveUssdResponse(final TelephonyManager telephonyManager,
+                            String request, CharSequence response) {
+                        if (mSsAction == CarrierXmlParser.SsEntry.SSAction.UNKNOWN) {
+                            return;
+                        }
+
+                        HashMap<String, String> analysisResult = mCarrierXmlParser.getFeature(
+                                CarrierXmlParser.FEATURE_CALL_FORWARDING)
+                                .getResponseSet(mSsAction,
+                                        response.toString());
+
+                        Throwable throwableException = null;
+                        if (analysisResult.get(CarrierXmlParser.TAG_RESPONSE_STATUS_ERROR)
+                                != null) {
+                            throwableException = new CommandException(
+                                    CommandException.Error.GENERIC_FAILURE);
+                        }
+
+                        Object obj = null;
+                        if (mSsAction == CarrierXmlParser.SsEntry.SSAction.QUERY) {
+                            obj = makeCallForwardInfo(analysisResult);
+                        }
+
+                        sendCfMessage(obj, throwableException);
+                    }
+
+                    @Override
+                    public void onReceiveUssdResponseFailed(final TelephonyManager telephonyManager,
+                            String request, int failureCode) {
+                        Log.d(LOG_TAG, "receive the ussd result failed");
+                        Throwable throwableException = new CommandException(
+                                CommandException.Error.GENERIC_FAILURE);
+                        sendCfMessage(null, throwableException);
+                    }
+                };
 
         @Override
         public void handleMessage(Message msg) {
@@ -459,6 +548,12 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                     break;
                 case MESSAGE_SET_CF:
                     handleSetCFResponse(msg);
+                    break;
+                case MESSAGE_GET_CF_USSD:
+                    prepareUssdCommand(msg, CarrierXmlParser.SsEntry.SSAction.QUERY);
+                    break;
+                case MESSAGE_SET_CF_USSD:
+                    prepareUssdCommand(msg, CarrierXmlParser.SsEntry.SSAction.UNKNOWN);
                     break;
             }
         }
@@ -550,14 +645,116 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
 
         private void handleSetCFResponse(Message msg) {
             AsyncResult ar = (AsyncResult) msg.obj;
-
             if (ar.exception != null) {
                 Log.d(LOG_TAG, "handleSetCFResponse: ar.exception=" + ar.exception);
                 // setEnabled(false);
             }
             Log.d(LOG_TAG, "handleSetCFResponse: re get");
-            mPhone.getCallForwardingOption(reason, mServiceClass,
-                    obtainMessage(MESSAGE_GET_CF, msg.arg1, MESSAGE_SET_CF, ar.exception));
+            if (!mCallForwardByUssd) {
+                mPhone.getCallForwardingOption(reason, mServiceClass,
+                        obtainMessage(MESSAGE_GET_CF, msg.arg1, MESSAGE_SET_CF, ar.exception));
+            } else {
+                mHandler.sendMessage(mHandler.obtainMessage(mHandler.MESSAGE_GET_CF_USSD,
+                        msg.arg1, MyHandler.MESSAGE_SET_CF, ar.exception));
+            }
+        }
+
+        private void prepareUssdCommand(Message msg,
+                CarrierXmlParser.SsEntry.SSAction inputSsAction) {
+            mAction = msg.arg1;
+            mPreviousCommand = msg.arg2;
+            mCommandException = msg.obj;
+            mSsAction = inputSsAction;
+
+            if (mSsAction != CarrierXmlParser.SsEntry.SSAction.QUERY) {
+                if (mAction == CommandsInterface.CF_ACTION_REGISTRATION) {
+                    mSsAction = CarrierXmlParser.SsEntry.SSAction.UPDATE_ACTIVATE;
+                } else {
+                    mSsAction = CarrierXmlParser.SsEntry.SSAction.UPDATE_DEACTIVATE;
+                }
+            }
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    sendUssdCommand(mUssdCallback, mSsAction, mCfInfo.isEmpty() ? null : mCfInfo);
+                }
+            }).start();
+        }
+
+        private void sendUssdCommand(TelephonyManager.UssdResponseCallback inputCallback,
+                CarrierXmlParser.SsEntry.SSAction inputAction,
+                HashMap<String, String> inputCfInfo) {
+            String newUssdCommand = mCarrierXmlParser.getFeature(
+                    CarrierXmlParser.FEATURE_CALL_FORWARDING)
+                    .makeCommand(inputAction, inputCfInfo);
+            TelephonyManager telephonyManager =
+                    (TelephonyManager) getContext().getSystemService(Context.TELEPHONY_SERVICE);
+            telephonyManager.sendUssdRequest(newUssdCommand, inputCallback, mHandler);
+        }
+
+        private Message makeGetCfMessage(int inputMsgWhat, int inputMsgArg2, Object inputMsgObj) {
+            return mHandler.obtainMessage(inputMsgWhat,
+                    mAction,
+                    inputMsgArg2,
+                    inputMsgObj);
+        }
+
+        private Message makeSetCfMessage(int inputMsgWhat, int inputMsgArg2) {
+            return mHandler.obtainMessage(inputMsgWhat,
+                    mAction,
+                    inputMsgArg2);
+        }
+
+        private void sendCfMessage(Object inputArObj, Throwable inputThrowableException) {
+            Message message;
+            if (mSsAction == CarrierXmlParser.SsEntry.SSAction.UNKNOWN) {
+                return;
+            }
+            if (mSsAction == CarrierXmlParser.SsEntry.SSAction.QUERY) {
+                message = makeGetCfMessage(MyHandler.MESSAGE_GET_CF, mPreviousCommand,
+                        mCommandException);
+            } else {
+                message = makeSetCfMessage(MyHandler.MESSAGE_SET_CF, MyHandler.MESSAGE_SET_CF);
+            }
+            AsyncResult.forMessage(message, inputArObj, inputThrowableException);
+            message.sendToTarget();
+        }
+
+        private CallForwardInfo[] makeCallForwardInfo(HashMap<String, String> inputInfo) {
+            int tmpStatus = 0;
+            String tmpNumberStr = "";
+            int tmpTime = 0;
+            if (inputInfo != null && inputInfo.size() != 0) {
+                String tmpStatusStr = inputInfo.get(CarrierXmlParser.TAG_RESPONSE_STATUS);
+
+                String tmpTimeStr = inputInfo.get(CarrierXmlParser.TAG_RESPONSE_TIME);
+                if (!TextUtils.isEmpty(tmpStatusStr)) {
+                    if (tmpStatusStr.equals(
+                            CarrierXmlParser.TAG_COMMAND_RESULT_DEFINITION_ACTIVATE)) {
+                        tmpStatus = 1;
+                    } else if (tmpStatusStr.equals(
+                            CarrierXmlParser.TAG_COMMAND_RESULT_DEFINITION_DEACTIVATE)
+                            || tmpStatusStr.equals(
+                            CarrierXmlParser.TAG_COMMAND_RESULT_DEFINITION_UNREGISTER)) {
+                        tmpStatus = 0;
+                    }
+                }
+
+                tmpNumberStr = inputInfo.get(CarrierXmlParser.TAG_RESPONSE_NUMBER);
+                if (!TextUtils.isEmpty(tmpTimeStr)) {
+                    tmpTime = Integer.valueOf(inputInfo.get(CarrierXmlParser.TAG_RESPONSE_TIME));
+                }
+            }
+
+            CallForwardInfo[] newCallForwardInfo = new CallForwardInfo[1];
+            newCallForwardInfo[0] = new CallForwardInfo();
+            newCallForwardInfo[0].status = tmpStatus;
+            newCallForwardInfo[0].reason = reason;
+            newCallForwardInfo[0].serviceClass = mServiceClass;
+            newCallForwardInfo[0].number = tmpNumberStr;
+            newCallForwardInfo[0].timeSeconds = tmpTime;
+            return newCallForwardInfo;
         }
     }
 

@@ -16,6 +16,8 @@
 
 package com.android.phone;
 
+import android.os.Binder;
+import android.os.Process;
 import android.os.RemoteException;
 import android.os.ShellCommand;
 import android.os.UserHandle;
@@ -41,6 +43,8 @@ public class TelephonyShellCommand extends ShellCommand {
 
     private static final String IMS_SUBCOMMAND = "ims";
     private static final String SMS_SUBCOMMAND = "sms";
+    private static final String NUMBER_VERIFICATION_SUBCOMMAND = "numverify";
+
     private static final String IMS_SET_CARRIER_SERVICE = "set-ims-service";
     private static final String IMS_GET_CARRIER_SERVICE = "get-ims-service";
     private static final String IMS_ENABLE = "enable";
@@ -49,6 +53,9 @@ public class TelephonyShellCommand extends ShellCommand {
     private static final String SMS_GET_APPS = "get-apps";
     private static final String SMS_GET_DEFAULT_APP = "get-default-app";
     private static final String SMS_SET_DEFAULT_APP = "set-default-app";
+
+    private static final String NUMBER_VERIFICATION_OVERRIDE_PACKAGE = "override-package";
+    private static final String NUMBER_VERIFICATION_FAKE_CALL = "fake-call";
 
     // Take advantage of existing methods that already contain permissions checks when possible.
     private final ITelephony mInterface;
@@ -70,6 +77,8 @@ public class TelephonyShellCommand extends ShellCommand {
             case SMS_SUBCOMMAND: {
                 return handleSmsCommand();
             }
+            case NUMBER_VERIFICATION_SUBCOMMAND:
+                return handleNumberVerificationCommand();
             default: {
                 return handleDefaultCommands(cmd);
             }
@@ -126,6 +135,18 @@ public class TelephonyShellCommand extends ShellCommand {
         pw.println("    Set PACKAGE_NAME as the default SMS app.");
     }
 
+
+    private void onHelpNumberVerification() {
+        PrintWriter pw = getOutPrintWriter();
+        pw.println("Number verification commands");
+        pw.println("  numverify override-package PACKAGE_NAME;");
+        pw.println("    Set the authorized package for number verification.");
+        pw.println("    Leave the package name blank to reset.");
+        pw.println("  numverify fake-call NUMBER;");
+        pw.println("    Fake an incoming call from NUMBER. This is for testing. Output will be");
+        pw.println("    1 if the call would have been intercepted, 0 otherwise.");
+    }
+
     private int handleImsCommand() {
         String arg = getNextArg();
         if (arg == null) {
@@ -145,6 +166,33 @@ public class TelephonyShellCommand extends ShellCommand {
             }
             case IMS_DISABLE: {
                 return handleDisableIms();
+            }
+        }
+
+        return -1;
+    }
+
+    private int handleNumberVerificationCommand() {
+        String arg = getNextArg();
+        if (arg == null) {
+            onHelpNumberVerification();
+            return 0;
+        }
+
+        if (!checkShellUid()) {
+            return -1;
+        }
+
+        switch (arg) {
+            case NUMBER_VERIFICATION_OVERRIDE_PACKAGE: {
+                NumberVerificationManager.overrideAuthorizedPackage(getNextArg());
+                return 0;
+            }
+            case NUMBER_VERIFICATION_FAKE_CALL: {
+                boolean val = NumberVerificationManager.getInstance()
+                        .checkIncomingCall(getNextArg());
+                getOutPrintWriter().println(val ? "1" : "0");
+                return 0;
             }
         }
 
@@ -399,5 +447,11 @@ public class TelephonyShellCommand extends ShellCommand {
         mInterface.setDefaultSmsApp(userId, packageName);
         getOutPrintWriter().println("SMS app set to " + mInterface.getDefaultSmsApp(userId));
         return 0;
+    }
+
+    private boolean checkShellUid() {
+        // adb can run as root or as shell, depending on whether the device is rooted.
+        return Binder.getCallingUid() == Process.SHELL_UID
+                || Binder.getCallingUid() == Process.ROOT_UID;
     }
 }

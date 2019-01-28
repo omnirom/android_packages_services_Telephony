@@ -74,6 +74,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
     private boolean mCheckData = false;
     AlertDialog.Builder builder = null;
     private CarrierConfigManager mCarrierConfig;
+    private boolean mCallForwardByUssd;
 
     @Override
     protected void onCreate(Bundle icicle) {
@@ -88,13 +89,23 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
 
         mCarrierConfig = (CarrierConfigManager)
                 getSystemService(CARRIER_CONFIG_SERVICE);
-        if (mCarrierConfig != null) {
-            mReplaceInvalidCFNumbers = mCarrierConfig.getConfigForSubId(mPhone.getSubId())
-                .getBoolean(
-                    CarrierConfigManager.KEY_CALL_FORWARDING_MAP_NON_NUMBER_TO_VOICEMAIL_BOOL);
 
+        if (mCarrierConfig != null) {
             PersistableBundle pb = mCarrierConfig.getConfigForSubId(mPhone.getSubId());
             mCheckData = pb.getBoolean("check_mobile_data_for_cf");
+        }
+        PersistableBundle b = null;
+        if (mSubscriptionInfoHelper.hasSubId()) {
+            b = PhoneGlobals.getInstance().getCarrierConfigForSubId(
+                    mSubscriptionInfoHelper.getSubId());
+        } else {
+            b = PhoneGlobals.getInstance().getCarrierConfig();
+        }
+        if (b != null) {
+            mReplaceInvalidCFNumbers = b.getBoolean(
+                    CarrierConfigManager.KEY_CALL_FORWARDING_MAP_NON_NUMBER_TO_VOICEMAIL_BOOL);
+            mCallForwardByUssd = b.getBoolean(
+                    CarrierConfigManager.KEY_USE_CALL_FORWARDING_USSD_BOOL);
         }
 
         PreferenceScreen prefSet = getPreferenceScreen();
@@ -112,6 +123,18 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
         mPreferences.add(mButtonCFB);
         mPreferences.add(mButtonCFNRy);
         mPreferences.add(mButtonCFNRc);
+
+        if (mCallForwardByUssd) {
+            //the call forwarding ussd command's behavior is similar to the call forwarding when
+            //unanswered,so only display the call forwarding when unanswered item.
+            prefSet.removePreference(mButtonCFU);
+            prefSet.removePreference(mButtonCFB);
+            prefSet.removePreference(mButtonCFNRc);
+            mPreferences.remove(mButtonCFU);
+            mPreferences.remove(mButtonCFB);
+            mPreferences.remove(mButtonCFNRc);
+            mButtonCFNRy.setDependency(null);
+        }
 
         // we wait to do the initialization until onResume so that the
         // TimeConsumingPreferenceActivity dialog can display as it
@@ -297,8 +320,10 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
         if (mFirstResume) {
             if (mIcicle == null) {
                 Log.d(LOG_TAG, "start to init ");
-                mPreferences.get(mInitIndex).init(this, false, mPhone, mReplaceInvalidCFNumbers,
-                        mServiceClass);
+                CallForwardEditPreference pref = mPreferences.get(mInitIndex);
+                pref.init(this, false, mPhone, mReplaceInvalidCFNumbers, mServiceClass, mCallForwardByUssd);
+                pref.startCallForwardOptionsQuery();
+
             } else {
                 mInitIndex = mPreferences.size();
 
@@ -309,8 +334,8 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
                     CallForwardInfo cf = new CallForwardInfo();
                     cf.number = bundle.getString(KEY_NUMBER);
                     cf.status = bundle.getInt(KEY_STATUS);
-                    pref.init(this, true, mPhone, mReplaceInvalidCFNumbers, mServiceClass);
-                    pref.handleCallForwardResult(cf);
+                    pref.init(this, true, mPhone, mReplaceInvalidCFNumbers, mServiceClass, mCallForwardByUssd);
+                    pref.restoreCallForwardInfo(cf);
                 }
             }
             mFirstResume = false;
@@ -395,7 +420,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
                         String msg = (String)this.getResources()
                             .getText(R.string.ct_ut_not_support_close_4glte);
                         showAlertDialog(title, msg);
-                    }else if (mPhone.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA ){ 
+                    }else if (mPhone.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA ){
                         Log.i(LOG_TAG, "auto retry and switch to cmda method UI.");
                         Intent intent = new Intent(CALL_FORWARD_INTENT);
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -405,8 +430,9 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
                 }
             } else {
                 mInitIndex++;
-                mPreferences.get(mInitIndex).init(this, false, mPhone, mReplaceInvalidCFNumbers,
-                        mServiceClass);
+                CallForwardEditPreference pref = mPreferences.get(mInitIndex);
+                pref.init(this, false, mPhone, mReplaceInvalidCFNumbers, mServiceClass, mCallForwardByUssd);
+                pref.startCallForwardOptionsQuery();
             }
         }
 

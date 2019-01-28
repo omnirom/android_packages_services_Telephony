@@ -137,9 +137,6 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
 
     private static final int BIND_TIMEOUT_MILLIS = 30000;
 
-    // Length limit of gid1 for naming config file.
-    private static final int GID1_LENGTH_LIMIT = 20;
-
     // Tags used for saving and restoring XML documents.
     private static final String TAG_DOCUMENT = "carrier_config";
     private static final String TAG_VERSION = "package_version";
@@ -260,7 +257,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                         mContext.unbindService(conn);
                         break;
                     }
-                    final CarrierIdentifier carrierId = getCarrierIdForPhoneId(phoneId);
+                    final CarrierIdentifier carrierId = getCarrierIdentifierForPhoneId(phoneId);
                     // ResultReceiver callback will execute in this Handler's thread.
                     final ResultReceiver resultReceiver =
                             new ResultReceiver(this) {
@@ -376,7 +373,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                         mContext.unbindService(conn);
                         break;
                     }
-                    final CarrierIdentifier carrierId = getCarrierIdForPhoneId(phoneId);
+                    final CarrierIdentifier carrierId = getCarrierIdentifierForPhoneId(phoneId);
                     // ResultReceiver callback will execute in this Handler's thread.
                     final ResultReceiver resultReceiver =
                             new ResultReceiver(this) {
@@ -529,12 +526,15 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         Intent intent = new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT |
                 Intent.FLAG_RECEIVER_INCLUDE_BACKGROUND);
-        // Include subId extra only if SIM records are loaded
+        // Include subId/carrier id extra only if SIM records are loaded
         TelephonyManager telephonyManager = TelephonyManager.from(mContext);
         int simApplicationState = telephonyManager.getSimApplicationState();
         if (addSubIdExtra && (simApplicationState != TelephonyManager.SIM_STATE_UNKNOWN
                 && simApplicationState != TelephonyManager.SIM_STATE_NOT_READY)) {
             SubscriptionManager.putPhoneIdAndSubIdExtra(intent, phoneId);
+            intent.putExtra(TelephonyManager.EXTRA_PRECISE_CARRIER_ID,
+                    getPreciseCarrierIdForPhoneId(phoneId));
+            intent.putExtra(TelephonyManager.EXTRA_CARRIER_ID, getCarrierIdForPhoneId(phoneId));
         }
         intent.putExtra(CarrierConfigManager.EXTRA_SLOT_INDEX, phoneId);
         ActivityManager.broadcastStickyIntent(intent, UserHandle.USER_ALL);
@@ -555,7 +555,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         }
     }
 
-    private CarrierIdentifier getCarrierIdForPhoneId(int phoneId) {
+    private CarrierIdentifier getCarrierIdentifierForPhoneId(int phoneId) {
         String mcc = "";
         String mnc = "";
         String imsi = "";
@@ -564,6 +564,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         String iccid = "";
         String spn = TelephonyManager.from(mContext).getSimOperatorNameForPhone(phoneId);
         String simOperator = TelephonyManager.from(mContext).getSimOperatorNumericForPhone(phoneId);
+        int carrierId = TelephonyManager.UNKNOWN_CARRIER_ID;
+        int preciseCarrierId = TelephonyManager.UNKNOWN_CARRIER_ID;
         // A valid simOperator should be 5 or 6 digits, depending on the length of the MNC.
         if (simOperator != null && simOperator.length() >= 3) {
             mcc = simOperator.substring(0, 3);
@@ -575,9 +577,10 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
             gid1 = phone.getGroupIdLevel1();
             gid2 = phone.getGroupIdLevel2();
             iccid = phone.getIccSerialNumber();
+            carrierId = phone.getCarrierId();
+            preciseCarrierId = phone.getPreciseCarrierId();
         }
-
-        return new CarrierIdentifier(mcc, mnc, spn, imsi, gid1, gid2, iccid);
+        return new CarrierIdentifier(mcc, mnc, spn, imsi, gid1, gid2, iccid, carrierId, preciseCarrierId);
     }
 
     /** Returns the package name of a priveleged carrier app, or null if there is none. */
@@ -603,27 +606,46 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         return phone.getIccSerialNumber();
     }
 
-    private String getGid1ForPhoneId(int phoneId) {
+    /**
+     * Get the sim precise carrier id {@link TelephonyManager#getSimPreciseCarrierId()}
+     */
+    private int getPreciseCarrierIdForPhoneId(int phoneId) {
         if (!SubscriptionManager.isValidPhoneId(phoneId)) {
-            return null;
+            return TelephonyManager.UNKNOWN_CARRIER_ID;
         }
         Phone phone = PhoneFactory.getPhone(phoneId);
         if (phone == null) {
-            return null;
+            return TelephonyManager.UNKNOWN_CARRIER_ID;
         }
-        String gid1 = phone.getGroupIdLevel1();
-        if (gid1 == null) {
-            return null;
+        return phone.getPreciseCarrierId();
+    }
+
+    /**
+     * Get the sim carrier id {@link TelephonyManager#getSimCarrierId() }
+     */
+    private int getCarrierIdForPhoneId(int phoneId) {
+        if (!SubscriptionManager.isValidPhoneId(phoneId)) {
+            return TelephonyManager.UNKNOWN_CARRIER_ID;
         }
-        return gid1.substring(0, Math.min(gid1.length(), GID1_LENGTH_LIMIT));
+        Phone phone = PhoneFactory.getPhone(phoneId);
+        if (phone == null) {
+            return TelephonyManager.UNKNOWN_CARRIER_ID;
+        }
+        return phone.getCarrierId();
     }
 
     /**
      * Writes a bundle to an XML file.
      *
-     * The bundle will be written to a file named after the package name and ICCID, so that it can
-     * be restored later with {@link @restoreConfigFromXml}. The XML output will include the bundle
-     * and the current version of the specified package.
+     * The bundle will be written to a file named after the package name, ICCID and
+     * precise carrier id {@link TelephonyManager#getSimPreciseCarrierId()}. the same carrier
+     * should have a single copy of XML file named after carrier id. However, it's still possible
+     * that platform doesn't recognize the current sim carrier, we will use iccid + carrierid as
+     * the canonical file name. carrierid can also handle the cases SIM OTA resolves to different
+     * carrier while iccid remains the same.
+     *
+     * The file can be restored later with {@link @restoreConfigFromXml}. The XML output will
+     * include the bundle and the current version of the specified package.
      *
      * In case of errors or invalid input, no file will be written.
      *
@@ -639,8 +661,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         }
 
         final String iccid = getIccIdForPhoneId(phoneId);
-        // extras is the first 20 characters of gid1
-        final String extras = getGid1ForPhoneId(phoneId);
+        final int cid = getPreciseCarrierIdForPhoneId(phoneId);
         if (packageName == null || iccid == null) {
             loge("Cannot save config with null packageName or iccid.");
             return;
@@ -663,8 +684,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         FileOutputStream outFile = null;
         try {
             outFile = new FileOutputStream(
-                    new File(mContext.getFilesDir(), getFilenameForConfig(packageName,
-                            iccid, extras)));
+                    new File(mContext.getFilesDir(),
+                            getFilenameForConfig(packageName, iccid, cid)));
             FastXmlSerializer out = new FastXmlSerializer();
             out.setOutput(outFile, "utf-8");
             out.startDocument("utf-8", true);
@@ -715,8 +736,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         }
 
         final String iccid = getIccIdForPhoneId(phoneId);
-        // extras is the first 20 characters of gid1
-        final String extras = getGid1ForPhoneId(phoneId);
+        final int cid = getPreciseCarrierIdForPhoneId(phoneId);
         if (packageName == null || iccid == null) {
             loge("Cannot restore config with null packageName or iccid.");
             return null;
@@ -726,8 +746,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         FileInputStream inFile = null;
         try {
             inFile = new FileInputStream(
-                    new File(mContext.getFilesDir(), getFilenameForConfig(packageName, iccid,
-                            extras)));
+                    new File(mContext.getFilesDir(),
+                            getFilenameForConfig(packageName, iccid, cid)));
             XmlPullParser parser = XmlPullParserFactory.newInstance().newPullParser();
             parser.setInput(inFile, "utf-8");
 
@@ -791,11 +811,12 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
 
     /** Builds a canonical file name for a config file. */
     private String getFilenameForConfig(@NonNull String packageName, @NonNull String iccid,
-            String extras) {
-        if (extras != null) {
-            return "carrierconfig-" + packageName + "-" + iccid + "-" + extras + ".xml";
-        }
-        return "carrierconfig-" + packageName + "-" + iccid + ".xml";
+                                        int cid) {
+        // the same carrier should have a single copy of XML file named after carrier id.
+        // However, it's still possible that platform doesn't recognize the current sim carrier,
+        // we will use iccid + carrierid as the canonical file name. carrierid can also handle the
+        // cases SIM OTA resolves to different carrier while iccid remains the same.
+        return "carrierconfig-" + packageName + "-" + iccid + "-" + cid + ".xml";
     }
 
     /** Return the current version code of a package, or null if the name is not found. */
