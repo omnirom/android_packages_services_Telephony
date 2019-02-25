@@ -99,6 +99,8 @@ public class ImsConferenceController {
      */
     private final TelephonyConnectionServiceProxy mConnectionService;
 
+    private final ImsConference.FeatureFlagProxy mFeatureFlagProxy;
+
     /**
      * List of known {@link TelephonyConnection}s.
      */
@@ -116,11 +118,14 @@ public class ImsConferenceController {
      * Creates a new instance of the Ims conference controller.
      *
      * @param connectionService The current connection service.
+     * @param featureFlagProxy
      */
     public ImsConferenceController(TelecomAccountRegistry telecomAccountRegistry,
-                                   TelephonyConnectionServiceProxy connectionService) {
+            TelephonyConnectionServiceProxy connectionService,
+            ImsConference.FeatureFlagProxy featureFlagProxy) {
         mConnectionService = connectionService;
         mTelecomAccountRegistry = telecomAccountRegistry;
+        mFeatureFlagProxy = featureFlagProxy;
     }
 
     /**
@@ -378,7 +383,7 @@ public class ImsConferenceController {
         }
 
         ImsConference conference = new ImsConference(mTelecomAccountRegistry, mConnectionService,
-                conferenceHostConnection, phoneAccountHandle);
+                conferenceHostConnection, phoneAccountHandle, mFeatureFlagProxy);
         conference.setState(conferenceHostConnection.getState());
         conference.addListener(mConferenceListener);
         conference.updateConferenceParticipantsAfterCreation();

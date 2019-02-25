@@ -49,6 +49,7 @@ import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.SubscriptionManager.OnSubscriptionsChangedListener;
 import android.telephony.TelephonyManager;
+import android.telephony.ims.ImsException;
 import android.telephony.ims.ImsMmTelManager;
 import android.telephony.ims.feature.MmTelFeature;
 import android.telephony.ims.stub.ImsRegistrationImplBase;
@@ -75,7 +76,7 @@ import org.codeaurora.internal.IExtTelephony;
  * Owns all data we have registered with Telecom including handling dynamic addition and
  * removal of SIMs and SIP accounts.
  */
-public final class TelecomAccountRegistry {
+public class TelecomAccountRegistry {
     private static final boolean DBG = false; /* STOP SHIP if true */
 
     // This icon is the one that is used when the Slot ID that we have for a particular SIM
@@ -131,10 +132,10 @@ public final class TelecomAccountRegistry {
             }
 
             try {
-                mMmTelManager = ImsMmTelManager.createForSubscriptionId(mContext, getSubId());
+                mMmTelManager = ImsMmTelManager.createForSubscriptionId(getSubId());
             } catch (IllegalArgumentException e) {
                 Log.i(this, "Not registering MmTel capabilities listener because the subid '"
-                        + getSubId() + "' is invalid");
+                        + getSubId() + "' is invalid: " + e.getMessage());
                 return;
             }
 
@@ -168,9 +169,9 @@ public final class TelecomAccountRegistry {
             try {
                 mMmTelManager.registerMmTelCapabilityCallback(mContext.getMainExecutor(),
                         mMmtelCapabilityCallback);
-            } catch (IllegalStateException e) {
+            } catch (ImsException e) {
                 Log.w(this, "registerMmTelCapabilityCallback: registration failed, no ImsService"
-                        + " available.");
+                        + " available. Exception: " + e.getMessage());
                 return;
             }
         }
@@ -333,6 +334,8 @@ public final class TelecomAccountRegistry {
                     && isImsVoiceAvailable()) {
                 capabilities |= PhoneAccount.CAPABILITY_RTT;
                 mIsRttCapable = true;
+            } else {
+                mIsRttCapable = false;
             }
 
             extras.putBoolean(PhoneAccount.EXTRA_SUPPORTS_VIDEO_CALLING_FALLBACK,

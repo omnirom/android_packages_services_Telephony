@@ -22,10 +22,6 @@
         android:sharedUserLabel="@string/phoneAppLabel"
 >
 
-    <uses-sdk
-        android:minSdkVersion="23"
-        android:targetSdkVersion="26" />
-
     <original-package android:name="com.android.phone" />
 
     <protected-broadcast android:name="android.telecom.action.TTY_PREFERRED_MODE_CHANGED" />
@@ -101,6 +97,7 @@
     <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_DDS_SWITCH_DONE" />
     <protected-broadcast android:name= "android.telephony.action.SUBSCRIPTION_CARRIER_IDENTITY_CHANGED" />
     <protected-broadcast android:name= "android.telephony.action.SUBSCRIPTION_PRECISE_CARRIER_IDENTITY_CHANGED" />
+    <protected-broadcast android:name= "android.telephony.action.NETWORK_COUNTRY_CHANGED" />
 
     <uses-permission android:name="android.permission.BROADCAST_STICKY" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -203,6 +200,10 @@
     <uses-permission android:name="android.permission.READ_NETWORK_USAGE_HISTORY" />
     <uses-permission android:name="android.permission.BIND_TELEPHONY_DATA_SERVICE" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
+    <uses-permission android:name="android.permission.READ_PRECISE_PHONE_STATE" />
+    <uses-permission android:name="android.permission.MANAGE_ROLE_HOLDERS" />
+
+    <uses-permission android:name="com.qti.permission.BIND_QTI_IMS_SERVICE" />
 
     <application android:name="PhoneApp"
             android:persistent="true"
@@ -476,6 +477,24 @@
             </intent-filter>
         </activity>
 
+        <!--
+            Handler for EuiccManager's privileged action intents. These are locked down so that only
+            privileged processes can start them.
+        -->
+        <activity android:name=".euicc.EuiccPrivilegedActionUiDispatcherActivity"
+                  android:permission="android.permission.CALL_PRIVILEGED">
+            <!-- Max out priority to ensure nobody else will handle these intents. -->
+            <intent-filter android:priority="1000">
+                <action android:name=
+                            "android.telephony.euicc.action.TOGGLE_SUBSCRIPTION_PRIVILEGED" />
+                <action android:name=
+                            "android.telephony.euicc.action.DELETE_SUBSCRIPTION_PRIVILEGED" />
+                <action android:name=
+                            "android.telephony.euicc.action.RENAME_SUBSCRIPTION_PRIVILEGED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <activity android:name="EmergencyCallbackModeExitDialog"
             android:excludeFromRecents="true"
             android:label="@string/ecm_exit_dialog"
@@ -626,5 +645,6 @@
                 <action android:name="android.telephony.data.DataService" />
             </intent-filter>
         </service>
+        <uses-library android:name="ims-ext-common"/>
     </application>
 </manifest>

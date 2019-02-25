@@ -26,6 +26,7 @@ import android.view.View;
 
 import org.codeaurora.ims.QtiImsException;
 import org.codeaurora.ims.QtiImsExtListenerBaseImpl;
+import org.codeaurora.ims.QtiImsExtConnector;
 import org.codeaurora.ims.QtiImsExtManager;
 import org.codeaurora.ims.utils.QtiImsExtUtils;
 
@@ -80,6 +81,7 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
     private int mEndMinute;
     private int mStatus;
     private String mNumber;
+    private QtiImsExtConnector mQtiImsExtConnector;
     private QtiImsExtManager mQtiImsExtManager;
     private Context mContext;
 
@@ -114,16 +116,9 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         Log.d(LOG_TAG, "isTimerEnabled=" + isTimerEnabled);
         if (!skipReading) {
             if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL && isTimerEnabled) {
-                setTimeSettingVisibility(true);
-                try {
-                    mQtiImsExtManager = new QtiImsExtManager(mContext);
-                    mQtiImsExtManager.getCallForwardUncondTimer(mPhone.getPhoneId(),
-                            reason,
-                            mServiceClass,
-                            imsInterfaceListener);
-                } catch (QtiImsException e){
-                    Log.d(LOG_TAG, "getCallForwardUncondTimer failed. Exception = " + e);
-                }
+                createQtiImsExtConnector(mContext);
+                //Connect will get the QtiImsExtManager instance and query CFUT.
+                mQtiImsExtConnector.connect();
             } else {
                 mPhone.getCallForwardingOption(reason, mServiceClass,
                         mHandler.obtainMessage(MyHandler.MESSAGE_GET_CF,
@@ -145,6 +140,47 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                     phone.getSubId());
             mCarrierXmlParser = new CarrierXmlParser(getContext(),
                     telephonyManager.getSimCarrierId());
+        }
+    }
+
+    private void createQtiImsExtConnector(Context context) {
+        try {
+            mQtiImsExtConnector = new QtiImsExtConnector(context,
+                    new QtiImsExtConnector.IListener() {
+                        @Override
+                        public void onConnectionAvailable(QtiImsExtManager qtiImsExtManager) {
+                            Log.i(LOG_TAG, "QtiImsExtConnector onConnectionAvailable");
+                            mQtiImsExtManager = qtiImsExtManager;
+                            setTimeSettingVisibility(true);
+                            try {
+                                mQtiImsExtManager.getCallForwardUncondTimer(mPhone.getPhoneId(),
+                                        reason, mServiceClass, imsInterfaceListener);
+                            } catch (QtiImsException e){
+                                Log.d(LOG_TAG, "getCallForwardUncondTimer failed. " +
+                                        "Exception = " + e);
+                            }
+                        }
+                        @Override
+                        public void onConnectionUnavailable() {
+                            mQtiImsExtManager = null;
+                            //QtiImsExtManager is not available so set
+                            //isTimerEnabled to false so that no Timer related operations will hit
+                            //and remove spinner.
+                            isTimerEnabled = false;
+                            mTcpListener.onFinished(CallForwardEditPreference.this, false);
+                        }
+                    });
+        } catch (QtiImsException e) {
+            Log.e(LOG_TAG, "Unable to create QtiImsExtConnector");
+        }
+    }
+
+    public void deInit() {
+        if (mQtiImsExtConnector != null) {
+            mQtiImsExtConnector.disconnect();
+            mQtiImsExtConnector = null;
+            mQtiImsExtManager = null;
+            isTimerEnabled = false;
         }
     }
 
