@@ -179,8 +179,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
                     ", defaultDataSub = " + defaultDataSub + ", isDataRoaming = " +
                     isDataRoaming + ", isDataRoamingEnabled= " + isDataRoamingEnabled);
             if (sub != defaultDataSub) {
-                if (mPhone.isUtEnabled() && !mCarrierConfig.getConfigForSubId(mPhone.getSubId())
-                        .getBoolean(CarrierConfigManager.KEY_CDMA_CW_CF_ENABLED_BOOL)) {
+                if (mPhone.isUtEnabled()) {
                     Log.d(LOG_TAG, "Show data in use indication if data sub is not on current sub");
                     showDataInuseToast();
                     initCallforwarding();
