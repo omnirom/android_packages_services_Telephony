@@ -74,7 +74,7 @@ public class GsmUmtsCallOptions extends PreferenceActivity {
             if (b != null && b.getBoolean(
                     CarrierConfigManager.KEY_CALL_FORWARDING_VISIBILITY_BOOL)) {
                 callForwardingPref.setIntent(
-                        subInfoHelper.getIntent(GsmUmtsCallForwardOptions.class));
+                        subInfoHelper.getIntent(CallForwardType.class));
             } else {
                 prefScreen.removePreference(callForwardingPref);
             }
