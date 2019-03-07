@@ -18,6 +18,7 @@ package com.android.services.telephony;
 
 import android.content.Context;
 import android.media.ToneGenerator;
+import android.provider.Settings;
 import android.telecom.DisconnectCause;
 import android.telephony.SubscriptionManager;
 
@@ -994,7 +995,11 @@ public class DisconnectCauseUtil {
                 resourceId = R.string.callFailed_too_many_calls;
                 break;
             case android.telephony.DisconnectCause.IMS_SIP_ALTERNATE_EMERGENCY_CALL:
-                resourceId = R.string.incall_error_power_off;
+                boolean isAirplaneModeOn = Settings.Global.getInt(context.getContentResolver(),
+                        Settings.Global.AIRPLANE_MODE_ON, 0) > 0;
+                if (isAirplaneModeOn) {
+                    resourceId = R.string.incall_error_power_off;
+                }
                 break;
             case android.telephony.DisconnectCause.OTASP_PROVISIONING_IN_PROCESS:
                 resourceId = R.string.callFailed_otasp_provisioning_in_process;

@@ -456,7 +456,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
      */
     public abstract static class TelephonyConnectionListener {
         public void onOriginalConnectionConfigured(TelephonyConnection c) {}
-        public void onOriginalConnectionRetry(TelephonyConnection c, int cause) {}
+        public void onOriginalConnectionRetry(TelephonyConnection c, boolean isPermanentFailure) {}
     }
 
     private final PostDialListener mPostDialListener = new PostDialListener() {
@@ -1770,11 +1770,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                     setRinging();
                     break;
                 case DISCONNECTED:
-                    if (cause == android.telephony.DisconnectCause
-                            .IMS_SIP_ALTERNATE_EMERGENCY_CALL) {
-                        Log.i(this, "Received Alternate emergency call disconnect cause");
-                        fireOnOriginalConnectionRetryDial(cause);
-                    } else if (shouldTreatAsEmergencyCall()
+                    if (shouldTreatAsEmergencyCall()
                             && (cause
                             == android.telephony.DisconnectCause.EMERGENCY_TEMP_FAILURE
                             || cause
@@ -1784,7 +1780,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                         // the state to disconnected and will instead tell the
                         // TelephonyConnectionService to
                         // create a new originalConnection using the new Slot.
-                        fireOnOriginalConnectionRetryDial(cause);
+                        fireOnOriginalConnectionRetryDial(cause
+                                == android.telephony.DisconnectCause.EMERGENCY_PERM_FAILURE);
                     } else {
                         if (mSsNotification != null) {
                             setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
@@ -2360,9 +2357,9 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         }
     }
 
-    private final void fireOnOriginalConnectionRetryDial(int cause) {
+    private final void fireOnOriginalConnectionRetryDial(boolean isPermanentFailure) {
         for (TelephonyConnectionListener l : mTelephonyListeners) {
-            l.onOriginalConnectionRetry(this, cause);
+            l.onOriginalConnectionRetry(this, isPermanentFailure);
         }
     }
 

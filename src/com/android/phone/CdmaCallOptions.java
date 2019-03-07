@@ -125,9 +125,6 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
         int slotId = subMgr.getSlotIndex(sub);
         int defaultDataSub = subMgr.getDefaultDataSubscriptionId();
         Log.d(LOG_TAG, "isUtEnabled = " + mPhone.isUtEnabled() + ", need to check DDS ");
-        // Find out if the sim card is ready.
-        boolean isSimReady = TelephonyManager.from(this).getSimState(slotId)
-             == TelephonyManager.SIM_STATE_READY;
         if (mPhone != null && sub != defaultDataSub && !mPhone.isUtEnabled()) {
             Log.d(LOG_TAG, "Show dds switch dialog if data sub is not on current sub");
             showSwitchDdsDialog(slotId);
