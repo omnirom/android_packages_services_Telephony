@@ -20,7 +20,6 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
-import android.telephony.SubscriptionManager.OnSubscriptionsChangedListener;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -49,7 +48,7 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
             "phone_accounts_accounts_list_category_key";
 
     private static final String DEFAULT_OUTGOING_ACCOUNT_KEY = "default_outgoing_account";
-    private static final String ALL_CALLING_ACCOUNTS_KEY = "phone_account_all_calling_accounts";
+    private static final String ALL_CALLING_ACCOUNTS_KEY = "phone_accounts_all_calling_accounts";
 
     private static final String BUTTON_SMART_DIVERT_KEY = "button_smart_divert";
 
@@ -80,6 +79,7 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
     private PreferenceCategory mAccountList;
 
     private AccountSelectionPreference mDefaultOutgoingAccount;
+    private Preference mAllCallingAccounts;
 
     private ListPreference mUseSipCalling;
     private SwitchPreference mSipReceiveCallsPreference;
@@ -154,6 +154,9 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
          */
         mAccountList = (PreferenceCategory) getPreferenceScreen().findPreference(
                 ACCOUNTS_LIST_CATEGORY_KEY);
+        mDefaultOutgoingAccount = (AccountSelectionPreference)
+                getPreferenceScreen().findPreference(DEFAULT_OUTGOING_ACCOUNT_KEY);
+        mAllCallingAccounts = getPreferenceScreen().findPreference(ALL_CALLING_ACCOUNTS_KEY);
 
         updateAccounts();
 
@@ -429,25 +432,21 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
                 // Initialize the account list with the set of enabled & SIM accounts.
                 initAccountList(enabledAccounts);
 
-                mDefaultOutgoingAccount = (AccountSelectionPreference)
-                        getPreferenceScreen().findPreference(DEFAULT_OUTGOING_ACCOUNT_KEY);
-                if (mDefaultOutgoingAccount != null) {
-                    mDefaultOutgoingAccount.setListener(this);
-
-                    // Only show the 'Make Calls With..." option if there are multiple accounts.
-                    if (enabledAccounts.size() > 1) {
-                        updateDefaultOutgoingAccountsModel();
-                    } else {
-                        mAccountList.removePreference(mDefaultOutgoingAccount);
-                    }
+                mDefaultOutgoingAccount.setListener(this);
+                // Only show the 'Make Calls With..." option if there are multiple accounts.
+                if (enabledAccounts.size() > 1) {
+                    mAccountList.addPreference(mDefaultOutgoingAccount);
+                    updateDefaultOutgoingAccountsModel();
+                } else {
+                    mAccountList.removePreference(mDefaultOutgoingAccount);
                 }
 
-                Preference allAccounts =
-                        getPreferenceScreen().findPreference(ALL_CALLING_ACCOUNTS_KEY);
                 // If there are no third party (nonSim) accounts,
                 // then don't show enable/disable dialog.
-                if (allNonSimAccounts.isEmpty() && allAccounts != null) {
-                    mAccountList.removePreference(allAccounts);
+                if (!allNonSimAccounts.isEmpty()) {
+                    mAccountList.addPreference(mAllCallingAccounts);
+                } else {
+                    mAccountList.removePreference(mAllCallingAccounts);
                 }
             } else {
                 getPreferenceScreen().removePreference(mAccountList);

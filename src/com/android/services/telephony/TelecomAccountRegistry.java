@@ -284,7 +284,15 @@ public class TelecomAccountRegistry {
                 capabilities |= PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS;
             }
 
-            mIsVideoCapable = mPhone.isVideoEnabled();
+            if (PhoneGlobals.getInstance().phoneMgr.isRttEnabled(subId)
+                    && isImsVoiceAvailable()) {
+                capabilities |= PhoneAccount.CAPABILITY_RTT;
+                mIsRttCapable = true;
+            } else {
+                mIsRttCapable = false;
+            }
+
+            mIsVideoCapable = mPhone.isVideoEnabled() && !mIsRttCapable;
             boolean isVideoEnabledByPlatform = ImsManager.getInstance(mPhone.getContext(),
                     mPhone.getPhoneId()).isVtEnabledByPlatform();
 
@@ -332,14 +340,6 @@ public class TelecomAccountRegistry {
             if (isTelephonyAudioDeviceSupported && !isEmergency
                     && isCarrierUseCallRecordingTone()) {
                 extras.putBoolean(PhoneAccount.EXTRA_PLAY_CALL_RECORDING_TONE, true);
-            }
-
-            if (PhoneGlobals.getInstance().phoneMgr.isRttEnabled(subId)
-                    && isImsVoiceAvailable()) {
-                capabilities |= PhoneAccount.CAPABILITY_RTT;
-                mIsRttCapable = true;
-            } else {
-                mIsRttCapable = false;
             }
 
             extras.putBoolean(PhoneAccount.EXTRA_SUPPORTS_VIDEO_CALLING_FALLBACK,
@@ -1073,6 +1073,13 @@ public class TelecomAccountRegistry {
                             " slotId: " + slotId + " provisionStatus: " + provisionStatus);
                     // setupAccounts can be called multiple times during service changes. Don't add an
                     // account if the Icc has not been set yet.
+                    if (!SubscriptionManager.isValidSubscriptionId(subscriptionId)
+                            || phone.getFullIccSerialNumber() == null) return;
+                    // Don't add account if it's opportunistic subscription, which is considered
+                    // data only for now.
+                    SubscriptionInfo info = SubscriptionManager.from(mContext)
+                            .getActiveSubscriptionInfo(subscriptionId);
+                    if (info == null || info.isOpportunistic()) return;
                     if (subscriptionId >= 0  && (provisionStatus == PROVISIONED)
                             && (mSubscriptionManager.isActiveSubId(subscriptionId))) {
                         activeCount++;
@@ -1192,7 +1199,19 @@ public class TelecomAccountRegistry {
     }
 
     private boolean isRadioInValidState(Phone[] phones) {
-        boolean isApmSimNotPwrDown = (SystemProperties.getInt(APM_SIM_NOT_PWDN_PROPERTY, 0) == 1);
+        boolean isApmSimNotPwrDown = false;
+        try {
+            IExtTelephony extTelephony = IExtTelephony.Stub
+                 .asInterface(ServiceManager.getService("extphone"));
+            int propVal = extTelephony.getPropertyValueInt(APM_SIM_NOT_PWDN_PROPERTY, 0);
+            isApmSimNotPwrDown = (propVal == 1);
+            Log.d(this, "isRadioInValidState, propVal = " + propVal +
+                    " isApmSimNotPwrDown = " + isApmSimNotPwrDown);
+        } catch (RemoteException|NullPointerException ex) {
+            Log.w(this, "Failed to get property: + " + APM_SIM_NOT_PWDN_PROPERTY +
+                    " , Exception: " + ex);
+        }
+
         int isAPMOn = Settings.Global.getInt(mContext.getContentResolver(),
                 Settings.Global.AIRPLANE_MODE_ON, 0);
 

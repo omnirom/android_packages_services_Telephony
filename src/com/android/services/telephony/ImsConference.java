@@ -43,6 +43,7 @@ import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.PhoneUtils;
 import com.android.phone.R;
@@ -204,6 +205,8 @@ public class ImsConference extends Conference implements Holdable {
         @Override
         public void onExtrasChanged(Connection c, Bundle extras) {
             Log.v(this, "onExtrasChanged: c=" + c + " Extras=" + extras);
+            mIsConferenceUri = extras.getBoolean(
+                    TelephonyProperties.EXTRAS_IS_CONFERENCE_URI, false);
             putExtras(extras);
         }
 
@@ -224,6 +227,7 @@ public class ImsConference extends Conference implements Holdable {
      */
     private TelephonyConnection mConferenceHost;
 
+    private boolean mIsConferenceUri = false;
     /**
      * The PhoneAccountHandle of the conference host.
      */
@@ -843,6 +847,9 @@ public class ImsConference extends Conference implements Holdable {
                 } else if (mIsEmulatingSinglePartyCall && !isSinglePartyConference) {
                     // Number of participants increased, so stop emulating a single party call.
                     stopEmulatingSinglePartyCall();
+                } else if (mIsConferenceUri && newParticipantCount == 1) {
+                    // conference uri call can right away start with a single participant
+                    startEmulatingSinglePartyCall();
                 }
             }
 
@@ -1217,8 +1224,7 @@ public class ImsConference extends Conference implements Holdable {
                 setStatusHints(new StatusHints(
                         context.getString(R.string.status_hint_label_wifi_call) + displaySubId,
                         Icon.createWithResource(
-                                context.getResources(),
-                                R.drawable.ic_signal_wifi_4_bar_24dp),
+                                context, R.drawable.ic_signal_wifi_4_bar_24dp),
                         null /* extras */));
             }
         } else {

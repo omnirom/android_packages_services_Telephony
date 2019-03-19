@@ -50,7 +50,6 @@ import com.android.ims.ImsCall;
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallFailCause;
 import com.android.internal.telephony.CallStateException;
-import com.android.internal.telephony.Call.HoldingRequestState;
 import com.android.internal.telephony.Connection.Capability;
 import com.android.internal.telephony.Connection.PostDialListener;
 import com.android.internal.telephony.Phone;
@@ -1022,7 +1021,6 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                 // instead of actually putting it on hold.
                 if (ringingCall.getState() != Call.State.WAITING) {
                     phone.switchHoldingAndActive();
-                    mOriginalConnection.getCall().updateHoldingRequestState(HoldingRequestState.STARTED);
                 }
 
                 // TODO: Cdma calls are slightly different.
@@ -2296,8 +2294,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             setStatusHints(new StatusHints(
                     context.getString(labelId) + displaySubId,
                     Icon.createWithResource(
-                            context.getResources(),
-                            R.drawable.ic_signal_wifi_4_bar_24dp),
+                            context, R.drawable.ic_signal_wifi_4_bar_24dp),
                     null /* extras */));
         } else {
             setStatusHints(null);

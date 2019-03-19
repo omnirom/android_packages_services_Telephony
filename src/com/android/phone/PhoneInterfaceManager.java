@@ -35,6 +35,7 @@ import android.net.NetworkStats;
 import android.net.Uri;
 import android.os.AsyncResult;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -68,6 +69,7 @@ import android.telephony.LocationAccessPolicy;
 import android.telephony.ModemActivityInfo;
 import android.telephony.NeighboringCellInfo;
 import android.telephony.NetworkScanRequest;
+import android.telephony.PhoneCapability;
 import android.telephony.PhoneNumberRange;
 import android.telephony.RadioAccessFamily;
 import android.telephony.Rlog;
@@ -113,6 +115,7 @@ import com.android.internal.telephony.CarrierResolver;
 import com.android.internal.telephony.CellNetworkScanResult;
 import com.android.internal.telephony.CommandException;
 import com.android.internal.telephony.DefaultPhoneNotifier;
+import com.android.internal.telephony.HalVersion;
 import com.android.internal.telephony.INumberVerificationCallback;
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.telephony.IccCard;
@@ -1843,9 +1846,21 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public Bundle getCellLocation(String callingPackage) {
         mApp.getSystemService(AppOpsManager.class)
                 .checkPackage(Binder.getCallingUid(), callingPackage);
-        if (!LocationAccessPolicy.canAccessCellLocation(mApp, callingPackage,
-                Binder.getCallingUid(), Binder.getCallingPid(), true)) {
-            return null;
+
+        LocationAccessPolicy.LocationPermissionResult locationResult =
+                LocationAccessPolicy.checkLocationPermission(mApp,
+                        new LocationAccessPolicy.LocationPermissionQuery.Builder()
+                                .setCallingPackage(callingPackage)
+                                .setCallingPid(Binder.getCallingPid())
+                                .setCallingUid(Binder.getCallingUid())
+                                .setMethod("getCellLocation")
+                                .setMinSdkVersionForFine(Build.VERSION_CODES.Q)
+                                .build());
+        switch (locationResult) {
+            case DENIED_HARD:
+                throw new SecurityException("Not allowed to access cell location");
+            case DENIED_SOFT:
+                return new Bundle();
         }
 
         WorkSource workSource = getWorkSource(Binder.getCallingUid());
@@ -1995,9 +2010,22 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public List<CellInfo> getAllCellInfo(String callingPackage) {
         mApp.getSystemService(AppOpsManager.class)
                 .checkPackage(Binder.getCallingUid(), callingPackage);
-        if (!LocationAccessPolicy.canAccessCellLocation(mApp,
-                callingPackage, Binder.getCallingUid(), Binder.getCallingPid(), true)) {
-            return null;
+
+        LocationAccessPolicy.LocationPermissionResult locationResult =
+                LocationAccessPolicy.checkLocationPermission(mApp,
+                        new LocationAccessPolicy.LocationPermissionQuery.Builder()
+                                .setCallingPackage(callingPackage)
+                                .setCallingPid(Binder.getCallingPid())
+                                .setCallingUid(Binder.getCallingUid())
+                                .setMethod("getAllCellInfo")
+                                .setMinSdkVersionForCoarse(Build.VERSION_CODES.BASE)
+                                .setMinSdkVersionForFine(Build.VERSION_CODES.Q)
+                                .build());
+        switch (locationResult) {
+            case DENIED_HARD:
+                throw new SecurityException("Not allowed to access cell info");
+            case DENIED_SOFT:
+                return new ArrayList<>();
         }
 
         final int targetSdk = getTargetSdk(callingPackage);
@@ -2038,9 +2066,21 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             int subId, ICellInfoCallback cb, String callingPackage, WorkSource workSource) {
         mApp.getSystemService(AppOpsManager.class)
                 .checkPackage(Binder.getCallingUid(), callingPackage);
-        if (!LocationAccessPolicy.canAccessCellLocation(mApp, callingPackage,
-                Binder.getCallingUid(), Binder.getCallingPid(), true)) {
-            return;
+
+        LocationAccessPolicy.LocationPermissionResult locationResult =
+                LocationAccessPolicy.checkLocationPermission(mApp,
+                        new LocationAccessPolicy.LocationPermissionQuery.Builder()
+                                .setCallingPackage(callingPackage)
+                                .setCallingPid(Binder.getCallingPid())
+                                .setCallingUid(Binder.getCallingUid())
+                                .setMethod("requestCellInfoUpdate")
+                                .setMinSdkVersionForFine(Build.VERSION_CODES.Q)
+                                .build());
+        switch (locationResult) {
+            case DENIED_HARD:
+                throw new SecurityException("Not allowed to access cell info");
+            case DENIED_SOFT:
+                return;
         }
 
         final Phone phone = getPhone(subId);
@@ -4190,9 +4230,24 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * Scans for available networks.
      */
     @Override
-    public CellNetworkScanResult getCellNetworkScanResults(int subId) {
+    public CellNetworkScanResult getCellNetworkScanResults(int subId, String callingPackage) {
         TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(
                 mApp, subId, "getCellNetworkScanResults");
+        LocationAccessPolicy.LocationPermissionResult locationResult =
+                LocationAccessPolicy.checkLocationPermission(mApp,
+                        new LocationAccessPolicy.LocationPermissionQuery.Builder()
+                                .setCallingPackage(callingPackage)
+                                .setCallingPid(Binder.getCallingPid())
+                                .setCallingUid(Binder.getCallingUid())
+                                .setMethod("getCellNetworkScanResults")
+                                .setMinSdkVersionForFine(Build.VERSION_CODES.Q)
+                                .build());
+        switch (locationResult) {
+            case DENIED_HARD:
+                throw new SecurityException("Not allowed to access scan results -- location");
+            case DENIED_SOFT:
+                return null;
+        }
 
         long identity = Binder.clearCallingIdentity();
         try {
@@ -4215,17 +4270,29 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public int requestNetworkScan(int subId, NetworkScanRequest request, Messenger messenger,
-            IBinder binder) {
+            IBinder binder, String callingPackage) {
         TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(
                 mApp, subId, "requestNetworkScan");
 
-        final long identity = Binder.clearCallingIdentity();
-        try {
-            return mNetworkScanRequestTracker.startNetworkScan(
-                    request, messenger, binder, getPhone(subId));
-        } finally {
-            Binder.restoreCallingIdentity(identity);
+        LocationAccessPolicy.LocationPermissionResult locationResult =
+                LocationAccessPolicy.checkLocationPermission(mApp,
+                        new LocationAccessPolicy.LocationPermissionQuery.Builder()
+                                .setCallingPackage(callingPackage)
+                                .setCallingPid(Binder.getCallingPid())
+                                .setCallingUid(Binder.getCallingUid())
+                                .setMethod("requestNetworkScan")
+                                .setMinSdkVersionForFine(Build.VERSION_CODES.Q)
+                                .build());
+        switch (locationResult) {
+            case DENIED_HARD:
+                throw new SecurityException("Not allowed to request network scan -- location");
+            case DENIED_SOFT:
+                return -1;
         }
+
+        return mNetworkScanRequestTracker.startNetworkScan(
+                request, messenger, binder, getPhone(subId),
+                callingPackage);
     }
 
     /**
@@ -5277,6 +5344,31 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             return null;
         }
 
+        LocationAccessPolicy.LocationPermissionResult fineLocationResult =
+                LocationAccessPolicy.checkLocationPermission(mApp,
+                        new LocationAccessPolicy.LocationPermissionQuery.Builder()
+                                .setCallingPackage(callingPackage)
+                                .setCallingPid(Binder.getCallingPid())
+                                .setCallingUid(Binder.getCallingUid())
+                                .setMethod("getServiceStateForSubscriber")
+                                .setMinSdkVersionForFine(Build.VERSION_CODES.Q)
+                                .build());
+
+        LocationAccessPolicy.LocationPermissionResult coarseLocationResult =
+                LocationAccessPolicy.checkLocationPermission(mApp,
+                        new LocationAccessPolicy.LocationPermissionQuery.Builder()
+                                .setCallingPackage(callingPackage)
+                                .setCallingPid(Binder.getCallingPid())
+                                .setCallingUid(Binder.getCallingUid())
+                                .setMethod("getServiceStateForSubscriber")
+                                .setMinSdkVersionForCoarse(Build.VERSION_CODES.Q)
+                                .build());
+        // We don't care about hard or soft here -- all we need to know is how much info to scrub.
+        boolean hasFinePermission =
+                fineLocationResult == LocationAccessPolicy.LocationPermissionResult.ALLOWED;
+        boolean hasCoarsePermission =
+                coarseLocationResult == LocationAccessPolicy.LocationPermissionResult.ALLOWED;
+
         final long identity = Binder.clearCallingIdentity();
         try {
             final Phone phone = getPhone(subId);
@@ -5284,7 +5376,13 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 return null;
             }
 
-            return phone.getServiceState();
+            ServiceState ss = phone.getServiceState();
+
+            // Scrub out the location info in ServiceState depending on what level of access
+            // the caller has.
+            if (hasFinePermission) return ss;
+            if (hasCoarsePermission) return ss.sanitizeLocationInfo(false);
+            return ss.sanitizeLocationInfo(true);
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -5997,9 +6095,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public List<UiccCardInfo> getUiccCardsInfo(String callingPackage) {
-        if (checkCarrierPrivilegesForPackageAnyPhone(callingPackage)
-                != TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
-            throw new SecurityException("Caller does not have carrier privileges on any UICC.");
+        try {
+            enforceReadPrivilegedPermission("getUiccCardsInfo");
+        } catch (SecurityException e) {
+            // even without READ_PRIVILEGED_PHONE_STATE, we allow the call to continue if the caller
+            // has carrier privileges on an active UICC
+            if (checkCarrierPrivilegesForPackageAnyPhone(callingPackage)
+                        != TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
+                throw new SecurityException("Caller does not have carrier privileges on any UICC");
+            }
         }
 
         final long identity = Binder.clearCallingIdentity();
@@ -6084,7 +6188,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                         cardId,
                         cardState,
                         slot.getPhoneId(),
-                        slot.isExtendedApduSupported());
+                        slot.isExtendedApduSupported(),
+                        slot.isRemovable());
             }
             return infos;
         } finally {
@@ -6505,20 +6610,38 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public boolean isMultisimCarrierRestricted() {
-        enforceReadPrivilegedPermission("isMultisimCarrierRestricted");
+    public boolean isMultisimSupported(String callingPackage) {
+        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(mApp,
+                getDefaultPhone().getSubId(), callingPackage, "isMultisimSupported")) {
+            return false;
+        }
 
         final long identity = Binder.clearCallingIdentity();
         try {
             // If the device has less than 2 SIM cards, indicate that multisim is restricted.
             int numPhysicalSlots = UiccController.getInstance().getUiccSlots().length;
             if (numPhysicalSlots < 2) {
-                loge("isMultisimCarrierRestricted: requires at least 2 cards");
-                return true;
+                loge("isMultisimSupported: requires at least 2 cards");
+                return false;
+            }
+            // Check if the hardware supports multisim functionality. If usage of multisim is not
+            // supported by the modem, indicate that it is restricted.
+            PhoneCapability staticCapability =
+                    mPhoneConfigurationManager.getStaticPhoneCapability();
+            if (staticCapability == null) {
+                loge("isMultisimSupported: no static configuration available");
+                return false;
+            }
+            if (staticCapability.logicalModemList.size() < 2) {
+                loge("isMultisimSupported: maximum number of modem is < 2");
+                return false;
+            }
+            // Check if support of multiple SIMs is restricted by carrier
+            if (mTelephonySharedPreferences.getBoolean(PREF_MULTI_SIM_RESTRICTED, false)) {
+                return false;
             }
 
-            // Default value is false. Multi SIM is allowed unless explicitly restricted.
-            return mTelephonySharedPreferences.getBoolean(PREF_MULTI_SIM_RESTRICTED, false);
+            return true;
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -6555,6 +6678,12 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
     }
 
+    private void updateModemStateMetrics() {
+        TelephonyMetrics metrics = TelephonyMetrics.getInstance();
+        // TODO: check the state for each modem if the api is ready.
+        metrics.updateEnabledModemBitmap((1 << TelephonyManager.from(mApp).getPhoneCount()) - 1);
+    }
+
     @Override
     public int[] getSlotsMapping() {
         enforceReadPrivilegedPermission("getSlotsMapping");
@@ -6576,10 +6705,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
     }
 
-    private void updateModemStateMetrics() {
-        TelephonyMetrics metrics = TelephonyMetrics.getInstance();
-        // TODO: check the state for each modem if the api is ready.
-        metrics.updateEnabledModemBitmap((1 << TelephonyManager.from(mApp).getPhoneCount()) - 1);
+    /**
+     * Get the IRadio HAL Version
+     */
+    @Override
+    public int getRadioHalVersion() {
+        Phone phone = getDefaultPhone();
+        if (phone == null) return -1;
+        HalVersion hv = phone.getHalVersion();
+        if (hv.equals(HalVersion.UNKNOWN)) return -1;
+        return hv.major * 100 + hv.minor;
     }
-
 }

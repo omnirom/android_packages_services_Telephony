@@ -616,12 +616,17 @@ public class PhoneGlobals extends ContextWrapper {
                     airplaneMode = AIRPLANE_ON;
                 }
                 handleAirplaneModeChange(context, airplaneMode);
-            } else if ((action.equals(TelephonyIntents.ACTION_SIM_STATE_CHANGED))) {
-                int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY, 0);
+            } else if (action.equals(TelephonyIntents.ACTION_SIM_STATE_CHANGED)) {
+                // re-register as it may be a new IccCard
+                int phoneId = intent.getIntExtra(PhoneConstants.PHONE_KEY,
+                        SubscriptionManager.INVALID_PHONE_INDEX);
                 int subId = intent.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX,
                         SubscriptionManager.INVALID_SIM_SLOT_INDEX);
                 String simStatus = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
-                PhoneUtils.registerIccStatus(mHandler, EVENT_SIM_NETWORK_LOCKED);
+                if (SubscriptionManager.isValidPhoneId(phoneId)) {
+                    PhoneUtils.unregisterIccStatus(mHandler, phoneId);
+                    PhoneUtils.registerIccStatus(mHandler, EVENT_SIM_NETWORK_LOCKED, phoneId);
+                }
                 if (mPUKEntryActivity != null) {
                     // if an attempt to un-PUK-lock the device was made, while we're
                     // receiving this state change notification, notify the handler.
