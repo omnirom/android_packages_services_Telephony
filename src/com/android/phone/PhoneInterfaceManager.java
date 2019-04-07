@@ -1100,6 +1100,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     request = (MainThreadRequest) msg.obj;
                     boolean enable = (boolean) request.argument;
                     onCompleted = obtainMessage(EVENT_ENABLE_MODEM_DONE, request);
+                    onCompleted.arg1 = enable ? 1 : 0;
                     PhoneConfigurationManager.getInstance()
                             .enablePhone(request.phone, enable, onCompleted);
                     break;
@@ -1107,6 +1108,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     ar = (AsyncResult) msg.obj;
                     request = (MainThreadRequest) ar.userObj;
                     request.result = (ar.exception == null);
+                    //update the cache as modem status has changed
+                    mPhoneConfigurationManager.addToPhoneStatusCache(
+                            request.phone.getPhoneId(), msg.arg1 == 1);
                     updateModemStateMetrics();
                     notifyRequester(request);
                     break;
@@ -2462,7 +2466,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
 
         timeoutMillis = Math.min(timeoutMillis,
-                TelephonyManager.MAX_NUMBER_VERIFICATION_TIMEOUT_MILLIS);
+                TelephonyManager.getMaxNumberVerificationTimeoutMillis());
 
         NumberVerificationManager.getInstance().requestVerification(range, callback, timeoutMillis);
     }
@@ -2896,9 +2900,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void setAdvancedCallingSetting(int subId, boolean isEnabled) {
+    public void setAdvancedCallingSettingEnabled(int subId, boolean isEnabled) {
         TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(mApp, subId,
-                "setAdvancedCallingSetting");
+                "setAdvancedCallingSettingEnabled");
         final long identity = Binder.clearCallingIdentity();
         try {
             // TODO: Refactor to remove ImsManager dependence and query through ImsPhone directly.
@@ -2923,9 +2927,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void setVtSetting(int subId, boolean isEnabled) {
+    public void setVtSettingEnabled(int subId, boolean isEnabled) {
         TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(mApp, subId,
-                "setVtSetting");
+                "setVtSettingEnabled");
         final long identity = Binder.clearCallingIdentity();
         try {
             // TODO: Refactor to remove ImsManager dependence and query through ImsPhone directly.
@@ -2949,9 +2953,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void setVoWiFiSetting(int subId, boolean isEnabled) {
+    public void setVoWiFiSettingEnabled(int subId, boolean isEnabled) {
         TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(mApp, subId,
-                "setVoWiFiSetting");
+                "setVoWiFiSettingEnabled");
         final long identity = Binder.clearCallingIdentity();
         try {
             // TODO: Refactor to remove ImsManager dependence and query through ImsPhone directly.
@@ -2975,9 +2979,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void setVoWiFiRoamingSetting(int subId, boolean isEnabled) {
+    public void setVoWiFiRoamingSettingEnabled(int subId, boolean isEnabled) {
         TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(mApp, subId,
-                "setVoWiFiRoamingSetting");
+                "setVoWiFiRoamingSettingEnabled");
         final long identity = Binder.clearCallingIdentity();
         try {
             // TODO: Refactor to remove ImsManager dependence and query through ImsPhone directly.
@@ -4390,27 +4394,18 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /**
-     * Check TETHER_DUN_REQUIRED and TETHER_DUN_APN settings, net.tethering.noprovisioning
-     * SystemProperty to decide whether DUN APN is required for
-     * tethering.
+     * Check whether DUN APN is required for tethering.
      *
-     * @return 0: Not required. 1: required. 2: Not set.
+     * @return {@code true} if DUN APN is required for tethering.
      * @hide
      */
     @Override
-    public int getTetherApnRequired() {
+    public boolean getTetherApnRequired() {
         enforceModifyPermission();
-
         final long identity = Binder.clearCallingIdentity();
         final Phone defaultPhone = getDefaultPhone();
         try {
-            int dunRequired = Settings.Global.getInt(defaultPhone.getContext().getContentResolver(),
-                    Settings.Global.TETHER_DUN_REQUIRED, 2);
-            // If not set, check net.tethering.noprovisioning, TETHER_DUN_APN setting
-            if (dunRequired == 2 && defaultPhone.hasMatchedTetherApnSetting()) {
-                dunRequired = 1;
-            }
-            return dunRequired;
+            return defaultPhone.hasMatchedTetherApnSetting();
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -6618,45 +6613,62 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
         final long identity = Binder.clearCallingIdentity();
         try {
-            // If the device has less than 2 SIM cards, indicate that multisim is restricted.
-            int numPhysicalSlots = UiccController.getInstance().getUiccSlots().length;
-            if (numPhysicalSlots < 2) {
-                loge("isMultisimSupported: requires at least 2 cards");
-                return false;
-            }
-            // Check if the hardware supports multisim functionality. If usage of multisim is not
-            // supported by the modem, indicate that it is restricted.
-            PhoneCapability staticCapability =
-                    mPhoneConfigurationManager.getStaticPhoneCapability();
-            if (staticCapability == null) {
-                loge("isMultisimSupported: no static configuration available");
-                return false;
-            }
-            if (staticCapability.logicalModemList.size() < 2) {
-                loge("isMultisimSupported: maximum number of modem is < 2");
-                return false;
-            }
-            // Check if support of multiple SIMs is restricted by carrier
-            if (mTelephonySharedPreferences.getBoolean(PREF_MULTI_SIM_RESTRICTED, false)) {
-                return false;
-            }
-
-            return true;
+            return isMultisimSupportedInternal();
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
     }
 
+    private boolean isMultisimSupportedInternal() {
+        // If the device has less than 2 SIM cards, indicate that multisim is restricted.
+        int numPhysicalSlots = UiccController.getInstance().getUiccSlots().length;
+        if (numPhysicalSlots < 2) {
+            loge("isMultisimSupportedInternal: requires at least 2 cards");
+            return false;
+        }
+        // Check if the hardware supports multisim functionality. If usage of multisim is not
+        // supported by the modem, indicate that it is restricted.
+        PhoneCapability staticCapability =
+                mPhoneConfigurationManager.getStaticPhoneCapability();
+        if (staticCapability == null) {
+            loge("isMultisimSupportedInternal: no static configuration available");
+            return false;
+        }
+        if (staticCapability.logicalModemList.size() < 2) {
+            loge("isMultisimSupportedInternal: maximum number of modem is < 2");
+            return false;
+        }
+        // Check if support of multiple SIMs is restricted by carrier
+        if (mTelephonySharedPreferences.getBoolean(PREF_MULTI_SIM_RESTRICTED, false)) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Switch configs to enable multi-sim or switch back to single-sim
+     * Note: Switch from multi-sim to single-sim is only possible with MODIFY_PHONE_STATE
+     * permission, but the other way around is possible with either MODIFY_PHONE_STATE
+     * or carrier privileges
      * @param numOfSims number of active sims we want to switch to
      */
     @Override
     public void switchMultiSimConfig(int numOfSims) {
-        TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(
-                mApp, SubscriptionManager.DEFAULT_SUBSCRIPTION_ID, "switchMultiSimConfig");
+        if (numOfSims == 1) {
+            enforceModifyPermission();
+        } else {
+            TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(
+                    mApp, SubscriptionManager.DEFAULT_SUBSCRIPTION_ID, "switchMultiSimConfig");
+        }
         final long identity = Binder.clearCallingIdentity();
+
         try {
+            //only proceed if multi-sim is not restricted
+            if (!isMultisimSupportedInternal()) {
+                loge("switchMultiSimConfig not possible. It is restricted or not supported.");
+                return;
+            }
             mPhoneConfigurationManager.switchMultiSimConfig(numOfSims);
         } finally {
             Binder.restoreCallingIdentity(identity);

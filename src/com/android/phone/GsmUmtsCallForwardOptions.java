@@ -321,7 +321,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
             if (mIcicle == null) {
                 Log.d(LOG_TAG, "start to init ");
                 CallForwardEditPreference pref = mPreferences.get(mInitIndex);
-                pref.init(this, false, mPhone, mReplaceInvalidCFNumbers, mServiceClass, mCallForwardByUssd);
+                pref.init(this, mPhone, mReplaceInvalidCFNumbers, mServiceClass, mCallForwardByUssd);
                 pref.startCallForwardOptionsQuery();
 
             } else {
@@ -334,7 +334,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
                     CallForwardInfo cf = new CallForwardInfo();
                     cf.number = bundle.getString(KEY_NUMBER);
                     cf.status = bundle.getInt(KEY_STATUS);
-                    pref.init(this, true, mPhone, mReplaceInvalidCFNumbers, mServiceClass, mCallForwardByUssd);
+                    pref.init(this, mPhone, mReplaceInvalidCFNumbers, mServiceClass, mCallForwardByUssd);
                     pref.restoreCallForwardInfo(cf);
                 }
             }
@@ -433,7 +433,7 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
             } else {
                 mInitIndex++;
                 CallForwardEditPreference pref = mPreferences.get(mInitIndex);
-                pref.init(this, false, mPhone, mReplaceInvalidCFNumbers, mServiceClass, mCallForwardByUssd);
+                pref.init(this, mPhone, mReplaceInvalidCFNumbers, mServiceClass, mCallForwardByUssd);
                 pref.startCallForwardOptionsQuery();
             }
         }

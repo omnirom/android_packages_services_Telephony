@@ -104,32 +104,13 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         this(context, null);
     }
 
-    void init(TimeConsumingPreferenceListener listener, boolean skipReading, Phone phone,
+    void init(TimeConsumingPreferenceListener listener, Phone phone,
             boolean replaceInvalidCFNumber, int serviceClass, boolean callForwardByUssd) {
         mPhone = phone;
         mTcpListener = listener;
         mReplaceInvalidCFNumber = replaceInvalidCFNumber;
         mServiceClass = serviceClass;
         mUtEnabled = mPhone.isUtEnabled();
-
-        isTimerEnabled = isTimerEnabled();
-        Log.d(LOG_TAG, "isTimerEnabled=" + isTimerEnabled);
-        if (!skipReading) {
-            if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL && isTimerEnabled) {
-                createQtiImsExtConnector(mContext);
-                //Connect will get the QtiImsExtManager instance and query CFUT.
-                mQtiImsExtConnector.connect();
-            } else {
-                mPhone.getCallForwardingOption(reason, mServiceClass,
-                        mHandler.obtainMessage(MyHandler.MESSAGE_GET_CF,
-                        // unused in this case
-                        CommandsInterface.CF_ACTION_DISABLE,
-                        MyHandler.MESSAGE_GET_CF, null));
-            }
-            if (mTcpListener != null) {
-                mTcpListener.onStarted(this, true);
-            }
-        }
         mCallForwardByUssd = callForwardByUssd;
         Log.d(LOG_TAG,
                 "init :mReplaceInvalidCFNumber " + mReplaceInvalidCFNumber + ", mCallForwardByUssd "
@@ -407,11 +388,19 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
      */
     void startCallForwardOptionsQuery() {
         if (!mCallForwardByUssd) {
-            mPhone.getCallForwardingOption(reason,
-                    mHandler.obtainMessage(MyHandler.MESSAGE_GET_CF,
-                            // unused in this case
-                            CommandsInterface.CF_ACTION_DISABLE,
-                            MyHandler.MESSAGE_GET_CF, null));
+            isTimerEnabled = isTimerEnabled();
+            Log.d(LOG_TAG, "isTimerEnabled=" + isTimerEnabled);
+            if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL && isTimerEnabled) {
+                createQtiImsExtConnector(mContext);
+                //Connect will get the QtiImsExtManager instance and query CFUT.
+                mQtiImsExtConnector.connect();
+            } else {
+                mPhone.getCallForwardingOption(reason, mServiceClass,
+                        mHandler.obtainMessage(MyHandler.MESSAGE_GET_CF,
+                        // unused in this case
+                        CommandsInterface.CF_ACTION_DISABLE,
+                        MyHandler.MESSAGE_GET_CF, null));
+            }
         } else {
             mHandler.sendMessage(mHandler.obtainMessage(mHandler.MESSAGE_GET_CF_USSD,
                     // unused in this case
