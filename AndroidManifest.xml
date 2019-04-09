@@ -96,11 +96,12 @@
     <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_NETWORK_SPECIFIER_SET" />
     <protected-broadcast android:name= "org.codeaurora.intent.action.ACTION_DDS_SWITCH_DONE" />
     <protected-broadcast android:name= "android.telephony.action.SUBSCRIPTION_CARRIER_IDENTITY_CHANGED" />
-    <protected-broadcast android:name= "android.telephony.action.SUBSCRIPTION_PRECISE_CARRIER_IDENTITY_CHANGED" />
+    <protected-broadcast android:name= "android.telephony.action.SUBSCRIPTION_SPECIFIC_CARRIER_IDENTITY_CHANGED" />
     <protected-broadcast android:name= "android.telephony.action.NETWORK_COUNTRY_CHANGED" />
+    <protected-broadcast android:name= "android.telephony.action.PRIMARY_SUBSCRIPTION_LIST_CHANGED" />
 
     <!-- For Vendor Debugging in Telephony -->
-    <protected-broadcast android:name="android.telephony.action.DEBUG_EVENT" />
+    <protected-broadcast android:name="android.telephony.action.ANOMALY_REPORTED" />
 
     <uses-permission android:name="android.permission.BROADCAST_STICKY" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -574,6 +575,7 @@
         <activity android:name="com.android.phone.settings.VoicemailSettingsActivity"
             android:label="@string/voicemail"
             android:configChanges="orientation|screenSize|keyboardHidden|screenLayout"
+            android:screenOrientation="portrait"
             android:theme="@style/DialerSettingsLight">
             <intent-filter >
                 <!-- DO NOT RENAME. There are existing apps which use this string. -->
@@ -596,18 +598,6 @@
                 <action android:name="android.telecom.ConnectionService" />
             </intent-filter>
         </service>
-
-        <provider
-                android:name="PhoneSearchIndexablesProvider"
-                android:authorities="com.android.phone"
-                android:multiprocess="false"
-                android:grantUriPermissions="true"
-                android:permission="android.permission.READ_SEARCH_INDEXABLES"
-                android:exported="true">
-            <intent-filter>
-                <action android:name="android.content.action.SEARCH_INDEXABLES_PROVIDER" />
-            </intent-filter>
-        </provider>
 
         <receiver
           android:name="com.android.phone.vvm.VvmSmsReceiver"

@@ -21,6 +21,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.database.ContentObserver;
 import android.graphics.Bitmap;
@@ -132,7 +133,10 @@ public class TelecomAccountRegistry {
             }
 
             try {
-                mMmTelManager = ImsMmTelManager.createForSubscriptionId(getSubId());
+                if (mPhone.getContext().getPackageManager().hasSystemFeature(
+                        PackageManager.FEATURE_TELEPHONY_IMS)) {
+                    mMmTelManager = ImsMmTelManager.createForSubscriptionId(getSubId());
+                }
             } catch (IllegalArgumentException e) {
                 Log.i(this, "Not registering MmTel capabilities listener because the subid '"
                         + getSubId() + "' is invalid: " + e.getMessage());
@@ -284,8 +288,7 @@ public class TelecomAccountRegistry {
                 capabilities |= PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS;
             }
 
-            if (PhoneGlobals.getInstance().phoneMgr.isRttEnabled(subId)
-                    && isImsVoiceAvailable()) {
+            if (isRttCurrentlySupported()) {
                 capabilities |= PhoneAccount.CAPABILITY_RTT;
                 mIsRttCapable = true;
             } else {
@@ -603,17 +606,28 @@ public class TelecomAccountRegistry {
         }
 
         public void updateRttCapability() {
-            boolean hasVoiceAvailability = isImsVoiceAvailable();
-
-            boolean isRttSupported = PhoneGlobals.getInstance().phoneMgr
-                    .isRttEnabled(mPhone.getSubId());
-
-            boolean isRttEnabled = hasVoiceAvailability && isRttSupported;
+            boolean isRttEnabled = isRttCurrentlySupported();
             if (isRttEnabled != mIsRttCapable) {
                 Log.i(this, "updateRttCapability - changed, new value: " + isRttEnabled);
                 mAccount = registerPstnPhoneAccount(mIsEmergency, mIsDummy);
             }
         }
+
+        /**
+         * Determines whether RTT is supported given the current state of the
+         * device.
+         */
+        private boolean isRttCurrentlySupported() {
+            boolean hasVoiceAvailability = isImsVoiceAvailable();
+
+            boolean isRttSupported = PhoneGlobals.getInstance().phoneMgr
+                    .isRttEnabled(mPhone.getSubId());
+
+            boolean isRoaming = mTelephonyManager.isNetworkRoaming(mPhone.getSubId());
+
+            return hasVoiceAvailability && isRttSupported && !isRoaming;
+        }
+
         /**
          * Indicates whether this account supports pausing video calls.
          * @return {@code true} if the account supports pausing video calls, {@code false}
@@ -700,6 +714,7 @@ public class TelecomAccountRegistry {
         @Override
         public void onSubscriptionsChanged() {
             // Any time the SubscriptionInfo changes...rerun the setup
+            Log.i(this, "onSubscriptionsChanged - update accounts");
             tearDownAccounts();
             setupAccounts();
         }
@@ -736,6 +751,12 @@ public class TelecomAccountRegistry {
             if (newState == ServiceState.STATE_IN_SERVICE && mServiceState != newState) {
                 tearDownAccounts();
                 setupAccounts();
+            } else {
+                synchronized (mAccountsLock) {
+                    for (AccountEntry account : mAccounts) {
+                        account.updateRttCapability();
+                    }
+                }
             }
             mServiceState = newState;
         }
@@ -1020,7 +1041,7 @@ public class TelecomAccountRegistry {
         // Go through SIM-based phones and register ourselves -- registering an existing account
         // will cause the existing entry to be replaced.
         Phone[] phones = PhoneFactory.getPhones();
-        Log.d(this, "Found %d phones.  Attempting to register.", phones.length);
+        Log.i(this, "setupAccounts: Found %d phones.  Attempting to register.", phones.length);
 
         final boolean phoneAccountsEnabled = mContext.getResources().getBoolean(
                 R.bool.config_pstn_phone_accounts_enabled);
@@ -1029,100 +1050,112 @@ public class TelecomAccountRegistry {
         boolean isAnyProvisionInfoPending = false;
 
         synchronized (mAccountsLock) {
-            if (phoneAccountsEnabled) {
-                // states we are interested in from what
-                // IExtTelephony.getCurrentUiccCardProvisioningStatus()can return
-                final int PROVISIONED = 1;
-                final int INVALID_STATE = -1;
-                final int CARD_NOT_PRESENT = -2;
-                boolean isInEcm = false;
+            try {
+                if (phoneAccountsEnabled) {
+                    // states we are interested in from what
+                    // IExtTelephony.getCurrentUiccCardProvisioningStatus()can return
+                    final int PROVISIONED = 1;
+                    final int INVALID_STATE = -1;
+                    final int CARD_NOT_PRESENT = -2;
+                    boolean isInEcm = false;
 
-                for (Phone phone : phones) {
-                    int provisionStatus = PROVISIONED;
-                    int subscriptionId = phone.getSubId();
-                    int slotId = phone.getPhoneId();
-                    isInEcm = Boolean.parseBoolean(mTelephonyManager.getTelephonyProperty(slotId,
-                            TelephonyProperties.PROPERTY_INECM_MODE, "false"));
-                    boolean isAccountAdded = false;
+                    for (Phone phone : phones) {
+                        int provisionStatus = PROVISIONED;
+                        int subscriptionId = phone.getSubId();
+                        int slotId = phone.getPhoneId();
+                        isInEcm = Boolean.parseBoolean(mTelephonyManager.getTelephonyProperty(slotId,
+                                TelephonyProperties.PROPERTY_INECM_MODE, "false"));
+                        boolean isAccountAdded = false;
 
-                    if (mTelephonyManager.getPhoneCount() > 1) {
-                        IExtTelephony mExtTelephony = IExtTelephony.Stub
-                                .asInterface(ServiceManager.getService("extphone"));
-                        try {
-                            //get current provision state of the SIM.
-                            provisionStatus =
-                                    mExtTelephony.getCurrentUiccCardProvisioningStatus(slotId);
-                        } catch (RemoteException ex) {
-                            provisionStatus = INVALID_STATE;
-                            Log.w(this, "Failed to get status , slotId: "+ slotId +" Exception: "
-                                    + ex);
-                        } catch (NullPointerException ex) {
-                            provisionStatus = INVALID_STATE;
-                            Log.w(this, "Failed to get status , slotId: "+ slotId +" Exception: "
-                                    + ex);
+                        if (mTelephonyManager.getPhoneCount() > 1) {
+                            IExtTelephony mExtTelephony = IExtTelephony.Stub
+                                    .asInterface(ServiceManager.getService("extphone"));
+                            try {
+                                //get current provision state of the SIM.
+                                provisionStatus =
+                                        mExtTelephony.getCurrentUiccCardProvisioningStatus(slotId);
+                            } catch (RemoteException ex) {
+                                provisionStatus = INVALID_STATE;
+                                Log.w(this, "Failed to get status , slotId: "+ slotId +" Exception: "
+                                        + ex);
+                            } catch (NullPointerException ex) {
+                                provisionStatus = INVALID_STATE;
+                                Log.w(this, "Failed to get status , slotId: "+ slotId +" Exception: "
+                                        + ex);
+                            }
                         }
-                    }
 
-                    // In SSR case, UiccCard's would be disposed hence the provision state received as
-                    // CARD_NOT_PRESENT but valid subId present in SubscriptionInfo record.
-                    if (provisionStatus == INVALID_STATE || ((provisionStatus == CARD_NOT_PRESENT)
-                            && mSubscriptionManager.isActiveSubId(subscriptionId))) {
-                        isAnyProvisionInfoPending = true;
-                    }
-                    Log.d(this, "Phone with subscription id: " + subscriptionId +
-                            " slotId: " + slotId + " provisionStatus: " + provisionStatus);
-                    // setupAccounts can be called multiple times during service changes. Don't add an
-                    // account if the Icc has not been set yet.
-                    if (!SubscriptionManager.isValidSubscriptionId(subscriptionId)
-                            || phone.getFullIccSerialNumber() == null) return;
-                    // Don't add account if it's opportunistic subscription, which is considered
-                    // data only for now.
-                    SubscriptionInfo info = SubscriptionManager.from(mContext)
-                            .getActiveSubscriptionInfo(subscriptionId);
-                    if (info == null || info.isOpportunistic()) return;
-                    if (subscriptionId >= 0  && (provisionStatus == PROVISIONED)
-                            && (mSubscriptionManager.isActiveSubId(subscriptionId))) {
-                        activeCount++;
-                        activeSubscriptionId = subscriptionId;
-                        mAccounts.add(new AccountEntry(phone, false /* emergency */,
-                                false /* isDummy */));
-                        isAccountAdded = true;
-                    } else {
-                        // If device configured in dsds mode, a SIM removed and if corresponding
-                        // phone is in ECM then add emergency account to that sub so that
-                        // incoming emergency call can be processed.
-                        Phone phoneInEcm = PhoneGlobals.getInstance().getPhoneInEcm();
-                        if ((mTelephonyManager.getPhoneCount() > 1)
-                                && isInEcm && (phoneInEcm != null)
-                                && phoneInEcm.getPhoneId() == phone.getPhoneId()) {
-                            mAccounts.add(new AccountEntry(phoneInEcm, true /* emergency */,
+                        // In SSR case, UiccCard's would be disposed hence the provision state received as
+                        // CARD_NOT_PRESENT but valid subId present in SubscriptionInfo record.
+                        if (provisionStatus == INVALID_STATE || ((provisionStatus == CARD_NOT_PRESENT)
+                                && mSubscriptionManager.isActiveSubId(subscriptionId))) {
+                            isAnyProvisionInfoPending = true;
+                        }
+
+                        Log.i(this, "setupAccounts: Phone with subscription id %d", subscriptionId +
+                                " slotId: " + slotId + " provisionStatus: " + provisionStatus);
+                        // setupAccounts can be called multiple times during service changes.
+                        // Don't add an account if the Icc has not been set yet.
+                        if (!SubscriptionManager.isValidSubscriptionId(subscriptionId)
+                                || phone.getFullIccSerialNumber() == null) {
+                            Log.d(this, "setupAccounts: skipping invalid subid %d", subscriptionId);
+                            continue;
+                        }
+                        // Don't add account if it's opportunistic subscription, which is considered
+                        // data only for now.
+                        SubscriptionInfo info = SubscriptionManager.from(mContext)
+                                .getActiveSubscriptionInfo(subscriptionId);
+                        if (info == null || info.isOpportunistic()) {
+                            Log.d(this, "setupAccounts: skipping unknown or opportunistic subid %d",
+                                    subscriptionId);
+                            continue;
+                        }
+
+                        if (subscriptionId >= 0  && (provisionStatus == PROVISIONED)
+                                && (mSubscriptionManager.isActiveSubId(subscriptionId))) {
+                            activeCount++;
+                            activeSubscriptionId = subscriptionId;
+                            mAccounts.add(new AccountEntry(phone, false /* emergency */,
                                     false /* isDummy */));
                             isAccountAdded = true;
+                        } else {
+                            // If device configured in dsds mode, a SIM removed and if corresponding
+                            // phone is in ECM then add emergency account to that sub so that
+                            // incoming emergency call can be processed.
+                            Phone phoneInEcm = PhoneGlobals.getInstance().getPhoneInEcm();
+                            if ((mTelephonyManager.getPhoneCount() > 1)
+                                    && isInEcm && (phoneInEcm != null)
+                                    && phoneInEcm.getPhoneId() == phone.getPhoneId()) {
+                                mAccounts.add(new AccountEntry(phoneInEcm, true /* emergency */,
+                                        false /* isDummy */));
+                                isAccountAdded = true;
+                            }
+                        }
+                        // Speacial case where one sub sim locked other sub reporting emergency service
+                        // emergency call placed will initiate on primary sub i.e sub which is reporting
+                        // limited/emergency service, if phone switches when emergency call is
+                        // in progress, there will missing phone account which can notify phantom call
+                        // to upper layer add emergency if for a phone no account added and if phone
+                        // reporting emergency service and other subs oos or if phone has running call
+                        if (!isAccountAdded && ((phone.getServiceState().isEmergencyOnly()
+                                    && !isOtherPhoneInService(phone))
+                                    || (phone.getState() == PhoneConstants.State.OFFHOOK))) {
+                            Log.i(this, "Adding emergency account to phone id: "+phone.getPhoneId());
+                            mAccounts.add(new AccountEntry(phone, true /* emergency */,
+                                    false /* isDummy */));
                         }
                     }
-	            // Speacial case where one sub sim locked other sub reporting emergency service
-                    // emergency call placed will initiate on primary sub i.e sub which is reporting
-                    // limited/emergency service, if phone switches when emergency call is
-                    // in progress, there will missing phone account which can notify phantom call
-                    // to upper layer add emergency if for a phone no account added and if phone
-                    // reporting emergency service and other subs oos or if phone has running call
-                    if (!isAccountAdded && ((phone.getServiceState().isEmergencyOnly()
-                                && !isOtherPhoneInService(phone))
-                                || (phone.getState() == PhoneConstants.State.OFFHOOK))) {
-                        Log.i(this, "Adding emergency account to phone id: "+phone.getPhoneId());
-                        mAccounts.add(new AccountEntry(phone, true /* emergency */,
-                                false /* isDummy */));
-                    }
                 }
-            }
-
-            // If we did not list ANY accounts, we need to provide a "default" SIM account for a
-            // slot which is bound to primary modem stack, for emergency numbers since
-            // no actual SIM is needed for dialing emergency numbers but a phone account is.
-            if (mAccounts.isEmpty()) {
-                mAccounts.add(new AccountEntry(PhoneFactory.getPhone(
-                        PhoneUtils.getPrimaryStackPhoneId()), true /* emergency */,
-                        false /* isDummy */));
+            } finally {
+                // If we did not list ANY accounts, we need to provide a "default" SIM account
+                // for emergency numbers since no actual SIM is needed for dialing emergency
+                // numbers but a phone account is.
+                if (mAccounts.isEmpty()) {
+                    Log.i(this, "setupAccounts: adding default");
+                    mAccounts.add(new AccountEntry(PhoneFactory.getPhone(
+                            PhoneUtils.getPrimaryStackPhoneId()), true /* emergency */,
+                            false /* isDummy */));
+                }
             }
 
             // Add a fake account entry.
