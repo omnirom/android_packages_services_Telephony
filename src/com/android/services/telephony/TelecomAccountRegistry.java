@@ -1092,7 +1092,7 @@ public class TelecomAccountRegistry {
                             isAnyProvisionInfoPending = true;
                         }
 
-                        Log.i(this, "setupAccounts: Phone with subscription id %d", subscriptionId +
+                        Log.i(this, "setupAccounts: Phone with subscription id: " + subscriptionId +
                                 " slotId: " + slotId + " provisionStatus: " + provisionStatus);
                         // setupAccounts can be called multiple times during service changes.
                         // Don't add an account if the Icc has not been set yet.
