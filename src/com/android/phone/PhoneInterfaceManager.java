@@ -21,6 +21,7 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static com.android.internal.telephony.PhoneConstants.SUBSCRIPTION_KEY;
 
 import android.Manifest.permission;
+import android.annotation.Nullable;
 import android.app.AppOpsManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
@@ -834,7 +835,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 case CMD_GET_MODEM_ACTIVITY_INFO:
                     request = (MainThreadRequest) msg.obj;
                     onCompleted = obtainMessage(EVENT_GET_MODEM_ACTIVITY_INFO_DONE, request);
-                    defaultPhone.getModemActivityInfo(onCompleted, request.workSource);
+                    if (defaultPhone != null) {
+                        defaultPhone.getModemActivityInfo(onCompleted, request.workSource);
+                    }
                     break;
 
                 case EVENT_GET_MODEM_ACTIVITY_INFO_DONE:
@@ -4471,14 +4474,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             }
         }
 
-        List<String> allowedMccMncs =
-                NetworkScanRequestTracker.getAllowedMccMncsForLocationRestrictedScan(mApp);
-        for (String mccmnc : request.getPlmns()) {
-            if (!allowedMccMncs.contains(mccmnc)) {
-                return new SecurityException("Requested mccmnc " + mccmnc + " is not known to the"
-                        + " device and cannot be scanned for without location access.");
-            }
-        }
+        // STOPSHIP Revisit PLMN check (b/130253962).
+        //List<String> allowedMccMncs =
+        //        NetworkScanRequestTracker.getAllowedMccMncsForLocationRestrictedScan(mApp);
+        //for (String mccmnc : request.getPlmns()) {
+        //    if (!allowedMccMncs.contains(mccmnc)) {
+        //        return new SecurityException("Requested mccmnc " + mccmnc + " is not known to the"
+        //                + " device and cannot be scanned for without location access.");
+        //    }
+        //}
 
         return null;
     }
@@ -5297,6 +5301,20 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         final long identity = Binder.clearCallingIdentity();
         try {
             return PhoneUtils.getSubIdForPhoneAccount(phoneAccount);
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    @Override
+    public @Nullable PhoneAccountHandle getPhoneAccountHandleForSubscriptionId(int subscriptionId) {
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            Phone phone = getPhone(subscriptionId);
+            if (phone == null) {
+                return null;
+            }
+            return PhoneUtils.makePstnPhoneAccountHandle(phone);
         } finally {
             Binder.restoreCallingIdentity(identity);
         }

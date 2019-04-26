@@ -296,7 +296,9 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                         Log.d(LOG_TAG, "setCallForwardUncondTimer exception!" +e);
                     }
                     mAllowSetCallFwding = true;
-                } else {
+                } else if (!mCallForwardByUssd) {
+                    // the interface of Phone.setCallForwardingOption has error:
+                    // should be action, reason...
                     mPhone.setCallForwardingOption(action,
                         reason,
                         number,
@@ -305,18 +307,6 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                         mHandler.obtainMessage(MyHandler.MESSAGE_SET_CF,
                                 action,
                                 MyHandler.MESSAGE_SET_CF));
-                }
-
-                if (!mCallForwardByUssd) {
-                    // the interface of Phone.setCallForwardingOption has error:
-                    // should be action, reason...
-                    mPhone.setCallForwardingOption(action,
-                            reason,
-                            number,
-                            time,
-                            mHandler.obtainMessage(MyHandler.MESSAGE_SET_CF,
-                                    action,
-                                    MyHandler.MESSAGE_SET_CF));
                 } else {
                     if (action == CommandsInterface.CF_ACTION_REGISTRATION) {
                         mCfInfo.put(CarrierXmlParser.TAG_ENTRY_NUMBER, number);

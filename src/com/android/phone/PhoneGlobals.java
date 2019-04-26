@@ -211,7 +211,8 @@ public class PhoneGlobals extends ContextWrapper {
                     break;
 
                 case EVENT_SIM_STATE_CHANGED_CHECKREADY:
-                    if (msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_READY)) {
+                    if (msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_READY) ||
+                            msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_LOADED)) {
                         Log.i(LOG_TAG, "Dismissing depersonal panel");
                         IccNetworkDepersonalizationPanel.dialogDismiss(0);
                     }
