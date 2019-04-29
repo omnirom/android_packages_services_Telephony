@@ -288,14 +288,7 @@ public class TelecomAccountRegistry {
                 capabilities |= PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS;
             }
 
-            if (isRttCurrentlySupported()) {
-                capabilities |= PhoneAccount.CAPABILITY_RTT;
-                mIsRttCapable = true;
-            } else {
-                mIsRttCapable = false;
-            }
-
-            mIsVideoCapable = mPhone.isVideoEnabled() && !mIsRttCapable;
+            mIsVideoCapable = mPhone.isVideoEnabled();
             boolean isVideoEnabledByPlatform = ImsManager.getInstance(mPhone.getContext(),
                     mPhone.getPhoneId()).isVtEnabledByPlatform();
 
@@ -343,6 +336,13 @@ public class TelecomAccountRegistry {
             if (isTelephonyAudioDeviceSupported && !isEmergency
                     && isCarrierUseCallRecordingTone()) {
                 extras.putBoolean(PhoneAccount.EXTRA_PLAY_CALL_RECORDING_TONE, true);
+            }
+
+            if (isRttCurrentlySupported()) {
+                capabilities |= PhoneAccount.CAPABILITY_RTT;
+                mIsRttCapable = true;
+            } else {
+                mIsRttCapable = false;
             }
 
             extras.putBoolean(PhoneAccount.EXTRA_SUPPORTS_VIDEO_CALLING_FALLBACK,
