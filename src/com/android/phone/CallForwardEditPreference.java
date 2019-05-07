@@ -2,6 +2,12 @@ package com.android.phone;
 
 import static com.android.phone.TimeConsumingPreferenceActivity.EXCEPTION_ERROR;
 import static com.android.phone.TimeConsumingPreferenceActivity.RESPONSE_ERROR;
+import static com.android.phone.TimeConsumingPreferenceActivity.RADIO_OFF_ERROR;
+import static com.android.phone.TimeConsumingPreferenceActivity.FDN_CHECK_FAILURE;
+import static com.android.phone.TimeConsumingPreferenceActivity.STK_CC_SS_TO_DIAL_ERROR;
+import static com.android.phone.TimeConsumingPreferenceActivity.STK_CC_SS_TO_USSD_ERROR;
+import static com.android.phone.TimeConsumingPreferenceActivity.STK_CC_SS_TO_SS_ERROR;
+import static com.android.phone.TimeConsumingPreferenceActivity.STK_CC_SS_TO_DIAL_VIDEO_ERROR;
 
 import android.app.AlertDialog;
 import android.content.Context;
@@ -13,6 +19,7 @@ import android.os.Message;
 import android.os.PersistableBundle;
 import android.os.SystemProperties;
 import android.telephony.CarrierConfigManager;
+import android.telephony.ims.ImsReasonInfo;
 import android.telephony.TelephonyManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.ServiceState;
@@ -29,9 +36,6 @@ import org.codeaurora.ims.QtiImsExtListenerBaseImpl;
 import org.codeaurora.ims.QtiImsExtConnector;
 import org.codeaurora.ims.QtiImsExtManager;
 import org.codeaurora.ims.utils.QtiImsExtUtils;
-
-import static com.android.phone.TimeConsumingPreferenceActivity.RESPONSE_ERROR;
-import static com.android.phone.TimeConsumingPreferenceActivity.EXCEPTION_ERROR;
 
 import com.android.internal.telephony.CallForwardInfo;
 import com.android.internal.telephony.CommandException;
@@ -486,7 +490,21 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
             } else {
                 mTcpListener.onFinished(CallForwardEditPreference.this, true);
             }
-            mTcpListener.onError(CallForwardEditPreference.this, RESPONSE_ERROR);
+            int error = RESPONSE_ERROR;
+            if (errCode == ImsReasonInfo.CODE_FDN_BLOCKED) {
+                 error = FDN_CHECK_FAILURE;
+            } else if (errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_DIAL) {
+                error = STK_CC_SS_TO_DIAL_ERROR;
+            } else if (errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_DIAL_VIDEO) {
+                error = STK_CC_SS_TO_DIAL_VIDEO_ERROR;
+            } else if(errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_USSD) {
+                error = STK_CC_SS_TO_USSD_ERROR;
+            } else if (errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_SS) {
+                error = STK_CC_SS_TO_SS_ERROR;
+            } else if (errCode == ImsReasonInfo.CODE_RADIO_OFF) {
+                error = RADIO_OFF_ERROR;
+            }
+            mTcpListener.onError(CallForwardEditPreference.this, error);
         }
     };
 
