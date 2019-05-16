@@ -174,7 +174,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         @Override
         public void handleMessage(Message msg) {
             final int phoneId = msg.arg1;
-            log("mHandler: " + msg.what + " phoneId: " + phoneId);
+            logWithLocalLog("mHandler: " + msg.what + " phoneId: " + phoneId);
             switch (msg.what) {
                 case EVENT_CLEAR_CONFIG:
                 {
@@ -925,6 +925,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     public void overrideConfig(int subscriptionId, PersistableBundle overrides) {
         mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.MODIFY_PHONE_STATE, null);
+        //TODO: Also check for SHELL UID to restrict this method to testing only (b/131326259)
         int phoneId = SubscriptionManager.getPhoneId(subscriptionId);
         if (!SubscriptionManager.isValidPhoneId(phoneId)) {
             log("Ignore invalid phoneId: " + phoneId + " for subId: " + subscriptionId);
@@ -941,7 +942,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         } else {
             mOverrideConfigs[phoneId].putAll(overrides);
         }
-        broadcastConfigChangedIntent(phoneId);
+
+        notifySubscriptionInfoUpdater(phoneId);
     }
 
     @Override
@@ -951,21 +953,17 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
             log("Ignore invalid phoneId: " + phoneId + " for subId: " + subId);
             return;
         }
-        String callingPackageName = mContext.getPackageManager().getNameForUid(
-                Binder.getCallingUid());
-        // TODO: Check that the calling packages is privileged for subId specifically.
-        int privilegeStatus = TelephonyManager.from(mContext).checkCarrierPrivilegesForPackage(
-                callingPackageName);
-        // Requires the calling app to be either a carrier privileged app or
+
+        // Requires the calling app to be either a carrier privileged app for this subId or
         // system privileged app with MODIFY_PHONE_STATE permission.
-        if (privilegeStatus != TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
-            mContext.enforceCallingOrSelfPermission(android.Manifest.permission.MODIFY_PHONE_STATE,
-                    "Require carrier privileges or MODIFY_PHONE_STATE permission.");
-        }
+        TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(mContext, subId,
+                "Require carrier privileges or MODIFY_PHONE_STATE permission.");
 
         // This method should block until deleting has completed, so that an error which prevents us
         // from clearing the cache is passed back to the carrier app. With the files successfully
         // deleted, this can return and we will eventually bind to the carrier app.
+        String callingPackageName = mContext.getPackageManager().getNameForUid(
+                Binder.getCallingUid());
         clearCachedConfigForPackage(callingPackageName);
         updateConfigForPhoneId(phoneId);
     }
@@ -974,7 +972,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     public void updateConfigForPhoneId(int phoneId, String simState) {
         mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.MODIFY_PHONE_STATE, null);
-        log("update config for phoneId: " + phoneId + " simState: " + simState);
+        logWithLocalLog("update config for phoneId: " + phoneId + " simState: " + simState);
         if (!SubscriptionManager.isValidPhoneId(phoneId)) {
             return;
         }

@@ -17,7 +17,6 @@
 package com.android.phone;
 
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
-import static android.telephony.data.ApnSetting.TYPE_MMS;
 
 import static com.android.internal.telephony.PhoneConstants.SUBSCRIPTION_KEY;
 
@@ -4451,9 +4450,16 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 }
             }
         }
-        return mNetworkScanRequestTracker.startNetworkScan(
-                request, messenger, binder, getPhone(subId),
-                callingPackage);
+        int callingUid = Binder.getCallingUid();
+        int callingPid = Binder.getCallingPid();
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            return mNetworkScanRequestTracker.startNetworkScan(
+                    request, messenger, binder, getPhone(subId),
+                    callingUid, callingPid, callingPackage);
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
     }
 
     private SecurityException checkNetworkRequestForSanitizedLocationAccess(
@@ -4487,9 +4493,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(
                 mApp, subId, "stopNetworkScan");
 
+        int callingUid = Binder.getCallingUid();
         final long identity = Binder.clearCallingIdentity();
         try {
-            mNetworkScanRequestTracker.stopNetworkScan(scanId);
+            mNetworkScanRequestTracker.stopNetworkScan(scanId, callingUid);
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -5553,6 +5560,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("getServiceStateForSubscriber")
+                                .setLogAsInfo(true)
                                 .setMinSdkVersionForFine(Build.VERSION_CODES.Q)
                                 .build());
 
@@ -5563,6 +5571,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("getServiceStateForSubscriber")
+                                .setLogAsInfo(true)
                                 .setMinSdkVersionForCoarse(Build.VERSION_CODES.Q)
                                 .build());
         // We don't care about hard or soft here -- all we need to know is how much info to scrub.
@@ -6299,14 +6308,16 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public List<UiccCardInfo> getUiccCardsInfo(String callingPackage) {
+        boolean hasReadPermission = false;
         try {
             enforceReadPrivilegedPermission("getUiccCardsInfo");
+            hasReadPermission = true;
         } catch (SecurityException e) {
             // even without READ_PRIVILEGED_PHONE_STATE, we allow the call to continue if the caller
             // has carrier privileges on an active UICC
             if (checkCarrierPrivilegesForPackageAnyPhone(callingPackage)
                         != TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
-                throw new SecurityException("Caller does not have carrier privileges on any UICC");
+                throw new SecurityException("Caller does not have permission.");
             }
         }
 
@@ -6314,27 +6325,30 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         try {
             UiccController uiccController = UiccController.getInstance();
             ArrayList<UiccCardInfo> cardInfos = uiccController.getAllUiccCardInfos();
-
-            ApplicationInfo ai = mApp.getPackageManager().getApplicationInfo(callingPackage, 0);
-            if ((ai.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
-                // Remove private info if the caller doesn't have access
-                ArrayList<UiccCardInfo> filteredInfos = new ArrayList<>();
-                for (UiccCardInfo cardInfo : cardInfos) {
-                    UiccCard card = uiccController.getUiccCard(cardInfo.getSlotIndex());
-                    UiccProfile profile = card.getUiccProfile();
-                    if (profile.getCarrierPrivilegeStatus(mApp.getPackageManager(), callingPackage)
-                            != TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
-                        filteredInfos.add(cardInfo.getUnprivileged());
-                    } else {
-                        filteredInfos.add(cardInfo);
-                    }
-                }
-                return filteredInfos;
+            if (hasReadPermission) {
+                return cardInfos;
             }
-            return cardInfos;
-        } catch (PackageManager.NameNotFoundException e) {
-            // This should not happen since we pass the package info in from TelephonyManager
-            throw new SecurityException("Invalid calling package.");
+
+            // Remove private info if the caller doesn't have access
+            ArrayList<UiccCardInfo> filteredInfos = new ArrayList<>();
+            for (UiccCardInfo cardInfo : cardInfos) {
+                // For an inactive eUICC, the UiccCard will be null even though the UiccCardInfo
+                // is available
+                UiccCard card = uiccController.getUiccCardForSlot(cardInfo.getSlotIndex());
+                if (card == null || card.getUiccProfile() == null) {
+                    // assume no access if the card or profile is unavailable
+                    filteredInfos.add(cardInfo.getUnprivileged());
+                    continue;
+                }
+                UiccProfile profile = card.getUiccProfile();
+                if (profile.getCarrierPrivilegeStatus(mApp.getPackageManager(), callingPackage)
+                        == TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
+                    filteredInfos.add(cardInfo);
+                } else {
+                    filteredInfos.add(cardInfo.getUnprivileged());
+                }
+            }
+            return filteredInfos;
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -6359,11 +6373,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     continue;
                 }
 
-                String cardId;
+                String cardId = null;
                 UiccCard card = slot.getUiccCard();
                 if (card != null) {
                     cardId = card.getCardId();
-                } else {
+                } else if (!slot.isEuicc()) {
                     cardId = slot.getIccId();
                 }
 
@@ -6966,16 +6980,24 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /**
-     *  Mms is allowed if
+     * Return whether data is enabled for certain APN type. This will tell if framework will accept
+     * corresponding network requests on a subId.
+     *
+     *  Data is enabled if:
      *  1) user data is turned on, or
-     *  2) Mms is un-metered, or
-     *  3) alwaysAllowMms setting is turned on.
+     *  2) APN is un-metered for this subscription, or
+     *  3) APN type is whitelisted. E.g. MMS is whitelisted if
+     *  {@link SubscriptionManager#setAlwaysAllowMmsData} is turned on.
+     *
+     * @return whether data is allowed for a apn type.
+     *
+     * @hide
      */
     @Override
-    public boolean isMmsDataEnabled(int subId, String callingPackage) {
+    public boolean isDataEnabledForApn(int apnType, int subId, String callingPackage) {
         if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(
-                mApp, subId, callingPackage, "isMmsDataEnabled")) {
-            throw new SecurityException("Needs READ_PHONE_STATE for isMmsDataEnabled");
+                mApp, subId, callingPackage, "isDataEnabledForApn")) {
+            throw new SecurityException("Needs READ_PHONE_STATE for isDataEnabledForApn");
         }
 
         // Now that all security checks passes, perform the operation as ourselves.
@@ -6985,8 +7007,25 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             if (phone == null) return false;
 
             boolean isMetered = ApnSettingUtils.isMeteredApnType(ApnSetting.getApnTypeString(
-                    TYPE_MMS), phone);
-            return !isMetered || phone.getDataEnabledSettings().isDataEnabled(TYPE_MMS);
+                    apnType), phone);
+            return !isMetered || phone.getDataEnabledSettings().isDataEnabled(apnType);
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    @Override
+    public boolean isApnMetered(int apnType, int subId) {
+        enforceReadPrivilegedPermission("isApnMetered");
+
+        // Now that all security checks passes, perform the operation as ourselves.
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            Phone phone = getPhone(subId);
+            if (phone == null) return true; // By default return true.
+
+            return ApnSettingUtils.isMeteredApnType(ApnSetting.getApnTypeString(
+                    apnType), phone);
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
