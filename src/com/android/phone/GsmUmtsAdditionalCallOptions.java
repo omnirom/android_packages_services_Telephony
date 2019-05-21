@@ -209,10 +209,7 @@ public class GsmUmtsAdditionalCallOptions extends TimeConsumingPreferenceActivit
 
     @Override
     public void onFinished(Preference preference, boolean reading) {
-        if (mInitIndex < mPreferences.size()-1 && !isFinishing()) {
-            mInitIndex++;
-            doPreferenceInit(mInitIndex);
-        }
+        doNextPreferenceInit();
         super.onFinished(preference, reading);
     }
 
@@ -226,6 +223,13 @@ public class GsmUmtsAdditionalCallOptions extends TimeConsumingPreferenceActivit
         return super.onOptionsItemSelected(item);
     }
 
+    private void doNextPreferenceInit() {
+        if (mInitIndex < mPreferences.size()-1 && !isFinishing()) {
+            mInitIndex++;
+            doPreferenceInit(mInitIndex);
+        }
+    }
+
     private void doPreferenceInit(int index) {
         if (mPreferences.size() > index) {
             Preference pref = mPreferences.get(index);
@@ -234,6 +238,7 @@ public class GsmUmtsAdditionalCallOptions extends TimeConsumingPreferenceActivit
             } else if (pref instanceof CLIRListPreference) {
                 if (isUtEnabledToDisableClir()) {
                   ((CLIRListPreference) pref).setSummary(R.string.sum_default_caller_id);
+                  doNextPreferenceInit();
                 } else {
                   ((CLIRListPreference) pref).init(this, false, mPhone);
                 }

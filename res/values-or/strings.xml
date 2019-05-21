@@ -35,7 +35,7 @@
     <string name="audio_mode_speaker" msgid="27649582100085266">"ସ୍ପିକର୍‌"</string>
     <string name="audio_mode_earpiece" msgid="4156527186373869107">"ହ୍ୟାଣ୍ଡସେଟ୍ ଇୟରପିସ୍"</string>
     <string name="audio_mode_wired_headset" msgid="1465350758489175975">"ଖରାପ୍‌ଥିବା ହେଡସେଟ୍"</string>
-    <string name="audio_mode_bluetooth" msgid="3047641300848211128">"ବ୍ଲୁ-ଟୂଥ୍‍‌"</string>
+    <string name="audio_mode_bluetooth" msgid="3047641300848211128">"ବ୍ଲୁଟୂଥ୍‍‌"</string>
     <string name="wait_prompt_str" msgid="7601815427707856238">"ନିମ୍ନଲିଖିତ ଟୋନ୍ ପଠାନ୍ତୁ?\n"</string>
     <string name="pause_prompt_str" msgid="1789964702154314806">"ଟୋନ୍ ପଠାଯାଉଛି \n"</string>
     <string name="send_button" msgid="4106860097497818751">"ପଠାନ୍ତୁ"</string>
@@ -77,12 +77,9 @@
     <string name="voicemail" msgid="8693759337917898954">"ଭଏସମେଲ୍"</string>
     <string name="voicemail_settings_with_label" msgid="152724978380748296">"ଭଏସମେଲ୍ (<xliff:g id="SUBSCRIPTIONLABEL">%s</xliff:g>)"</string>
     <string name="voicemail_abbreviated" msgid="2215592488517217448">"VM:"</string>
-    <!-- no translation found for make_and_receive_calls (1258596928285972166) -->
-    <skip />
-    <!-- no translation found for smart_forwarding_settings_menu (3874243342391798449) -->
-    <skip />
-    <!-- no translation found for smart_forwarding_settings_menu_summary (8962247659470565059) -->
-    <skip />
+    <string name="make_and_receive_calls" msgid="1258596928285972166">"କଲ୍ କରନ୍ତୁ ଏବଂ ପ୍ରାପ୍ତ କରନ୍ତୁ"</string>
+    <string name="smart_forwarding_settings_menu" msgid="3874243342391798449">"ସ୍ମାର୍ଟ ଫରୱାର୍ଡିଂ"</string>
+    <string name="smart_forwarding_settings_menu_summary" msgid="8962247659470565059">"ଯେତେବେଳେ ଏକ ନମ୍ବର୍ ଅପହଞ୍ଚ ଦୂରରେ ରହିଥାଏ, ସେତେବେଳେ ସର୍ବଦା ଆପଣଙ୍କର ଅନ୍ୟ ନମ୍ବର୍‍କୁ କଲ୍‍‍ଗୁଡ଼ିକ ଫର୍‍ୱର୍ଡ ହେବ"</string>
     <string name="voicemail_notifications_preference_title" msgid="4019728578955102213">"ବିଜ୍ଞପ୍ତି"</string>
     <string name="cell_broadcast_settings" msgid="8740238216690502563">"ଜରୁରିକାଳୀନ ପ୍ରସାରଣ"</string>
     <string name="call_settings" msgid="6112441768261754562">"କଲ୍‌ ସେଟିଙ୍ଗ"</string>
@@ -177,7 +174,7 @@
     <string name="already_auto" msgid="6067116884321285507">"ପୂର୍ବରୁ ସ୍ଵାଚାଳିତ ଚୟନରେ ଅଛି।"</string>
     <string name="select_automatically" msgid="1046727200631770962">"ସ୍ଵଚାଳିତ ଭାବେ ନେଟ୍‌ୱର୍କ ଚୟନ କରନ୍ତୁ"</string>
     <string name="manual_mode_disallowed_summary" msgid="70662262085937277">"%1$s ସହ କନେକ୍ଟ ହେଲେ ଉପଲବ୍ଧ ହେବ ନାହିଁ"</string>
-    <string name="network_select_title" msgid="7733107364757544558">"ନେଟ୍‌ୱର୍କ"</string>
+    <string name="network_select_title" msgid="7733107364757544558">"ନେଟ୍‌ୱାର୍କ"</string>
     <string name="register_automatically" msgid="6017849844573519637">"ସ୍ଵଚାଳିତ ପଞ୍ଜୀକରଣ…"</string>
     <string name="preferred_network_mode_title" msgid="2336624679902659306">"ନିଜ ପସନ୍ଦର ନେଟ୍‌ୱର୍କ ପ୍ରକାର"</string>
     <string name="preferred_network_mode_summary" msgid="1434820673166126609">"ନେଟ୍‌ୱର୍କ ଅପରେଟିଙ୍ଗ ମୋଡ୍‌କୁ ବଦଳାନ୍ତୁ"</string>
@@ -515,11 +512,10 @@
     <string name="incall_error_supp_service_hold" msgid="7967020511232222078">"କଲ୍‍କୁ ହୋଲ୍ଡ କରାଯାଇପାରିବ ନାହିଁ।"</string>
     <string name="incall_error_wfc_only_no_wireless_network" msgid="1782466780452640089">"ଗୋଟିଏ କଲ୍ କରିବା ପାଇଁ ଏକ ତାରବିହୀନ ନେଟ୍‌ୱର୍କ ସହ କନେକ୍ଟ କରନ୍ତୁ।"</string>
     <string name="incall_error_promote_wfc" msgid="106510757624022064">"ଗୋଟିଏ କଲ୍ କରିବା ପାଇଁ ୱାଇ-ଫାଇ କଲିଙ୍ଗକୁ ସକ୍ଷମ କରନ୍ତୁ।"</string>
-    <string name="emergency_information_hint" msgid="399011533038204351">"ଆପତ୍ତକାଳୀନ ସୂଚନା"</string>
+    <string name="emergency_information_hint" msgid="399011533038204351">"ଜରୁରୀକାଳୀନ ସୂଚନା"</string>
     <string name="emergency_information_owner_hint" msgid="688331472291637149">"ମାଲିକ"</string>
     <string name="emergency_information_confirm_hint" msgid="4039012670779853030">"ସୂଚନା ଦେଖିବାକୁ ପୁଣିଥରେ ଟାପ୍‍ କରନ୍ତୁ"</string>
     <string name="emergency_enable_radio_dialog_title" msgid="4627849966634578257">"ଜରୁରୀକାଳିନ କଲ୍‌"</string>
-    <string name="emergency_dialpad_title" msgid="6052294225467269233">"କେବଳ ଜରୁରୀକାଳୀନ କଲ୍‌"</string>
     <string name="single_emergency_number_title" msgid="4959203129714396515">"ଜରୁରୀକାଳୀନ ନମ୍ବର୍‌"</string>
     <string name="numerous_emergency_numbers_title" msgid="754158099451343898">"ଜରୁରୀକାଳୀନ ନମ୍ବର୍‌"</string>
     <string name="emergency_call_shortcut_hint" msgid="6506167229097004348">"<xliff:g id="EMERGENCY_NUMBER">%s</xliff:g>ରେ କଲ୍‌ କରନ୍ତୁ"</string>
@@ -756,6 +752,7 @@
     <string name="call_barring_settings" msgid="80766145008623645">"କଲ୍ ରୋକିବା ସେଟିଙ୍ଗ"</string>
     <string name="call_barring_deactivate_all_no_password" msgid="920902774366557311">"ସମସ୍ତ କଲ୍ ରୋକିବା ସେଟିଙ୍ଗକୁ ନିଷ୍କ୍ରିୟ କରିବେ?"</string>
     <string name="callFailed_NetworkBusy" msgid="1068322087736565421">"ନେଟ୍‌ୱର୍କ ବ୍ୟସ୍ତ ଅଛି। ଦୟାକରି ଆପଣ ପରେ ପୁଣି କଲ୍‌ ଚେଷ୍ଟା କରିବା ପାଇଁ ଚେଷ୍ଟା କରନ୍ତୁ।"</string>
+    <string name="callFailed_NetworkCongested" msgid="3313449239735315125">"ନେଟ୍‌ୱର୍କ ବ୍ୟସ୍ତ ଅଛି। ସହାୟତା ପାଇଁ ଆପଣଙ୍କର ମୋବାଇଲ୍ ଅପରେଟର୍‍ଙ୍କୁ ଯୋଗାଯୋଗ କରନ୍ତୁ।"</string>
     <string name="supp_service_notification_call_deflected" msgid="9195460512875330926">"କଲ୍ ଅନ୍ୟ ପାଖକୁ ଯିବା ବଦଳରେ ନିଜ ପାଖକୁ ଆସିଯାଇଛି।"</string>
     <string name="supp_service_notification_call_forwarded" msgid="7818548630812124053">"କଲ୍‌କୁ ଫରୱାର୍ଡ କରାଯାଇଛି।"</string>
     <string name="supp_service_notification_call_waiting" msgid="789154111899572489">"କଲ୍ ଅପେକ୍ଷାରେ ଅଛି।"</string>

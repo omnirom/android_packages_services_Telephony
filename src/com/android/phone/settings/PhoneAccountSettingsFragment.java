@@ -89,6 +89,7 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
 
     private AccountSelectionPreference mDefaultOutgoingAccount;
     private Preference mAllCallingAccounts;
+    private Preference mSmartDivertPref;
 
     private PreferenceCategory mMakeAndReceiveCallsCategory;
     private boolean mMakeAndReceiveCallsCategoryPresent;
@@ -169,6 +170,7 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         mDefaultOutgoingAccount = (AccountSelectionPreference)
                 getPreferenceScreen().findPreference(DEFAULT_OUTGOING_ACCOUNT_KEY);
         mAllCallingAccounts = getPreferenceScreen().findPreference(ALL_CALLING_ACCOUNTS_KEY);
+        mSmartDivertPref = getPreferenceScreen().findPreference(BUTTON_SMART_DIVERT_KEY);
 
         mMakeAndReceiveCallsCategory = (PreferenceCategory) getPreferenceScreen().findPreference(
                 MAKE_AND_RECEIVE_CALLS_CATEGORY_KEY);
@@ -176,16 +178,6 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
 
         updateAccounts();
         updateMakeCallsOptions();
-
-        if (!isXdivertAvailable || TelephonyManager.getDefault().getMultiSimConfiguration() !=
-                 TelephonyManager.MultiSimVariants.DSDS) {
-            Preference mSmartDivertPref = getPreferenceScreen()
-                .findPreference(BUTTON_SMART_DIVERT_KEY);
-            if (mAccountList != null && mSmartDivertPref != null) {
-                Log.d(LOG_TAG, "Remove smart divert preference: ");
-                mAccountList.removePreference(mSmartDivertPref);
-            }
-        }
 
         if (isPrimaryUser() && SipUtil.isVoipSupported(getActivity())) {
             mSipPreferences = new SipPreferences(getActivity());
@@ -465,6 +457,12 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
                     mAccountList.addPreference(mAllCallingAccounts);
                 } else {
                     mAccountList.removePreference(mAllCallingAccounts);
+                }
+                if (isXdivertAvailable) {
+                    if (mSmartDivertPref != null) {
+                        Log.d(LOG_TAG, "Add smart divert preference");
+                        mAccountList.addPreference(mSmartDivertPref);
+                    }
                 }
             } else {
                 getPreferenceScreen().removePreference(mAccountList);

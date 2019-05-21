@@ -77,12 +77,9 @@
     <string name="voicemail" msgid="8693759337917898954">"Kotak Pesan"</string>
     <string name="voicemail_settings_with_label" msgid="152724978380748296">"Kotak pesan (<xliff:g id="SUBSCRIPTIONLABEL">%s</xliff:g>)"</string>
     <string name="voicemail_abbreviated" msgid="2215592488517217448">"VM:"</string>
-    <!-- no translation found for make_and_receive_calls (1258596928285972166) -->
-    <skip />
-    <!-- no translation found for smart_forwarding_settings_menu (3874243342391798449) -->
-    <skip />
-    <!-- no translation found for smart_forwarding_settings_menu_summary (8962247659470565059) -->
-    <skip />
+    <string name="make_and_receive_calls" msgid="1258596928285972166">"Melakukan &amp; menerima panggilan"</string>
+    <string name="smart_forwarding_settings_menu" msgid="3874243342391798449">"Smart Forwarding"</string>
+    <string name="smart_forwarding_settings_menu_summary" msgid="8962247659470565059">"Jika salah satu nomor tidak dapat dihubungi, selalu teruskan panggilan ke nomor yang lain."</string>
     <string name="voicemail_notifications_preference_title" msgid="4019728578955102213">"Notifikasi"</string>
     <string name="cell_broadcast_settings" msgid="8740238216690502563">"Siaran darurat"</string>
     <string name="call_settings" msgid="6112441768261754562">"Setelan panggilan"</string>
@@ -259,7 +256,7 @@
     <string name="roaming_warning" msgid="1603164667540144353">"Anda dapat dikenakan biaya yang cukup besar."</string>
     <string name="roaming_check_price_warning" msgid="7497570906830902550">"Hubungi penyedia jaringan untuk mengetahui harganya."</string>
     <string name="roaming_alert_title" msgid="3654815360303826008">"Izinkan roaming data?"</string>
-    <string name="data_usage_title" msgid="4042209259808900283">"Penggunaan data aplikasi"</string>
+    <string name="data_usage_title" msgid="4042209259808900283">"Penggunaan kuota aplikasi"</string>
     <string name="data_usage_template" msgid="8526428824844656364">"<xliff:g id="ID_1">%1$s</xliff:g> data seluler digunakan pada <xliff:g id="ID_2">%2$s</xliff:g>"</string>
     <string name="advanced_options_title" msgid="8074895510265488035">"Lanjutan"</string>
     <string name="carrier_settings_euicc" msgid="6714062862127226405">"Operator"</string>
@@ -267,7 +264,7 @@
     <string name="carrier_settings_euicc_summary" msgid="5115001942761995457">"<xliff:g id="CARRIER_NAME">%1$s</xliff:g> — <xliff:g id="PHONE_NUMBER">%2$s</xliff:g>"</string>
     <string name="mobile_data_settings_title" msgid="4661165467914727157">"Data seluler"</string>
     <string name="mobile_data_settings_summary" msgid="5087255915840576895">"Akses data menggunakan jaringan seluler"</string>
-    <string name="data_usage_disable_mobile" msgid="3577275288809667615">"Nonaktifkan data seluler?"</string>
+    <string name="data_usage_disable_mobile" msgid="3577275288809667615">"Nonaktifkan kuota seluler?"</string>
     <string name="sim_selection_required_pref" msgid="7049424902961844236">"Perlu memilih SIM"</string>
     <string name="sim_change_data_title" msgid="5332425991853799280">"Ubah SIM data?"</string>
     <string name="sim_change_data_message" msgid="2163963581444907496">"Gunakan <xliff:g id="NEW_SIM">%1$s</xliff:g> dan bukan <xliff:g id="OLD_SIM">%2$s</xliff:g> untuk data seluler?"</string>
@@ -275,7 +272,7 @@
     <string name="video_calling_settings_title" msgid="539714564273795574">"Video call operator"</string>
     <string name="gsm_umts_options" msgid="6538311689850981686">"Opsi GSM//UMTS"</string>
     <string name="cdma_options" msgid="4016822858172249884">"Opsi CDMA"</string>
-    <string name="throttle_data_usage" msgid="3715677828160555808">"Penggunaan data"</string>
+    <string name="throttle_data_usage" msgid="3715677828160555808">"Penggunaan kuota"</string>
     <string name="throttle_current_usage" msgid="8762280193043815361">"Data yang digunakan dalam periode saat ini"</string>
     <string name="throttle_time_frame" msgid="1915198770363734685">"Periode penggunaan data"</string>
     <string name="throttle_rate" msgid="4710388992676803508">"Kebijakan kecepatan data"</string>
@@ -519,7 +516,6 @@
     <string name="emergency_information_owner_hint" msgid="688331472291637149">"Pemilik"</string>
     <string name="emergency_information_confirm_hint" msgid="4039012670779853030">"Tap lagi untuk melihat info"</string>
     <string name="emergency_enable_radio_dialog_title" msgid="4627849966634578257">"Panggilan darurat"</string>
-    <string name="emergency_dialpad_title" msgid="6052294225467269233">"Panggilan darurat saja"</string>
     <string name="single_emergency_number_title" msgid="4959203129714396515">"Nomor darurat"</string>
     <string name="numerous_emergency_numbers_title" msgid="754158099451343898">"Nomor darurat"</string>
     <string name="emergency_call_shortcut_hint" msgid="6506167229097004348">"Tap lagi untuk menelepon <xliff:g id="EMERGENCY_NUMBER">%s</xliff:g>"</string>
@@ -756,6 +752,7 @@
     <string name="call_barring_settings" msgid="80766145008623645">"Setelan pemblokiran panggilan"</string>
     <string name="call_barring_deactivate_all_no_password" msgid="920902774366557311">"Nonaktifkan semua setelan pemblokiran panggilan?"</string>
     <string name="callFailed_NetworkBusy" msgid="1068322087736565421">"Jaringan sedang sibuk. Coba hubungi lagi di lain waktu."</string>
+    <string name="callFailed_NetworkCongested" msgid="3313449239735315125">"Jaringan sedang padat. Hubungi operator seluler Anda untuk mendapatkan bantuan."</string>
     <string name="supp_service_notification_call_deflected" msgid="9195460512875330926">"Panggilan dialihkan."</string>
     <string name="supp_service_notification_call_forwarded" msgid="7818548630812124053">"Panggilan diteruskan."</string>
     <string name="supp_service_notification_call_waiting" msgid="789154111899572489">"Panggilan menunggu."</string>

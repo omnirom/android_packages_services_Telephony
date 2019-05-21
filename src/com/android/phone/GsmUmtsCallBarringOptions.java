@@ -440,9 +440,7 @@ public class GsmUmtsCallBarringOptions extends TimeConsumingPreferenceActivity
         boolean disableOutCallBarringOverIms = false;
 
         ImsPhone imsPhone = mPhone != null ? (ImsPhone) mPhone.getImsPhone() : null;
-        if (imsPhone != null
-                && ((imsPhone.getServiceState().getState() == ServiceState.STATE_IN_SERVICE)
-                        || imsPhone.isUtEnabled())) {
+        if (imsPhone != null && imsPhone.isUtEnabled()) {
             usePassword = false;
             useDisableaAll = false;
             if (isDisableOutCallBarringOverIms()) {
