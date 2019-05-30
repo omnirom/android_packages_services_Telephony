@@ -1897,4 +1897,7 @@
     <string name="supp_service_over_ut_precautions_roaming_dual_sim">To use <xliff:g id="supp service">%1$s</xliff:g>, make sure mobile data and data roaming are turned on for SIM <xliff:g id="sim number">%2$d</xliff:g>. You can change these in mobile network settings.</string>
     <!-- supplementary services over ut precaution exit dialog choice -->
     <string name="supp_service_over_ut_precautions_dialog_dismiss">Dismiss</string>
+    <string name="labelCommonMore">Call settings</string>
+    <string name="labelCommonMore_with_label">Call settings (<xliff:g id="subscriptionlabel" example="T-Mobile">%s</xliff:g>)</string>
+    <string name="sum_common_call_settings">Additional call settings</string>
 </resources>

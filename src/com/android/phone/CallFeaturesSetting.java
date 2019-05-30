@@ -93,6 +93,10 @@ public class CallFeaturesSetting extends PreferenceActivity
     private static final String BUTTON_RETRY_KEY       = "button_auto_retry_key";
     private static final String BUTTON_GSM_UMTS_OPTIONS = "button_gsm_more_expand_key";
     private static final String BUTTON_CDMA_OPTIONS = "button_cdma_more_expand_key";
+    //Hides radio technology, e.g. CDMA or GSM, details from the settings text.
+    //For example uses "Call Settings", instead of "Gsm Call Settings".
+    //PhoneType is used to display the correct settings when user clicks on the button.
+    private static final String BUTTON_COMMON_OPTIONS = "button_common_more_expand_key";
 
     private static final String PHONE_ACCOUNT_SETTINGS_KEY =
             "phone_account_settings_preference_screen";
@@ -340,16 +344,27 @@ public class CallFeaturesSetting extends PreferenceActivity
             mButtonAutoRetry = null;
         }
 
+        Preference commonOptions = prefSet.findPreference(BUTTON_COMMON_OPTIONS);
         Preference cdmaOptions = prefSet.findPreference(BUTTON_CDMA_OPTIONS);
         Preference gsmOptions = prefSet.findPreference(BUTTON_GSM_UMTS_OPTIONS);
         Preference fdnButton = prefSet.findPreference(BUTTON_FDN_KEY);
         fdnButton.setIntent(mSubscriptionInfoHelper.getIntent(FdnSetting.class));
         if (carrierConfig.getBoolean(CarrierConfigManager.KEY_WORLD_PHONE_BOOL)) {
-            cdmaOptions.setIntent(mSubscriptionInfoHelper.getIntent(CdmaCallOptions.class));
-            gsmOptions.setIntent(mSubscriptionInfoHelper.getIntent(GsmUmtsCallOptions.class));
+            if (carrierConfig.getBoolean("config_common_callsettings_support_bool")) {
+                prefSet.removePreference(cdmaOptions);
+                prefSet.removePreference(gsmOptions);
+                boolean isCdmaPhone = mPhone.getPhoneType() == PhoneConstants.PHONE_TYPE_CDMA;
+                commonOptions.setIntent(mSubscriptionInfoHelper.getIntent(
+                            isCdmaPhone ? CdmaCallOptions.class : GsmUmtsCallOptions.class));
+            } else {
+                prefSet.removePreference(commonOptions);
+                cdmaOptions.setIntent(mSubscriptionInfoHelper.getIntent(CdmaCallOptions.class));
+                gsmOptions.setIntent(mSubscriptionInfoHelper.getIntent(GsmUmtsCallOptions.class));
+            }
         } else {
             prefSet.removePreference(cdmaOptions);
             prefSet.removePreference(gsmOptions);
+            prefSet.removePreference(commonOptions);
 
             int phoneType = mPhone.getPhoneType();
             if (carrierConfig.getBoolean(CarrierConfigManager.KEY_HIDE_CARRIER_NETWORK_SETTINGS_BOOL)) {

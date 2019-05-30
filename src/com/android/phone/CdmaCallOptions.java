@@ -65,6 +65,7 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
     private CallWaitingSwitchPreference mCWButton;
     private PreferenceScreen mPrefCW;
     private boolean mUtEnabled = false;
+    private boolean mCommon = false;
     private Phone mPhone = null;
     private boolean mCdmaCfCwEnabled = false;
     private static final String BUTTON_CW_KEY = "button_cw_ut_key";
@@ -198,10 +199,6 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
         addPreferencesFromResource(R.xml.cdma_call_privacy);
 
         SubscriptionInfoHelper subInfoHelper = new SubscriptionInfoHelper(this, getIntent());
-        subInfoHelper.setActionBarTitle(
-                getActionBar(), getResources(), R.string.labelCdmaMore_with_label);
-
-        mButtonVoicePrivacy = (SwitchPreference) findPreference(BUTTON_VP_KEY);
         PersistableBundle carrierConfig;
         if (subInfoHelper.hasSubId()) {
             carrierConfig = PhoneGlobals.getInstance().getCarrierConfigForSubId(
@@ -209,7 +206,12 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
         } else {
             carrierConfig = PhoneGlobals.getInstance().getCarrierConfig();
         }
+        mCommon = carrierConfig.getBoolean("config_common_callsettings_support_bool");
+        subInfoHelper.setActionBarTitle(
+                getActionBar(), getResources(),
+                mCommon ? R.string.labelCommonMore_with_label : R.string.labelCdmaMore_with_label);
 
+        mButtonVoicePrivacy = (SwitchPreference) findPreference(BUTTON_VP_KEY);
         mPhone = subInfoHelper.getPhone();
         Log.d(LOG_TAG, "sub id = " + subInfoHelper.getSubId() + " phone id = " +
                 mPhone.getPhoneId());
