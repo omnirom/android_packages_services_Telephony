@@ -815,4 +815,5 @@
     <string name="labelCommonMore" msgid="5930842194056092107">"通话设置"</string>
     <string name="labelCommonMore_with_label" msgid="2674012918829238902">"通话设置（<xliff:g id="SUBSCRIPTIONLABEL">%s</xliff:g>）"</string>
     <string name="sum_common_settings" msgid="284753265979035550">"其他通话设置"</string>
+    <string name="incall_error_outgoing_call_failed">"呼叫失败"</string>
 </resources>

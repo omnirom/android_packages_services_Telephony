@@ -1149,6 +1149,8 @@
     <!-- In-call screen: call failure message displayed in an error dialog -->
     <string name="incall_error_call_failed">Call failed.</string>
     <!-- In-call screen: call failure message displayed in an error dialog -->
+    <string name="incall_error_outgoing_call_failed">Outgoing call failed.</string>
+    <!-- In-call screen: call failure message displayed in an error dialog -->
     <string name="incall_error_cannot_add_call">Call cannot be added at this time.  You can try to reach out by sending a message.</string>
     <!-- In-call screen: message displayed in an error dialog -->
     <string name="incall_error_supp_service_unknown">Service not supported</string>
@@ -1900,4 +1902,5 @@
     <string name="labelCommonMore">Call settings</string>
     <string name="labelCommonMore_with_label">Call settings (<xliff:g id="subscriptionlabel" example="T-Mobile">%s</xliff:g>)</string>
     <string name="sum_common_call_settings">Additional call settings</string>
+    <string name="ut_unavailable_to_set_video_cf_toast">UT is unavailable to set call forwarding for video, please close this page and exit.</string>
 </resources>

@@ -30,6 +30,7 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import org.codeaurora.ims.QtiImsException;
 import org.codeaurora.ims.QtiImsExtListenerBaseImpl;
@@ -169,6 +170,11 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         }
     }
 
+    private boolean isUtUnavailableForVideoCallForward() {
+        return !mPhone.isUtEnabled() && (mServiceClass == CommandsInterface.SERVICE_CLASS_DATA_SYNC
+                + CommandsInterface.SERVICE_CLASS_PACKET);
+    }
+
     public boolean isAutoRetryCfu() {
         CarrierConfigManager cfgManager = (CarrierConfigManager)
             mContext.getSystemService(Context.CARRIER_CONFIG_SERVICE);
@@ -220,6 +226,11 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         super.onDialogClosed(positiveResult);
 
         Log.d(LOG_TAG, "mButtonClicked=" + mButtonClicked + ", positiveResult=" + positiveResult);
+        if (isUtUnavailableForVideoCallForward()) {
+            Toast.makeText(mContext, R.string.ut_unavailable_to_set_video_cf_toast,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
         // Ignore this event if the user clicked the cancel button, or if the dialog is dismissed
         // without any button being pressed (back button press or click event outside the dialog).
         if (this.mButtonClicked != DialogInterface.BUTTON_NEGATIVE) {
@@ -382,6 +393,10 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
      */
     void startCallForwardOptionsQuery() {
         if (!mCallForwardByUssd) {
+            if (isUtUnavailableForVideoCallForward()) {
+                Log.d(LOG_TAG, "Video CF query cannot be triggered due to UT is false now");
+                return;
+            }
             isTimerEnabled = isTimerEnabled();
             Log.d(LOG_TAG, "isTimerEnabled=" + isTimerEnabled);
             if (reason == CommandsInterface.CF_REASON_UNCONDITIONAL && isTimerEnabled) {
