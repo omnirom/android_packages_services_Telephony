@@ -202,22 +202,16 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
             Log.d(LOG_TAG, "activeNetworkType = " + getActiveNetworkType() + ", sub = " + sub +
                     ", defaultDataSub = " + defaultDataSub + ", isDataRoaming = " +
                     isDataRoaming + ", isDataRoamingEnabled= " + isDataRoamingEnabled);
-            if (sub != defaultDataSub) {
-                if (mPhone.isUtEnabled()) {
-                    Log.d(LOG_TAG, "Show data in use indication if data sub is not on current sub");
-                    showDataInuseToast();
-                    initCallforwarding();
-                    return;
-                } else {
-                    Log.d(LOG_TAG, "Show dds switch dialog if data sub is not on current sub");
-                    showSwitchDdsDialog(slotId);
-                    return;
-                }
+            if ((sub != defaultDataSub) && !mPhone.isUtEnabled()) {
+                Log.d(LOG_TAG, "Show dds switch dialog if data sub is not on current sub");
+                showSwitchDdsDialog(slotId);
+                return;
             }
 
             if (mPhone.isUtEnabled() && mCheckData) {
-                if ((activeNetworkType != ConnectivityManager.TYPE_MOBILE
-                        || sub != defaultDataSub)
+                boolean isDataEnabled = TelephonyManager.from(this).getDataEnabled(sub);
+                Log.d(LOG_TAG, "isDataEnabled: " + isDataEnabled);
+                if ((!isDataEnabled || activeNetworkType != ConnectivityManager.TYPE_MOBILE)
                         && !(activeNetworkType == ConnectivityManager.TYPE_NONE
                         && promptForDataRoaming)) {
                     Log.d(LOG_TAG,
@@ -236,6 +230,10 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
                                .getText(R.string.cf_setting_mobile_data_roaming_alert);
                        showAlertDialog(title, message);
                        return;
+                }
+                if (sub != defaultDataSub) {
+                    Log.d(LOG_TAG, "Show data in use indication if data sub is not on current sub");
+                    showDataInuseToast();
                 }
             }
         }
