@@ -704,7 +704,7 @@ public class DisconnectCauseUtil {
                 // failure in the telephony layer.
                 // TODO: Need UI spec for this failure case; for now just
                 // show a generic error.
-                resourceId = R.string.incall_error_call_failed;
+                resourceId = R.string.incall_error_outgoing_call_failed;
                 break;
 
             case android.telephony.DisconnectCause.POWER_OFF:

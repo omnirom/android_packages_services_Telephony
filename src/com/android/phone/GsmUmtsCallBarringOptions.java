@@ -536,6 +536,14 @@ public class GsmUmtsCallBarringOptions extends TimeConsumingPreferenceActivity
         }
     }
 
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (mReceiver != null) {
+            unregisterReceiver(mReceiver);
+        }
+    }
+
     private void initCallBarring () {
         if (mFirstResume) {
             if (mIcicle == null || mIcicle.getBoolean(SAVED_BEFORE_LOAD_COMPLETED_KEY)) {

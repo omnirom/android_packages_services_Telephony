@@ -577,7 +577,7 @@ public class NotificationMgr {
         if (DBG) log("showDataDisconnectedRoaming()...");
 
         // "Mobile network settings" screen / dialog
-        Intent intent = new Intent(mContext, com.android.phone.MobileNetworkSettings.class);
+        Intent intent = new Intent(Settings.ACTION_DATA_ROAMING_SETTINGS);
         boolean isVendorNetworkSettingApkAvailable =
                 PhoneUtils.isNetworkSettingsApkAvailable();
         if (isVendorNetworkSettingApkAvailable) {
@@ -590,7 +590,6 @@ public class NotificationMgr {
         }
 
         intent.putExtra(Settings.EXTRA_SUB_ID, subId);
-        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent contentIntent = PendingIntent.getActivity(mContext, subId, intent, 0);
 
         final CharSequence contentText = mContext.getText(R.string.roaming_reenable_message);

@@ -812,4 +812,8 @@
     <string name="mobile_data">移动数据</string>
     <string name="sim_is_not_ready">SIM卡未就绪</string>
     <string name="switch_dds_to_sub_alert_msg">请将移动数据切到电信所在的卡</string>
+    <string name="labelCommonMore" msgid="5930842194056092107">"通话设置"</string>
+    <string name="labelCommonMore_with_label" msgid="2674012918829238902">"通话设置（<xliff:g id="SUBSCRIPTIONLABEL">%s</xliff:g>）"</string>
+    <string name="sum_common_settings" msgid="284753265979035550">"其他通话设置"</string>
+    <string name="incall_error_outgoing_call_failed">"呼叫失败"</string>
 </resources>
