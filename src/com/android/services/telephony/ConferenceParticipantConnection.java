@@ -53,10 +53,13 @@ public class ConferenceParticipantConnection extends Connection {
      * Creates a new instance.
      *
      * @param participant The conference participant to create the instance for.
+     * @param isRemotelyHosted {@code true} if this participant is part of a conference remotely
+     *                         hosted on another device, {@code false} otherwise.
      */
     public ConferenceParticipantConnection(
             com.android.internal.telephony.Connection parentConnection,
-            ConferenceParticipant participant) {
+            ConferenceParticipant participant,
+            boolean isRemotelyHosted) {
 
         mParentConnection = parentConnection;
 
@@ -75,7 +78,7 @@ public class ConferenceParticipantConnection extends Connection {
         mUserEntity = participant.getHandle();
         mEndpoint = participant.getEndpoint();
 
-        setCapabilities();
+        setCapabilitiesAndProperties(isRemotelyHosted);
         updateState(participant.getState());
     }
 
@@ -148,13 +151,19 @@ public class ConferenceParticipantConnection extends Connection {
     }
 
     /**
-     * Configures the capabilities applicable to this connection.  A
+     * Configures the capabilities and properties applicable to this connection.  A
      * conference participant can only be disconnected from a conference since there is not
      * actual connection to the participant which could be split from the conference.
+     * @param isRemotelyHosted {@code true} if this participant is part of a conference hosted
+     *                         hosted on a remote device, {@code false} otherwise.
      */
-    private void setCapabilities() {
+    private void setCapabilitiesAndProperties(boolean isRemotelyHosted) {
         int capabilities = CAPABILITY_DISCONNECT_FROM_CONFERENCE;
         setConnectionCapabilities(capabilities);
+
+        if (isRemotelyHosted) {
+            setConnectionProperties(PROPERTY_REMOTELY_HOSTED);
+        }
     }
 
 
@@ -238,7 +247,11 @@ public class ConferenceParticipantConnection extends Connection {
         // The SubscriptionInfo reports ISO country codes in lower case.  Convert to upper case,
         // since ultimately we use this ISO when formatting the CEP phone number, and the phone
         // number formatting library expects uppercase ISO country codes.
-        return subInfo.getCountryIso().toUpperCase();
+        final String country = subInfo.getCountryIso();
+        if (country == null) {
+            return null;
+        }
+        return country.toUpperCase();
     }
 
     /**
