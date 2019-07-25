@@ -655,6 +655,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         @Override
         public void onRttTerminated() {
             updateConnectionProperties();
+            refreshConferenceSupported();
             sendRttSessionRemotelyTerminated();
         }
 

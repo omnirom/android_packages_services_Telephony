@@ -403,6 +403,9 @@ public class ImsConference extends Conference implements Holdable {
                 Connection.PROPERTY_IS_EXTERNAL_CALL,
                 can(properties, Connection.PROPERTY_IS_EXTERNAL_CALL));
 
+        conferenceProperties = changeBitmask(conferenceProperties,
+                Connection.PROPERTY_REMOTELY_HOSTED, !isConferenceHost());
+
         return conferenceProperties;
     }
 
@@ -710,6 +713,16 @@ public class ImsConference extends Conference implements Holdable {
                     mConferenceHostPhoneAccountHandle);
         }
 
+        // If the conference is not hosted on this device copy over the address and presentation and
+        // connect times so that we can log this appropriately in the call log.
+        if (!isConferenceHost()) {
+            setAddress(mConferenceHost.getAddress(), mConferenceHost.getAddressPresentation());
+            setCallerDisplayName(mConferenceHost.getCallerDisplayName(),
+                    mConferenceHost.getCallerDisplayNamePresentation());
+            setConnectionStartElapsedRealTime(mConferenceHost.getConnectElapsedTimeMillis());
+            setConnectionTime(mConferenceHost.getConnectTimeMillis());
+        }
+
         mConferenceHost.addConnectionListener(mConferenceHostListener);
         mConferenceHost.addTelephonyConnectionListener(mTelephonyConnectionListener);
         setConnectionCapabilities(applyHostCapabilities(getConnectionCapabilities(),
@@ -995,7 +1008,8 @@ public class ImsConference extends Conference implements Holdable {
         // Create and add the new connection in holding state so that it does not become the
         // active call.
         ConferenceParticipantConnection connection = new ConferenceParticipantConnection(
-                parent.getOriginalConnection(), participant);
+                parent.getOriginalConnection(), participant,
+                !isConferenceHost() /* isRemotelyHosted */);
         connection.addConnectionListener(mParticipantListener);
         if (participant.getConnectTime() == 0) {
             connection.setConnectTimeMillis(parent.getConnectTimeMillis());
@@ -1004,6 +1018,10 @@ public class ImsConference extends Conference implements Holdable {
             connection.setConnectTimeMillis(participant.getConnectTime());
             connection.setConnectionStartElapsedRealTime(participant.getConnectElapsedTime());
         }
+        // Indicate whether this is an MT or MO call to Telecom; the participant has the cached
+        // data from the time of merge.
+        connection.setCallDirection(participant.getCallDirection());
+
         Log.i(this, "createConferenceParticipantConnection: participant=%s, connection=%s",
                 participant, connection);
 
