@@ -179,6 +179,8 @@ public class DisconnectCauseUtil {
             case android.telephony.DisconnectCause.POWER_OFF:
             case android.telephony.DisconnectCause.LOW_BATTERY:
             case android.telephony.DisconnectCause.DIAL_LOW_BATTERY:
+            case android.telephony.DisconnectCause.EMERGENCY_CALL_OVER_WFC_NOT_AVAILABLE:
+            case android.telephony.DisconnectCause.WFC_SERVICE_NOT_AVAILABLE_IN_THIS_LOCATION:
             case android.telephony.DisconnectCause.SERVER_ERROR:
             case android.telephony.DisconnectCause.SERVER_UNREACHABLE:
             case android.telephony.DisconnectCause.TIMED_OUT:
@@ -411,6 +413,12 @@ public class DisconnectCauseUtil {
                 break;
             case android.telephony.DisconnectCause.OTASP_PROVISIONING_IN_PROCESS:
                 resourceId = R.string.callFailed_otasp_provisioning_in_process;
+                break;
+            case android.telephony.DisconnectCause.EMERGENCY_CALL_OVER_WFC_NOT_AVAILABLE:
+                resourceId = R.string.callFailed_emergency_call_over_wfc_not_available;
+                break;
+            case android.telephony.DisconnectCause.WFC_SERVICE_NOT_AVAILABLE_IN_THIS_LOCATION:
+                resourceId = R.string.callFailed_wfc_service_not_available_in_this_location;
                 break;
             default:
                 break;
@@ -1020,6 +1028,12 @@ public class DisconnectCauseUtil {
                 break;
             case android.telephony.DisconnectCause.OTASP_PROVISIONING_IN_PROCESS:
                 resourceId = R.string.callFailed_otasp_provisioning_in_process;
+                break;
+            case android.telephony.DisconnectCause.EMERGENCY_CALL_OVER_WFC_NOT_AVAILABLE:
+                resourceId = R.string.callFailed_emergency_call_over_wfc_not_available;
+                break;
+            case android.telephony.DisconnectCause.WFC_SERVICE_NOT_AVAILABLE_IN_THIS_LOCATION:
+                resourceId = R.string.callFailed_wfc_service_not_available_in_this_location;
                 break;
             default:
                 break;

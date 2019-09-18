@@ -2393,6 +2393,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         if (isIms) {
             isVoWifiEnabled = ImsUtil.isWfcEnabled(phone.getContext(), phone.getPhoneId());
         }
+        boolean isRttMergeSupported = getCarrierConfig()
+                .getBoolean(CarrierConfigManager.KEY_ALLOW_MERGING_RTT_CALLS_BOOL);
         PhoneAccountHandle phoneAccountHandle = isIms ? PhoneUtils
                 .makePstnPhoneAccountHandle(phone.getDefaultPhone())
                 : PhoneUtils.makePstnPhoneAccountHandle(phone);
@@ -2417,7 +2419,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         if (mTreatAsEmergencyCall) {
             isConferenceSupported = false;
             Log.d(this, "refreshConferenceSupported = false; emergency call");
-        } else if (isRtt()) {
+        } else if (isRtt() && !isRttMergeSupported) {
             isConferenceSupported = false;
             Log.d(this, "refreshConferenceSupported = false; rtt call");
         } else if (!isConferencingSupported || isIms && !isImsConferencingSupported) {

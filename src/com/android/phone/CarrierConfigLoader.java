@@ -20,7 +20,6 @@ import static android.service.carrier.CarrierService.ICarrierServiceWrapper.KEY_
 import static android.service.carrier.CarrierService.ICarrierServiceWrapper.RESULT_ERROR;
 
 import android.annotation.NonNull;
-import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -40,7 +39,6 @@ import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.ResultReceiver;
 import android.os.ServiceManager;
-import android.os.UserHandle;
 import android.preference.PreferenceManager;
 import android.service.carrier.CarrierIdentifier;
 import android.service.carrier.CarrierService;
@@ -57,6 +55,7 @@ import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneFactory;
 import com.android.internal.telephony.SubscriptionInfoUpdater;
 import com.android.internal.telephony.TelephonyPermissions;
+import com.android.internal.util.ArrayUtils;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.internal.util.IndentingPrintWriter;
 
@@ -285,8 +284,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                                     }
                                     PersistableBundle config =
                                             resultData.getParcelable(KEY_CONFIG_BUNDLE);
-                                    saveConfigToXml(
-                                            mPlatformCarrierConfigPackage, phoneId, config);
+                                    saveConfigToXml(mPlatformCarrierConfigPackage, phoneId,
+                                        carrierId, config);
                                     mConfigFromDefaultApp[phoneId] = config;
                                     sendMessage(
                                             obtainMessage(
@@ -416,8 +415,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                                     }
                                     PersistableBundle config =
                                             resultData.getParcelable(KEY_CONFIG_BUNDLE);
-                                    saveConfigToXml(
-                                            getCarrierPackageForPhoneId(phoneId), phoneId, config);
+                                    saveConfigToXml(getCarrierPackageForPhoneId(phoneId), phoneId,
+                                        carrierId, config);
                                     mConfigFromCarrierApp[phoneId] = config;
                                     sendMessage(
                                             obtainMessage(
@@ -522,7 +521,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         pkgFilter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         pkgFilter.addAction(Intent.ACTION_PACKAGE_REPLACED);
         pkgFilter.addDataScheme("package");
-        context.registerReceiverAsUser(mPackageReceiver, UserHandle.ALL, pkgFilter, null, null);
+        context.registerReceiver(mPackageReceiver, pkgFilter);
 
         int numPhones = TelephonyManager.from(context).getPhoneCount();
         mConfigFromDefaultApp = new PersistableBundle[numPhones];
@@ -590,7 +589,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         }
         intent.putExtra(CarrierConfigManager.EXTRA_SLOT_INDEX, phoneId);
         log("Broadcast CARRIER_CONFIG_CHANGED for phone " + phoneId);
-        ActivityManager.broadcastStickyIntent(intent, UserHandle.USER_ALL);
+        mContext.sendBroadcast(intent);
         mHasSentConfigChange[phoneId] = true;
     }
 
@@ -704,9 +703,11 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
      *
      * @param packageName the name of the package from which we fetched this bundle.
      * @param phoneId the phone ID.
+     * @param carrierId contains all carrier-identifying information.
      * @param config the bundle to be written. Null will be treated as an empty bundle.
      */
-    private void saveConfigToXml(String packageName, int phoneId, PersistableBundle config) {
+    private void saveConfigToXml(String packageName, int phoneId, CarrierIdentifier carrierId,
+        PersistableBundle config) {
         if (SubscriptionManager.getSimStateForSlotIndex(phoneId)
                 != TelephonyManager.SIM_STATE_LOADED) {
             loge("Skip save config because SIM records are not loaded.");
@@ -714,7 +715,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         }
 
         final String iccid = getIccIdForPhoneId(phoneId);
-        final int cid = getSpecificCarrierIdForPhoneId(phoneId);
+        final int cid = carrierId.getSpecificCarrierId();
         if (packageName == null || iccid == null) {
             loge("Cannot save config with null packageName or iccid.");
             return;
