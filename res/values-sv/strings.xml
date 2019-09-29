@@ -523,7 +523,7 @@
     <string name="incall_error_supp_service_hold" msgid="7967020511232222078">"Det går inte att hålla kvar samtal."</string>
     <string name="incall_error_wfc_only_no_wireless_network" msgid="1782466780452640089">"Anslut till ett trådlöst nätverk om du vill ringa."</string>
     <string name="incall_error_promote_wfc" msgid="106510757624022064">"Aktivera Wi-Fi-samtal för att ringa."</string>
-    <string name="emergency_information_hint" msgid="399011533038204351">"Krisinformation"</string>
+    <string name="emergency_information_hint" msgid="399011533038204351">"Nödinformation"</string>
     <string name="emergency_information_owner_hint" msgid="688331472291637149">"Ägare"</string>
     <string name="emergency_information_confirm_hint" msgid="4039012670779853030">"Tryck igen för att visa information"</string>
     <string name="emergency_enable_radio_dialog_title" msgid="4627849966634578257">"Nödsamtal"</string>
@@ -755,7 +755,7 @@
     <string name="call_barring_deactivate_success" msgid="8014685598632000936">"Samtalsspärren har inaktiverats"</string>
     <string name="call_barring_change_pwd" msgid="6887420609726284232">"Ändra lösenord"</string>
     <string name="call_barring_change_pwd_description" msgid="5505087790260233953">"Ändra lösenord för samtalsspärr"</string>
-    <string name="call_barring_change_pwd_description_disabled" msgid="7630770327645349957">"."</string>
+    <string name="call_barring_change_pwd_description_disabled" msgid="4040168949678570166">"Det går inte att ändra lösenordet för samtalsspärr"</string>
     <string name="call_barring_pwd_not_match" msgid="6716711689350314525">"Lösenorden stämmer inte överens"</string>
     <string name="call_barring_right_pwd_number" msgid="2902966502520410446">"Ange ett lösenord med 4 siffror"</string>
     <string name="call_barring_change_pwd_success" msgid="3278310763742760321">"Lösenordet har ändrats"</string>

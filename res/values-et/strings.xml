@@ -676,7 +676,7 @@
     <string name="mobile_data_activate_button" msgid="3682400969184405446">"LISA ANDMEMAHTU"</string>
     <string name="mobile_data_activate_cancel_button" msgid="1708022171547398765">"TÜHISTA"</string>
     <string name="clh_card_title_call_ended_txt" msgid="4072101334811753823">"Kõne lõpetati"</string>
-    <string name="clh_callFailed_powerOff_txt" msgid="1049579267090569308">"Lennurežiim on sisse lülitatud"</string>
+    <string name="clh_callFailed_powerOff_txt" msgid="1049579267090569308">"Lennukirežiim on sisse lülitatud"</string>
     <string name="clh_callFailed_simError_txt" msgid="7273306159809203315">"SIM-kaardile ei pääse juurde"</string>
     <string name="clh_incall_error_out_of_service_txt" msgid="3974373603657193827">"Mobiilsidevõrk pole saadaval"</string>
     <string name="clh_callFailed_unassigned_number_txt" msgid="4722164461846838251">"Probleem telefoninumbriga, mida püüate valida. Veakood 1."</string>
@@ -751,7 +751,7 @@
     <string name="call_barring_deactivate_success" msgid="8014685598632000936">"Kõnede blokeerimine on inaktiveeritud"</string>
     <string name="call_barring_change_pwd" msgid="6887420609726284232">"Parooli muutmine"</string>
     <string name="call_barring_change_pwd_description" msgid="5505087790260233953">"Kõnede blokeerimise parooli muutmine"</string>
-    <string name="call_barring_change_pwd_description_disabled" msgid="7630770327645349957">"Kõnede blokeerimise parooli ei saa muuta."</string>
+    <string name="call_barring_change_pwd_description_disabled" msgid="4040168949678570166">"Kõnede blokeerimise parooli ei saa muuta"</string>
     <string name="call_barring_pwd_not_match" msgid="6716711689350314525">"Paroolid ei kattu"</string>
     <string name="call_barring_right_pwd_number" msgid="2902966502520410446">"Neljanumbrilise parooli sisestamine"</string>
     <string name="call_barring_change_pwd_success" msgid="3278310763742760321">"Parool on muudetud"</string>
