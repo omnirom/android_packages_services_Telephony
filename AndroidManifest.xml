@@ -62,6 +62,7 @@
     <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_SIGNAL_RESET" />
     <protected-broadcast android:name= "com.android.internal.telephony.CARRIER_SIGNAL_DEFAULT_NETWORK_AVAILABLE" />
     <protected-broadcast android:name= "com.android.internal.telephony.ACTION_LINE1_NUMBER_ERROR_DETECTED" />
+    <protected-broadcast android:name= "com.android.internal.telephony.ACTION_REPORT_RADIO_BUG" />
     <protected-broadcast android:name= "com.android.internal.provider.action.VOICEMAIL_SMS_RECEIVED" />
     <protected-broadcast android:name= "com.android.intent.isim_refresh" />
     <protected-broadcast android:name= "com.android.ims.ACTION_RCS_SERVICE_AVAILABLE" />
@@ -208,6 +209,10 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
     <uses-permission android:name="android.permission.READ_PRECISE_PHONE_STATE" />
     <uses-permission android:name="android.permission.MANAGE_ROLE_HOLDERS" />
+    <!-- Allows us to whitelist receivers of the
+         ACTION_SIM_SLOT_STATUS_CHANGED broadcast to start activities
+         from the background.  -->
+    <uses-permission android:name="android.permission.START_ACTIVITIES_FROM_BACKGROUND" />
 
     <uses-permission android:name="com.qti.permission.BIND_QTI_IMS_SERVICE" />
 
