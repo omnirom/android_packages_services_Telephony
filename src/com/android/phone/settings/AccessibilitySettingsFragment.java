@@ -157,9 +157,9 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
             Settings.System.putInt(mContext.getContentResolver(), Settings.System.HEARING_AID, hac);
 
             // Update HAC Value in AudioManager.
-            mAudioManager.setParameter(SettingsConstants.HAC_KEY,
-                    hac == SettingsConstants.HAC_ENABLED
-                            ? SettingsConstants.HAC_VAL_ON : SettingsConstants.HAC_VAL_OFF);
+            mAudioManager.setParameters(
+                    SettingsConstants.HAC_KEY + "=" + (hac == SettingsConstants.HAC_ENABLED
+                            ? SettingsConstants.HAC_VAL_ON : SettingsConstants.HAC_VAL_OFF));
             return true;
         } else if (preference == mButtonRtt) {
             Log.i(LOG_TAG, "RTT setting changed -- now " + mButtonRtt.isChecked());
@@ -172,7 +172,8 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
             for (int subId : SubscriptionController.getInstance().getActiveSubIdList(true)) {
                 if (!configManager.getConfigForSubId(subId).getBoolean(
                         CarrierConfigManager.KEY_IGNORE_RTT_MODE_SETTING_BOOL, false)) {
-                    ImsManager imsManager = ImsManager.getInstance(getContext(), subId);
+                    int phoneId = SubscriptionController.getInstance().getPhoneId(subId);
+                    ImsManager imsManager = ImsManager.getInstance(getContext(), phoneId);
                     imsManager.setRttEnabled(mButtonRtt.isChecked());
                 }
             }
@@ -205,20 +206,11 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
     }
 
     private boolean shouldShowRttSetting() {
-        CarrierConfigManager configManager =
-                (CarrierConfigManager) mContext.getSystemService(Context.CARRIER_CONFIG_SERVICE);
         // Go through all the subs -- if we want to display the RTT setting for any of them, do
         // display it.
         for (int subId : SubscriptionController.getInstance().getActiveSubIdList(true)) {
-            // In order to display the setting, we want:
-            // 1. The subscription supports RTT
-            // 2. The subscription isn't configured by the carrier to have the setting always-on
-            //    (see the documentation for the carrier config key)
             if (PhoneGlobals.getInstance().phoneMgr.isRttSupported(subId)) {
-                if (!configManager.getConfigForSubId(subId).getBoolean(
-                        CarrierConfigManager.KEY_IGNORE_RTT_MODE_SETTING_BOOL, false)) {
-                    return true;
-                }
+                return true;
             }
         }
         return false;

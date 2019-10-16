@@ -159,6 +159,7 @@ import com.android.internal.telephony.uicc.UiccCardApplication;
 import com.android.internal.telephony.uicc.UiccController;
 import com.android.internal.telephony.uicc.UiccProfile;
 import com.android.internal.telephony.uicc.UiccSlot;
+import com.android.internal.telephony.uicc.IccCardApplicationStatus.AppType;
 import com.android.internal.telephony.util.VoicemailNotificationSettingsUtil;
 import com.android.internal.util.HexDump;
 import com.android.phone.settings.PickSmsSubscriptionActivity;
@@ -866,7 +867,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     }
                     // Result cannot be null. Return ModemActivityInfo with all fields set to 0.
                     if (request.result == null) {
-                        request.result = new ModemActivityInfo(0, 0, 0, null, 0, 0);
+                        request.result = new ModemActivityInfo(0, 0, 0, null, 0);
                     }
                     notifyRequester(request);
                     break;
@@ -4790,6 +4791,52 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
     }
 
+    private int getCarrierPrivilegeStatusFromCarrierConfigRules(int privilegeFromSim,
+            Phone phone) {
+        //load access rules from carrier configs, and check those as well: b/139133814
+        SubscriptionController subController = SubscriptionController.getInstance();
+        if (privilegeFromSim == TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS
+                || subController == null) return privilegeFromSim;
+
+        int uid = Binder.getCallingUid();
+        PackageManager pkgMgr = phone.getContext().getPackageManager();
+        String[] packages = pkgMgr.getPackagesForUid(uid);
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            SubscriptionInfo subInfo = subController.getSubscriptionInfo(phone.getSubId());
+            SubscriptionManager subManager = (SubscriptionManager)
+                    phone.getContext().getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+            for (String pkg : packages) {
+                if (subManager.canManageSubscription(subInfo, pkg)) {
+                    return TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS;
+                }
+            }
+            return privilegeFromSim;
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    private int getCarrierPrivilegeStatusFromCarrierConfigRules(int privilegeFromSim, Phone phone,
+            String pkgName) {
+        //load access rules from carrier configs, and check those as well: b/139133814
+        SubscriptionController subController = SubscriptionController.getInstance();
+        if (privilegeFromSim == TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS
+                || subController == null) return privilegeFromSim;
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            SubscriptionInfo subInfo = subController.getSubscriptionInfo(phone.getSubId());
+            SubscriptionManager subManager = (SubscriptionManager)
+                    phone.getContext().getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+            return subManager.canManageSubscription(subInfo, pkgName)
+                ? TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS : privilegeFromSim;
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
     @Override
     public int getCarrierPrivilegeStatus(int subId) {
         final Phone phone = getPhone(subId);
@@ -4802,8 +4849,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             loge("getCarrierPrivilegeStatus: No UICC");
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_RULES_NOT_LOADED;
         }
-        return card.getCarrierPrivilegeStatusForCurrentTransaction(
-                phone.getContext().getPackageManager());
+
+        return getCarrierPrivilegeStatusFromCarrierConfigRules(
+            card.getCarrierPrivilegeStatusForCurrentTransaction(
+                phone.getContext().getPackageManager()), phone);
     }
 
     @Override
@@ -4819,7 +4868,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             loge("getCarrierPrivilegeStatus: No UICC");
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_RULES_NOT_LOADED;
         }
-        return profile.getCarrierPrivilegeStatusForUid(phone.getContext().getPackageManager(), uid);
+        return getCarrierPrivilegeStatusFromCarrierConfigRules(
+            profile.getCarrierPrivilegeStatusForUid(
+                phone.getContext().getPackageManager(), uid), phone);
     }
 
     @Override
@@ -4834,8 +4885,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             loge("checkCarrierPrivilegesForPackage: No UICC on subId " + subId);
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_RULES_NOT_LOADED;
         }
-
-        return card.getCarrierPrivilegeStatus(mApp.getPackageManager(), pkgName);
+        return getCarrierPrivilegeStatusFromCarrierConfigRules(
+            card.getCarrierPrivilegeStatus(mApp.getPackageManager(), pkgName),
+            getPhone(phoneId), pkgName);
     }
 
     @Override
@@ -4850,7 +4902,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
               continue;
             }
 
-            result = card.getCarrierPrivilegeStatus(mApp.getPackageManager(), pkgName);
+            result = getCarrierPrivilegeStatusFromCarrierConfigRules(
+                card.getCarrierPrivilegeStatus(mApp.getPackageManager(), pkgName),
+                getPhone(i), pkgName);
             if (result == TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
                 break;
             }
@@ -4885,9 +4939,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 if (packages == null) {
                     // Only check packages in user 0 for now
                     packages = pm.getInstalledPackagesAsUser(
-                            PackageManager.MATCH_DISABLED_COMPONENTS
-                                    | PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS
-                                    | PackageManager.GET_SIGNATURES, UserHandle.USER_SYSTEM);
+                        PackageManager.MATCH_DISABLED_COMPONENTS
+                            | PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS
+                            | PackageManager.GET_SIGNING_CERTIFICATES,
+                            UserHandle.USER_SYSTEM);
                 }
                 for (int p = packages.size() - 1; p >= 0; p--) {
                     PackageInfo pkgInfo = packages.get(p);
@@ -5598,7 +5653,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     private final ModemActivityInfo mLastModemActivityInfo =
-            new ModemActivityInfo(0, 0, 0, new int[0], 0, 0);
+            new ModemActivityInfo(0, 0, 0, new int[0], 0);
 
     /**
      * Responds to the ResultReceiver with the {@link android.telephony.ModemActivityInfo} object
@@ -5622,27 +5677,27 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                         null, workSource);
                 if (isModemActivityInfoValid(info)) {
                     int[] mergedTxTimeMs = new int[ModemActivityInfo.TX_POWER_LEVELS];
+                    int[] txTimeMs = info.getTransmitTimeMillis();
+                    int[] lastModemTxTimeMs = mLastModemActivityInfo.getTransmitTimeMillis();
                     for (int i = 0; i < mergedTxTimeMs.length; i++) {
-                        mergedTxTimeMs[i] = info.getTxTimeMillis()[i]
-                                + mLastModemActivityInfo.getTxTimeMillis()[i];
+                        mergedTxTimeMs[i] = txTimeMs[i] + lastModemTxTimeMs[i];
                     }
                     mLastModemActivityInfo.setTimestamp(info.getTimestamp());
                     mLastModemActivityInfo.setSleepTimeMillis(info.getSleepTimeMillis()
                             + mLastModemActivityInfo.getSleepTimeMillis());
                     mLastModemActivityInfo.setIdleTimeMillis(
                             info.getIdleTimeMillis() + mLastModemActivityInfo.getIdleTimeMillis());
-                    mLastModemActivityInfo.setTxTimeMillis(mergedTxTimeMs);
-                    mLastModemActivityInfo.setRxTimeMillis(
-                            info.getRxTimeMillis() + mLastModemActivityInfo.getRxTimeMillis());
-                    mLastModemActivityInfo.setEnergyUsed(
-                            info.getEnergyUsed() + mLastModemActivityInfo.getEnergyUsed());
+                    mLastModemActivityInfo.setTransmitTimeMillis(mergedTxTimeMs);
+                    mLastModemActivityInfo.setReceiveTimeMillis(
+                            info.getReceiveTimeMillis() + mLastModemActivityInfo
+                                .getReceiveTimeMillis());
                 }
+
                 ret = new ModemActivityInfo(mLastModemActivityInfo.getTimestamp(),
                         mLastModemActivityInfo.getSleepTimeMillis(),
                         mLastModemActivityInfo.getIdleTimeMillis(),
-                        mLastModemActivityInfo.getTxTimeMillis(),
-                        mLastModemActivityInfo.getRxTimeMillis(),
-                        mLastModemActivityInfo.getEnergyUsed());
+                        mLastModemActivityInfo.getTransmitTimeMillis(),
+                        mLastModemActivityInfo.getReceiveTimeMillis());
             }
             Bundle bundle = new Bundle();
             bundle.putParcelable(TelephonyManager.MODEM_ACTIVITY_RESULT_KEY, ret);
@@ -5661,13 +5716,14 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         int activityDurationMs =
             (int) (info.getTimestamp() - mLastModemActivityInfo.getTimestamp());
         int totalTxTimeMs = 0;
-        for (int i = 0; i < info.getTxTimeMillis().length; i++) {
-            totalTxTimeMs += info.getTxTimeMillis()[i];
+        int[] txTimeMs = info.getTransmitTimeMillis();
+        for (int i = 0; i < info.getTransmitPowerInfo().size(); i++) {
+            totalTxTimeMs += txTimeMs[i];
         }
         return (info.isValid()
             && (info.getSleepTimeMillis() <= activityDurationMs)
             && (info.getIdleTimeMillis() <= activityDurationMs)
-            && (info.getRxTimeMillis() <= activityDurationMs)
+            && (info.getReceiveTimeMillis() <= activityDurationMs)
             && (totalTxTimeMs <= activityDurationMs));
     }
 
@@ -6507,7 +6563,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 if (card != null) {
                     cardId = card.getCardId();
                 } else {
-                    cardId = slot.getIccId();
+                    cardId = slot.getEid();
+                    if (TextUtils.isEmpty(cardId)) {
+                        cardId = slot.getIccId();
+                    }
                 }
 
                 if (cardId != null) {
@@ -7056,6 +7115,33 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 return;
             }
             mPhoneConfigurationManager.switchMultiSimConfig(numOfSims);
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    @Override
+    public boolean isApplicationOnUicc(int subId, int appType) {
+        enforceReadPrivilegedPermission("isApplicationOnUicc");
+        Phone phone = getPhone(subId);
+        if (phone == null) {
+            return false;
+        }
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            UiccCard uiccCard = phone.getUiccCard();
+            if (uiccCard == null) {
+                return false;
+            }
+            UiccProfile uiccProfile = uiccCard.getUiccProfile();
+            if (uiccProfile == null) {
+                return false;
+            }
+            if (TelephonyManager.APPTYPE_SIM <= appType
+                    && appType <= TelephonyManager.APPTYPE_ISIM) {
+                return uiccProfile.isApplicationOnIcc(AppType.values()[appType]);
+            }
+            return false;
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
