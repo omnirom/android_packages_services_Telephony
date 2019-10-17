@@ -417,8 +417,6 @@ public class PhoneGlobals extends ContextWrapper {
             mCarrierVvmPackageInstalledReceiver.register(this);
 
             //set the default values for the preferences in the phone.
-            PreferenceManager.setDefaultValues(this, R.xml.network_setting_fragment, false);
-
             PreferenceManager.setDefaultValues(this, R.xml.call_feature_setting, false);
         }
 
@@ -435,9 +433,9 @@ public class PhoneGlobals extends ContextWrapper {
                     android.provider.Settings.System.HEARING_AID,
                     0);
             AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-            audioManager.setParameter(SettingsConstants.HAC_KEY,
-                    hac == SettingsConstants.HAC_ENABLED
-                            ? SettingsConstants.HAC_VAL_ON : SettingsConstants.HAC_VAL_OFF);
+            audioManager.setParameters(
+                    SettingsConstants.HAC_KEY + "=" + (hac == SettingsConstants.HAC_ENABLED
+                            ? SettingsConstants.HAC_VAL_ON : SettingsConstants.HAC_VAL_OFF));
         }
     }
 
@@ -616,7 +614,9 @@ public class PhoneGlobals extends ContextWrapper {
 
             if (tm != null && tm.isInEmergencyCall()) {
                 // Switch airplane mode back to off.
-                ConnectivityManager.from(this).setAirplaneMode(false);
+                ConnectivityManager cm =
+                        (ConnectivityManager) context.getSystemService(CONNECTIVITY_SERVICE);
+                cm.setAirplaneMode(false);
                 Toast.makeText(this, R.string.radio_off_during_emergency_call, Toast.LENGTH_LONG)
                         .show();
                 Log.i(LOG_TAG, "Ignoring airplane mode: emergency call. Turning airplane off");
