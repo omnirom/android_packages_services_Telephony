@@ -335,7 +335,7 @@
         <activity android:name="GsmUmtsCallBarringOptions"
                 android:label="@string/labelCallBarring"
                 android:configChanges="orientation|screenSize|keyboardHidden"
-                android:theme="@style/CallSettingsWithoutDividerTheme">
+                android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -353,7 +353,7 @@
         <activity android:name="CallForwardType"
                 android:label="@string/call_forward_option"
                 android:configChanges="orientation|screenSize|keyboardHidden"
-                android:theme="@style/SettingsLight">
+                android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
