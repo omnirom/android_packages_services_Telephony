@@ -37,9 +37,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.PersistableBundle;
 import android.os.PowerManager;
-import android.os.SystemClock;
 import android.os.SystemProperties;
-import android.os.UpdateLock;
 import android.os.UserManager;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
@@ -190,8 +188,6 @@ public class PhoneGlobals extends ContextWrapper {
     private PowerManager.WakeLock mPartialWakeLock;
     private KeyguardManager mKeyguardManager;
 
-    private UpdateLock mUpdateLock;
-
     private int mDefaultDataSubId = SubscriptionManager.INVALID_SUBSCRIPTION_ID;
     private final LocalLog mDataRoamingNotifLog = new LocalLog(50);
 
@@ -286,7 +282,8 @@ public class PhoneGlobals extends ContextWrapper {
                     // not want this running if the device is still in the FBE encrypted state.
                     // This is the same procedure that is triggered in the SipIncomingCallReceiver
                     // upon BOOT_COMPLETED.
-                    UserManager userManager = UserManager.get(sMe);
+                    UserManager userManager =
+                            (UserManager) sMe.getSystemService(Context.USER_SERVICE);
                     if (userManager != null && userManager.isUserUnlocked()) {
                         SipUtil.startSipService();
                     }
@@ -369,12 +366,6 @@ public class PhoneGlobals extends ContextWrapper {
                     | PowerManager.ON_AFTER_RELEASE, LOG_TAG);
 
             mKeyguardManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
-
-            // Get UpdateLock to suppress system-update related events (e.g. dialog show-up)
-            // during phone calls.
-            mUpdateLock = new UpdateLock("phone");
-
-            if (DBG) Log.d(LOG_TAG, "onCreate: mUpdateLock: " + mUpdateLock);
 
             // Create the CallerInfoCache singleton, which remembers custom ring tone and
             // send-to-voicemail settings.
@@ -526,19 +517,6 @@ public class PhoneGlobals extends ContextWrapper {
      */
     void setPukEntryProgressDialog(ProgressDialog dialog) {
         mPUKEntryProgressDialog = dialog;
-    }
-
-    /**
-     * If we are not currently keeping the screen on, then poke the power
-     * manager to wake up the screen for the user activity timeout duration.
-     */
-    /* package */ void wakeUpScreen() {
-        synchronized (this) {
-            if (mWakeState == WakeState.SLEEP) {
-                if (DBG) Log.d(LOG_TAG, "pulse screen lock");
-                mPowerManager.wakeUp(SystemClock.uptimeMillis(), "android.phone:WAKE");
-            }
-        }
     }
 
     KeyguardManager getKeyguardManager() {

@@ -114,6 +114,25 @@ public class ImsConference extends Conference implements Holdable {
                handleOriginalConnectionChange();
             }
         }
+
+        /**
+         * Handles changes to conference participant data as reported by the conference host
+         * connection.
+         *
+         * @param c The connection.
+         * @param participants The participant information.
+         */
+        @Override
+        public void onConferenceParticipantsChanged(android.telecom.Connection c,
+                List<ConferenceParticipant> participants) {
+
+            if (c == null || participants == null) {
+                return;
+            }
+            Log.v(this, "onConferenceParticipantsChanged: %d participants", participants.size());
+            TelephonyConnection telephonyConnection = (TelephonyConnection) c;
+            handleConferenceParticipantsUpdate(telephonyConnection, participants);
+        }
     };
 
     /**
@@ -142,25 +161,6 @@ public class ImsConference extends Conference implements Holdable {
         @Override
         public void onDisconnected(android.telecom.Connection c, DisconnectCause disconnectCause) {
             setDisconnected(disconnectCause);
-        }
-
-        /**
-         * Handles changes to conference participant data as reported by the conference host
-         * connection.
-         *
-         * @param c The connection.
-         * @param participants The participant information.
-         */
-        @Override
-        public void onConferenceParticipantsChanged(android.telecom.Connection c,
-                List<ConferenceParticipant> participants) {
-
-            if (c == null || participants == null) {
-                return;
-            }
-            Log.v(this, "onConferenceParticipantsChanged: %d participants", participants.size());
-            TelephonyConnection telephonyConnection = (TelephonyConnection) c;
-            handleConferenceParticipantsUpdate(telephonyConnection, participants);
         }
 
         @Override
@@ -887,7 +887,7 @@ public class ImsConference extends Conference implements Holdable {
             // If the single party call emulation fature flag is enabled, we can potentially treat
             // the conference as a single party call when there is just one participant.
             if (mFeatureFlagProxy.isUsingSinglePartyCallEmulation()) {
-                if (oldParticipantCount > 1 && newParticipantCount == 1) {
+                if (oldParticipantCount != 1 && newParticipantCount == 1) {
                     // If number of participants goes to 1, emulate a single party call.
                     startEmulatingSinglePartyCall();
                 } else if (mIsEmulatingSinglePartyCall && !isSinglePartyConference) {
@@ -1383,5 +1383,13 @@ public class ImsConference extends Conference implements Holdable {
     public boolean isFullConference() {
         return isMaximumConferenceSizeEnforced()
                 && getNumberOfParticipants() >= getMaximumConferenceSize();
+    }
+
+    /**
+     * @return {@code True} if the ImsConference is emulating single party call.
+     */
+    @VisibleForTesting
+    public boolean isEmulatingSinglePartyCall() {
+        return mIsEmulatingSinglePartyCall;
     }
 }
