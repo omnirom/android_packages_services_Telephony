@@ -1113,9 +1113,17 @@ public class TelecomAccountRegistry {
             }
         };
 
-        Uri rttSettingUri = Settings.Secure.getUriFor(Settings.Secure.RTT_CALLING_MODE);
-        mContext.getContentResolver().registerContentObserver(
-                rttSettingUri, false, rttUiSettingObserver);
+        // register for all settings
+        for (int i = 0; i < mTelephonyManager.getPhoneCount(); i++) {
+            Uri rttSettingUri = Settings.Secure.getUriFor(
+                    Settings.Secure.RTT_CALLING_MODE + convertRttPhoneId(i));
+            mContext.getContentResolver().registerContentObserver(
+                    rttSettingUri, false, rttUiSettingObserver);
+        }
+    }
+
+    private static String convertRttPhoneId(int phoneId) {
+        return phoneId != 0 ? Integer.toString(phoneId) : "";
     }
 
     /**

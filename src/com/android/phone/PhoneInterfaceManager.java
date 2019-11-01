@@ -5268,11 +5268,21 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public boolean isRttEnabled(int subscriptionId) {
         final long identity = Binder.clearCallingIdentity();
         try {
+            int phoneId = SubscriptionManager.getPhoneId(subscriptionId);
+            if (!SubscriptionManager.isValidPhoneId(phoneId)) {
+                loge("phoneId " + phoneId + " is not valid.");
+                return false;
+            }
             return isRttSupported(subscriptionId) && Settings.Secure.getInt(
-                    mApp.getContentResolver(), Settings.Secure.RTT_CALLING_MODE, 0) != 0;
+                    mApp.getContentResolver(),
+                    Settings.Secure.RTT_CALLING_MODE + convertRttPhoneId(phoneId) , 0) != 0;
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
+    }
+
+    private static String convertRttPhoneId(int phoneId) {
+        return phoneId != 0 ? Integer.toString(phoneId) : "";
     }
 
     /**
