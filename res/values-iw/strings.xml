@@ -137,7 +137,7 @@
     <string name="fdn_check_failure" msgid="18200614306525434">"הגדרת מספרי החיוג הקבועים של אפליקציית הטלפון שלך מופעלת. כתוצאה מכך, חלק מהתכונות הקשורות לשיחות לא פועלות."</string>
     <string name="radio_off_error" msgid="2304459933248513376">"הפעל את הרדיו לפני ההצגה של הגדרות אלה."</string>
     <string name="close_dialog" msgid="2365884406356986917">"אישור"</string>
-    <string name="enable" msgid="7248657275000173526">"הפעל"</string>
+    <string name="enable" msgid="7248657275000173526">"הפעלה"</string>
     <string name="disable" msgid="4678348128118573672">"כבה"</string>
     <string name="change_num" msgid="239476305819844391">"עדכן"</string>
   <string-array name="clir_display_values">
@@ -252,10 +252,15 @@
     <string name="roaming_enable" msgid="7331106985174381987">"התחבר לשירותי נתונים בעת נדידה"</string>
     <string name="roaming_disable" msgid="1843417228755568110">"התחבר לשירותי נתונים בעת נדידה"</string>
     <string name="roaming_reenable_message" msgid="6843814381576397939">"הנדידה מושבתת. אפשר להקיש כדי להפעיל אותה."</string>
+    <string name="roaming_enabled_message" msgid="7176375330428295945">"ייתכנו חיובי נדידה. יש להקיש כדי לשנות."</string>
     <string name="roaming_notification_title" msgid="4749053220884743110">"המכשיר התנתק מחבילת הגלישה"</string>
+    <string name="roaming_on_notification_title" msgid="5102274082214238655">"נדידה מופעלת"</string>
     <string name="roaming_warning" msgid="1603164667540144353">"ייתכנו שיעורי חיוב גבוהים."</string>
     <string name="roaming_check_price_warning" msgid="7497570906830902550">"למידע נוסף על המחירים, יש לפנות לספק השירות."</string>
     <string name="roaming_alert_title" msgid="3654815360303826008">"האם לאפשר נדידה?"</string>
+    <string name="limited_sim_function_notification_title" msgid="7611588665358096385">"‏יכולת השימוש בכרטיס ה-SIM עלולה להיות מוגבלת"</string>
+    <string name="limited_sim_function_with_phone_num_notification_message" msgid="8629471534217382598">"יכול להיות שאי אפשר יהיה להתקשר ולהשתמש בחבילת הגלישה דרך <xliff:g id="CARRIER_NAME">%1$s</xliff:g> בזמן השימוש במספר <xliff:g id="PHONE_NUMBER">%2$s</xliff:g>."</string>
+    <string name="limited_sim_function_notification_message" msgid="2820647701127014781">"‏ייתכן שאי אפשר להתקשר ולהשתמש בחבילת הגלישה דרך <xliff:g id="CARRIER_NAME">%1$s</xliff:g> בזמן השימוש בכרטיס SIM אחר."</string>
     <string name="data_usage_title" msgid="4042209259808900283">"שימוש בחבילת הגלישה דרך אפליקציות"</string>
     <string name="data_usage_template" msgid="8526428824844656364">"השתמשת ב-<xliff:g id="ID_1">%1$s</xliff:g> מחבילת הגלישה בתאריכים <xliff:g id="ID_2">%2$s</xliff:g>"</string>
     <string name="advanced_options_title" msgid="8074895510265488035">"הגדרות מתקדמות"</string>
@@ -403,11 +408,11 @@
     <string name="fdn_disabled" msgid="4700049736675368279">"מספרי חיוג קבועים מושבתים"</string>
     <string name="enable_fdn" msgid="3740191529180493851">"הפעלת מספרי חיוג קבועים"</string>
     <string name="disable_fdn" msgid="7944020890722540616">"השבתת מספרי חיוג קבועים"</string>
-    <string name="change_pin2" msgid="2153563695382176676">"‏שנה PIN2"</string>
+    <string name="change_pin2" msgid="2153563695382176676">"‏שינוי PIN2"</string>
     <string name="enable_fdn_ok" msgid="7215588870329688132">"השבת מספרי חיוג קבועים"</string>
     <string name="disable_fdn_ok" msgid="5727046928930740173">"הפעלה של מספרי חיוג קבועים"</string>
     <string name="sum_fdn" msgid="1959399454900272878">"ניהול מספרי חיוג קבועים"</string>
-    <string name="sum_fdn_change_pin" msgid="6666549734792827932">"שנה את קוד הגישה למספרי חיוג קבועים"</string>
+    <string name="sum_fdn_change_pin" msgid="6666549734792827932">"שינוי קוד הגישה למספרי חיוג קבועים"</string>
     <string name="sum_fdn_manage_list" msgid="8431088265332628316">"ניהול רשימת מספרי טלפון"</string>
     <string name="voice_privacy" msgid="3776841382844614716">"פרטיות קול"</string>
     <string name="voice_privacy_summary" msgid="3159383389833516214">"הפעלת מצב פרטיות משופרת"</string>
@@ -610,7 +615,7 @@
     <string name="alert_dialog_dismiss" msgid="2491494287075907171">"סגור"</string>
     <string name="voicemail_provider" msgid="5135942703327136909">"שירות"</string>
     <string name="voicemail_settings" msgid="72448049107749316">"הגדרות"</string>
-    <string name="voicemail_number_not_set" msgid="6724904736891087856">"‏&lt;לא הוגדר&gt;"</string>
+    <string name="voicemail_number_not_set" msgid="6724904736891087856">"&lt;לא מוגדר&gt;"</string>
     <string name="other_settings" msgid="3672912580359716394">"הגדרות שיחה אחרות"</string>
     <string name="calling_via_template" msgid="4839419581866928142">"שיחה באמצעות <xliff:g id="PROVIDER_NAME">%s</xliff:g>"</string>
     <string name="contactPhoto" msgid="4713193418046639466">"תמונה של איש קשר"</string>
@@ -643,6 +648,8 @@
     <string name="callFailed_wifi_lost" msgid="5968076625137297184">"‏השיחה הסתיימה כי החיבור לרשת ה-Wi-Fi נותק."</string>
     <string name="dialFailed_low_battery" msgid="8760548177088774268">"אי אפשר לבצע את שיחת הווידאו מכיוון שהסוללה חלשה."</string>
     <string name="callFailed_low_battery" msgid="4913582435905872616">"שיחת הווידאו הסתיימה מכיוון שהסוללה חלשה."</string>
+    <string name="callFailed_emergency_call_over_wfc_not_available" msgid="4890063404231305951">"‏שיחות חירום דרך Wi-Fi אינן זמינות במיקום הזה."</string>
+    <string name="callFailed_wfc_service_not_available_in_this_location" msgid="7616738479038819001">"‏שיחות Wi-Fi אינן זמינות במיקום הזה."</string>
     <string name="change_pin_title" msgid="7790232089699034029">"שינוי של קוד הגישה לדואר הקולי"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"המשך"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"ביטול"</string>

@@ -33,6 +33,7 @@ import android.util.Log;
 import com.android.ims.ImsManager;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneFactory;
+import com.android.internal.telephony.SubscriptionController;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.R;
 
@@ -109,8 +110,7 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
             mButtonHac = null;
         }
 
-        if (PhoneGlobals.getInstance().phoneMgr
-                .isRttSupported(SubscriptionManager.getDefaultVoiceSubscriptionId())) {
+        if (shouldShowRttSetting()) {
             // TODO: this is going to be a on/off switch for now. Ask UX about how to integrate
             // this settings with TTY
             boolean rttOn = Settings.Secure.getInt(
@@ -160,10 +160,17 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
             int rttMode = mButtonRtt.isChecked() ? 1 : 0;
             Settings.Secure.putInt(mContext.getContentResolver(), Settings.Secure.RTT_CALLING_MODE,
                     rttMode);
-            // Update RTT config with IMS Manager
-            ImsManager imsManager = ImsManager.getInstance(getContext(),
-                    SubscriptionManager.getDefaultVoicePhoneId());
-            imsManager.setRttEnabled(mButtonRtt.isChecked());
+            // Update RTT config with IMS Manager if the always-on carrier config isn't set to true.
+            CarrierConfigManager configManager = (CarrierConfigManager) mContext.getSystemService(
+                            Context.CARRIER_CONFIG_SERVICE);
+            for (int subId : SubscriptionController.getInstance().getActiveSubIdList(true)) {
+                if (!configManager.getConfigForSubId(subId).getBoolean(
+                        CarrierConfigManager.KEY_IGNORE_RTT_MODE_SETTING_BOOL, false)) {
+                    int phoneId = SubscriptionController.getInstance().getPhoneId(subId);
+                    ImsManager imsManager = ImsManager.getInstance(getContext(), phoneId);
+                    imsManager.setRttEnabled(mButtonRtt.isChecked());
+                }
+            }
             return true;
         }
 
@@ -187,6 +194,26 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
         for (Phone phone : phones) {
             if (phone.isImsVideoCallOrConferencePresent()) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean shouldShowRttSetting() {
+        CarrierConfigManager configManager =
+                (CarrierConfigManager) mContext.getSystemService(Context.CARRIER_CONFIG_SERVICE);
+        // Go through all the subs -- if we want to display the RTT setting for any of them, do
+        // display it.
+        for (int subId : SubscriptionController.getInstance().getActiveSubIdList(true)) {
+            // In order to display the setting, we want:
+            // 1. The subscription supports RTT
+            // 2. The subscription isn't configured by the carrier to have the setting always-on
+            //    (see the documentation for the carrier config key)
+            if (PhoneGlobals.getInstance().phoneMgr.isRttSupported(subId)) {
+                if (!configManager.getConfigForSubId(subId).getBoolean(
+                        CarrierConfigManager.KEY_IGNORE_RTT_MODE_SETTING_BOOL, false)) {
+                    return true;
+                }
             }
         }
         return false;

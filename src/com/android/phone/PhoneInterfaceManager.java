@@ -44,6 +44,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.ParcelUuid;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.ResultReceiver;
@@ -1872,9 +1873,14 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public int getDataState() {
+        return getDataStateForSubId(mSubscriptionController.getDefaultDataSubId());
+    }
+
+    @Override
+    public int getDataStateForSubId(int subId) {
         final long identity = Binder.clearCallingIdentity();
         try {
-            Phone phone = getPhone(mSubscriptionController.getDefaultDataSubId());
+            final Phone phone = getPhone(subId);
             if (phone != null) {
                 return PhoneConstantConversions.convertDataState(phone.getDataConnectionState());
             } else {
@@ -1888,9 +1894,14 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public int getDataActivity() {
+        return getDataActivityForSubId(mSubscriptionController.getDefaultDataSubId());
+    }
+
+    @Override
+    public int getDataActivityForSubId(int subId) {
         final long identity = Binder.clearCallingIdentity();
         try {
-            Phone phone = getPhone(mSubscriptionController.getDefaultDataSubId());
+            final Phone phone = getPhone(subId);
             if (phone != null) {
                 return DefaultPhoneNotifier.convertDataActivityState(phone.getDataActivityState());
             } else {
@@ -1956,10 +1967,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             Phone phone = PhoneFactory.getPhone(phoneId);
             if (phone != null) {
                 ServiceStateTracker sst = phone.getServiceStateTracker();
+                EmergencyNumberTracker emergencyNumberTracker = phone.getEmergencyNumberTracker();
                 if (sst != null) {
                     LocaleTracker lt = sst.getLocaleTracker();
                     if (lt != null) {
-                        return lt.getCurrentCountry();
+                        if (!TextUtils.isEmpty(lt.getCurrentCountry())) {
+                            return lt.getCurrentCountry();
+                        } else if (emergencyNumberTracker != null) {
+                            return emergencyNumberTracker.getEmergencyCountryIso();
+                        }
                     }
                 }
             }
@@ -5053,6 +5069,49 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
+    public String[] getMergedSubscriberIdsFromGroup(int subId, String callingPackage) {
+        enforceReadPrivilegedPermission("getMergedSubscriberIdsFromGroup");
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            final TelephonyManager telephonyManager = mApp.getSystemService(
+                    TelephonyManager.class);
+            String subscriberId = telephonyManager.getSubscriberId(subId);
+            if (subscriberId == null) {
+                if (DBG) {
+                    log("getMergedSubscriberIdsFromGroup can't find subscriberId for subId "
+                            + subId);
+                }
+                return null;
+            }
+
+            final SubscriptionInfo info = SubscriptionController.getInstance()
+                    .getSubscriptionInfo(subId);
+            final ParcelUuid groupUuid = info.getGroupUuid();
+            // If it doesn't belong to any group, return just subscriberId of itself.
+            if (groupUuid == null) {
+                return new String[]{subscriberId};
+            }
+
+            // Get all subscriberIds from the group.
+            final List<String> mergedSubscriberIds = new ArrayList<>();
+            final List<SubscriptionInfo> groupInfos = SubscriptionController.getInstance()
+                    .getSubscriptionsInGroup(groupUuid, mApp.getOpPackageName());
+            for (SubscriptionInfo subInfo : groupInfos) {
+                subscriberId = telephonyManager.getSubscriberId(subInfo.getSubscriptionId());
+                if (subscriberId != null) {
+                    mergedSubscriberIds.add(subscriberId);
+                }
+            }
+
+            return mergedSubscriberIds.toArray(new String[mergedSubscriberIds.size()]);
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+
+        }
+    }
+
+    @Override
     public boolean setOperatorBrandOverride(int subId, String brand) {
         TelephonyPermissions.enforceCallingOrSelfCarrierPrivilege(
                 subId, "setOperatorBrandOverride");
@@ -5262,20 +5321,19 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /**
-     * Determines whether the user has turned on RTT. Only returns true if the device and carrier
-     * both also support RTT.
+     * Determines whether the user has turned on RTT. If the carrier wants to ignore the user-set
+     * RTT setting, will return true if the device and carrier both support RTT.
+     * Otherwise. only returns true if the device and carrier both also support RTT.
      */
     public boolean isRttEnabled(int subscriptionId) {
         final long identity = Binder.clearCallingIdentity();
         try {
-            int phoneId = SubscriptionManager.getPhoneId(subscriptionId);
-            if (!SubscriptionManager.isValidPhoneId(phoneId)) {
-                loge("phoneId " + phoneId + " is not valid.");
-                return false;
-            }
-            return isRttSupported(subscriptionId) && Settings.Secure.getInt(
-                    mApp.getContentResolver(),
-                    Settings.Secure.RTT_CALLING_MODE + convertRttPhoneId(phoneId) , 0) != 0;
+            boolean isRttSupported = isRttSupported(subscriptionId);
+            boolean isUserRttSettingOn = Settings.Secure.getInt(
+                    mApp.getContentResolver(), Settings.Secure.RTT_CALLING_MODE, 0) != 0;
+            boolean shouldIgnoreUserRttSetting = mApp.getCarrierConfigForSubId(subscriptionId)
+                    .getBoolean(CarrierConfigManager.KEY_IGNORE_RTT_MODE_SETTING_BOOL);
+            return isRttSupported && (isUserRttSettingOn || shouldIgnoreUserRttSetting);
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
