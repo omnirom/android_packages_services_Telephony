@@ -107,7 +107,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     private final BroadcastReceiver mBootReceiver = new ConfigLoaderBroadcastReceiver();
     // Broadcast receiver for SIM and pkg intents, register intent filter in constructor.
     private final BroadcastReceiver mPackageReceiver = new ConfigLoaderBroadcastReceiver();
-    private final LocalLog mCarrierConfigLoadingLog = new LocalLog(50);
+    private final LocalLog mCarrierConfigLoadingLog = new LocalLog(100);
 
 
     // Message codes; see mHandler below.
@@ -194,11 +194,13 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
 
                 case EVENT_SYSTEM_UNLOCKED:
                 {
-                    for (int i = 0; i < TelephonyManager.from(mContext).getPhoneCount(); ++i) {
+                    for (int i = 0; i < TelephonyManager.from(mContext)
+                            .getSupportedModemCount(); ++i) {
                         // When user unlock device, we should only try to send broadcast again if we
                         // have sent it before unlock. This will avoid we try to load carrier config
                         // when SIM is still loading when unlock happens.
                         if (mHasSentConfigChange[i]) {
+                            logWithLocalLog("System unlocked");
                             updateConfigForPhoneId(i);
                         }
                     }
@@ -211,8 +213,11 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
                     // Only update if there are cached config removed to avoid updating config for
                     // unrelated packages.
                     if (clearCachedConfigForPackage(carrierPackageName)) {
-                        int numPhones = TelephonyManager.from(mContext).getPhoneCount();
+                        int numPhones = TelephonyManager.from(mContext)
+                                .getSupportedModemCount();
                         for (int i = 0; i < numPhones; ++i) {
+                            logWithLocalLog("Package changed: " + carrierPackageName
+                                    + ", phone=" + i);
                             updateConfigForPhoneId(i);
                         }
                     }
@@ -523,7 +528,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         pkgFilter.addDataScheme("package");
         context.registerReceiver(mPackageReceiver, pkgFilter);
 
-        int numPhones = TelephonyManager.from(context).getPhoneCount();
+        int numPhones = TelephonyManager.from(context).getSupportedModemCount();
         mConfigFromDefaultApp = new PersistableBundle[numPhones];
         mConfigFromCarrierApp = new PersistableBundle[numPhones];
         mOverrideConfigs = new PersistableBundle[numPhones];
@@ -566,6 +571,13 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
             configPackagename = mPlatformCarrierConfigPackage;
             configToSend = mConfigFromDefaultApp[phoneId];
         }
+
+        // mOverrideConfigs is for testing. And it will override current configs.
+        PersistableBundle config = mOverrideConfigs[phoneId];
+        if (config != null) {
+            configToSend.putAll(config);
+        }
+
         mSubscriptionInfoUpdater.updateSubscriptionByCarrierConfigAndNotifyComplete(
                 phoneId, configPackagename, configToSend,
                 mHandler.obtainMessage(EVENT_SUBSCRIPTION_INFO_UPDATED, phoneId, -1));

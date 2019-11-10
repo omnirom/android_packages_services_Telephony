@@ -44,6 +44,7 @@ import android.telephony.SubscriptionManager;
 import android.util.Log;
 import android.view.MenuItem;
 
+import com.android.ims.FeatureConnector;
 import com.android.ims.ImsException;
 import com.android.ims.ImsManager;
 import com.android.internal.telephony.CommandsInterface;
@@ -67,7 +68,7 @@ public class CallForwardType extends PreferenceActivity {
     private boolean mIsUtCapable = false;
     private boolean mIsVtCapable = false;
     boolean mHideVtCfOption = false;
-    private ImsManager.Connector mImsManagerConnector;
+    private FeatureConnector<ImsManager> mFeatureConnector;
     private int mPhoneId;
     private IntentFilter mIntentFilter;
 
@@ -139,15 +140,25 @@ public class CallForwardType extends PreferenceActivity {
         mPhoneId = mPhone.getPhoneId();
         mIsUtCapable = mPhone.isUtEnabled();
         mIsVtCapable = mPhone.isVideoEnabled();
-        mImsManagerConnector = new ImsManager.
-            Connector(mPhone.getContext(), mPhone.getPhoneId(),
-                new ImsManager.Connector.Listener() {
+        mFeatureConnector = new FeatureConnector(mPhone.getContext(), mPhone.getPhoneId(),
+                new FeatureConnector.Listener<ImsManager>() {
+                    @Override
+                    public boolean isSupported() {
+                        return true;
+                    }
+
+                    @Override
+                    public ImsManager getFeatureManager() {
+                        return ImsManager.getInstance(mPhone.getContext(), mPhone.getPhoneId());
+                    }
+
                     @Override
                     public void connectionReady(ImsManager manager) throws ImsException {
                         Log.d(LOG_TAG, "ImsManager: connection ready.");
                         setListeners();
                     }
 
+                    @Override
                     public void connectionUnavailable() {
                         Log.d(LOG_TAG, "ImsManager: connection unavailable.");
                         removeListeners();
@@ -198,7 +209,7 @@ public class CallForwardType extends PreferenceActivity {
     protected void onResume() {
         super.onResume();
         registerReceiver(mBroadcastReceiver, mIntentFilter);
-        mImsManagerConnector.connect();
+        mFeatureConnector.connect();
 
         if (mHideVtCfOption || !(mPhone.isUtEnabled() && mPhone.isVideoEnabled())) {
             Log.d(LOG_TAG, "VT or/and Ut Service is not enabled");
@@ -209,7 +220,7 @@ public class CallForwardType extends PreferenceActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        mImsManagerConnector.disconnect();
+        mFeatureConnector.disconnect();
         unregisterReceiver(mBroadcastReceiver);
     }
     @Override
