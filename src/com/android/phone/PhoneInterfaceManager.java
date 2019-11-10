@@ -18,6 +18,7 @@ package com.android.phone;
 
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
+import static com.android.internal.telephony.PhoneConstants.PHONE_TYPE_IMS;
 import static com.android.internal.telephony.PhoneConstants.SUBSCRIPTION_KEY;
 
 import android.Manifest.permission;
@@ -61,8 +62,10 @@ import android.provider.Telephony;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telephony.Annotation.ApnType;
 import android.telephony.CarrierConfigManager;
 import android.telephony.CarrierRestrictionRules;
+import android.telephony.CellIdentity;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoGsm;
 import android.telephony.CellInfoWcdma;
@@ -92,7 +95,6 @@ import android.telephony.UssdResponse;
 import android.telephony.VisualVoicemailSmsFilterSettings;
 import android.telephony.cdma.CdmaCellLocation;
 import android.telephony.data.ApnSetting;
-import android.telephony.data.ApnSetting.ApnType;
 import android.telephony.emergency.EmergencyNumber;
 import android.telephony.gsm.GsmCellLocation;
 import android.telephony.ims.ImsException;
@@ -140,8 +142,6 @@ import com.android.internal.telephony.ProxyController;
 import com.android.internal.telephony.RIL;
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.ServiceStateTracker;
-import com.android.internal.telephony.SmsApplication;
-import com.android.internal.telephony.SmsApplication.SmsApplicationData;
 import com.android.internal.telephony.SmsController;
 import com.android.internal.telephony.SmsPermissions;
 import com.android.internal.telephony.SubscriptionController;
@@ -150,7 +150,10 @@ import com.android.internal.telephony.dataconnection.ApnSettingUtils;
 import com.android.internal.telephony.emergency.EmergencyNumberTracker;
 import com.android.internal.telephony.euicc.EuiccConnector;
 import com.android.internal.telephony.ims.ImsResolver;
+import com.android.internal.telephony.imsphone.ImsPhone;
+import com.android.internal.telephony.imsphone.ImsPhoneCallTracker;
 import com.android.internal.telephony.metrics.TelephonyMetrics;
+import com.android.internal.telephony.uicc.IccCardApplicationStatus.AppType;
 import com.android.internal.telephony.uicc.IccIoResult;
 import com.android.internal.telephony.uicc.IccUtils;
 import com.android.internal.telephony.uicc.SIMRecords;
@@ -159,7 +162,6 @@ import com.android.internal.telephony.uicc.UiccCardApplication;
 import com.android.internal.telephony.uicc.UiccController;
 import com.android.internal.telephony.uicc.UiccProfile;
 import com.android.internal.telephony.uicc.UiccSlot;
-import com.android.internal.telephony.uicc.IccCardApplicationStatus.AppType;
 import com.android.internal.telephony.util.VoicemailNotificationSettingsUtil;
 import com.android.internal.util.HexDump;
 import com.android.phone.settings.PickSmsSubscriptionActivity;
@@ -172,7 +174,6 @@ import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -257,6 +258,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private static final int EVENT_ENABLE_MODEM_DONE = 69;
     private static final int CMD_GET_MODEM_STATUS = 70;
     private static final int EVENT_GET_MODEM_STATUS_DONE = 71;
+    private static final int CMD_SET_FORBIDDEN_PLMNS = 72;
+    private static final int EVENT_SET_FORBIDDEN_PLMNS_DONE = 73;
 
     // Parameters of select command.
     private static final int SELECT_COMMAND = 0xA4;
@@ -1072,11 +1075,13 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     try {
                         if (ar.exception != null) {
                             Log.e(LOG_TAG, "Exception retrieving CellInfo=" + ar.exception);
-                            cb.onError(TelephonyManager.CellInfoCallback.ERROR_MODEM_ERROR,
-                                    new android.os.ParcelableException(ar.exception));
+                            cb.onError(
+                                    TelephonyManager.CellInfoCallback.ERROR_MODEM_ERROR,
+                                    ar.exception.getClass().getName(),
+                                    ar.exception.toString());
                         } else if (ar.result == null) {
                             Log.w(LOG_TAG, "Timeout Waiting for CellInfo!");
-                            cb.onError(TelephonyManager.CellInfoCallback.ERROR_TIMEOUT, null);
+                            cb.onError(TelephonyManager.CellInfoCallback.ERROR_TIMEOUT, null, null);
                         } else {
                             // use the result as returned
                             cb.onCellInfo((List<CellInfo>) ar.result);
@@ -1163,6 +1168,50 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                                 + ar.exception);
                     }
                     notifyRequester(request);
+                    break;
+                case EVENT_SET_FORBIDDEN_PLMNS_DONE:
+                    ar = (AsyncResult) msg.obj;
+                    request = (MainThreadRequest) ar.userObj;
+                    if (ar.exception == null && ar.result != null) {
+                        request.result = ar.result;
+                    } else {
+                        request.result = -1;
+                        loge("Failed to set Forbidden Plmns");
+                        if (ar.result == null) {
+                            loge("setForbidenPlmns: Empty response");
+                        } else if (ar.exception != null) {
+                            loge("setForbiddenPlmns: Exception: " + ar.exception);
+                            request.result = -1;
+                        } else {
+                            loge("setForbiddenPlmns: Unknown exception");
+                        }
+                    }
+                    notifyRequester(request);
+                    break;
+                case CMD_SET_FORBIDDEN_PLMNS:
+                    request = (MainThreadRequest) msg.obj;
+                    uiccCard = getUiccCardFromRequest(request);
+                    if (uiccCard == null) {
+                        loge("setForbiddenPlmns: UiccCard is null");
+                        request.result = -1;
+                        notifyRequester(request);
+                        break;
+                    }
+                    Pair<Integer, List<String>> setFplmnsArgs =
+                            (Pair<Integer, List<String>>) request.argument;
+                    appType = setFplmnsArgs.first;
+                    List<String> fplmns = setFplmnsArgs.second;
+                    uiccApp = uiccCard.getApplicationByType(appType);
+                    if (uiccApp == null) {
+                        loge("setForbiddenPlmns: no app with specified type -- " + appType);
+                        request.result = -1;
+                        loge("Failed to get UICC App");
+                        notifyRequester(request);
+                    } else {
+                        onCompleted = obtainMessage(EVENT_SET_FORBIDDEN_PLMNS_DONE, request);
+                        ((SIMRecords) uiccApp.getIccRecords())
+                                .setForbiddenPlmns(onCompleted, fplmns);
+                    }
                     break;
                 default:
                     Log.w(LOG_TAG, "MainThreadHandler: unexpected message code: " + msg.what);
@@ -1950,7 +1999,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public String getNetworkCountryIsoForPhone(int phoneId) {
+    public String getNetworkCountryIsoForPhone(int phoneId, String callingPackage) {
+        if (!TextUtils.isEmpty(callingPackage)) {
+            final int subId = mSubscriptionController.getSubIdUsingPhoneId(phoneId);
+            if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(
+                    mApp, subId, callingPackage, "getNetworkCountryIsoForPhone")) {
+                return "";
+            }
+        }
+
         // Reporting the correct network country is ambiguous when IWLAN could conflict with
         // registered cell info, so return a NULL country instead.
         final long identity = Binder.clearCallingIdentity();
@@ -2719,7 +2776,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             if (phone != null) {
                 phone.setDataActivationState(activationState);
             } else {
-                loge("setVoiceActivationState fails with invalid subId: " + subId);
+                loge("setDataActivationState fails with invalid subId: " + subId);
             }
         } finally {
             Binder.restoreCallingIdentity(identity);
@@ -2874,18 +2931,19 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         if (!SubscriptionManager.isValidSubscriptionId(subId)) {
             throw new IllegalArgumentException("Invalid Subscription ID: " + subId);
         }
-        Binder.withCleanCallingIdentity(() -> {
-            try {
-                // TODO: Refactor to remove ImsManager dependence and query through ImsPhone.
-                ImsManager.getInstance(mApp, getSlotIndexOrException(subId))
-                        .removeRegistrationCallbackForSubscription(c, subId);
-            } catch (ImsException e) {
-                Log.i(LOG_TAG, "unregisterImsRegistrationCallback: " + subId
-                        + "is inactive, ignoring unregister.");
-                // If the subscription is no longer active, just return, since the callback
-                // will already have been removed internally.
-            }
-        });
+        final long token = Binder.clearCallingIdentity();
+        try {
+            // TODO: Refactor to remove ImsManager dependence and query through ImsPhone.
+            ImsManager.getInstance(mApp, getSlotIndexOrException(subId))
+                    .removeRegistrationCallbackForSubscription(c, subId);
+        } catch (ImsException e) {
+            Log.i(LOG_TAG, "unregisterImsRegistrationCallback: " + subId
+                    + "is inactive, ignoring unregister.");
+            // If the subscription is no longer active, just return, since the callback
+            // will already have been removed internally.
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
     }
 
     @Override
@@ -2907,22 +2965,23 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     @Override
     public void unregisterMmTelCapabilityCallback(int subId, IImsCapabilityCallback c) {
         enforceReadPrivilegedPermission("unregisterMmTelCapabilityCallback");
-
         if (!SubscriptionManager.isValidSubscriptionId(subId)) {
             throw new IllegalArgumentException("Invalid Subscription ID: " + subId);
         }
-        Binder.withCleanCallingIdentity(() -> {
-            try {
-                // TODO: Refactor to remove ImsManager dependence and query through ImsPhone.
-                ImsManager.getInstance(mApp, getSlotIndexOrException(subId))
+
+        final long token = Binder.clearCallingIdentity();
+        try {
+            // TODO: Refactor to remove ImsManager dependence and query through ImsPhone.
+            ImsManager.getInstance(mApp, getSlotIndexOrException(subId))
                         .removeCapabilitiesCallbackForSubscription(c, subId);
-            } catch (ImsException e) {
-                Log.i(LOG_TAG, "unregisterMmTelCapabilityCallback: " + subId
-                        + "is inactive, ignoring unregister.");
-                // If the subscription is no longer active, just return, since the callback
-                // will already have been removed internally.
-            }
-        });
+        } catch (ImsException e) {
+            Log.i(LOG_TAG, "unregisterMmTelCapabilityCallback: " + subId
+                     + "is inactive, ignoring unregister.");
+             // If the subscription is no longer active, just return, since the callback
+             // will already have been removed internally.
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
     }
 
     @Override
@@ -4030,9 +4089,50 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             if (response instanceof String[]) {
                 return (String[]) response;
             }
-            // Response is an Exception of some kind,
+            // Response is an Exception of some kind
             // which is signalled to the user as a NULL retval
             return null;
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    /**
+     * Set the forbidden PLMN list from the given app type (ex APPTYPE_USIM) on a particular
+     * subscription.
+     *
+     * @param subId the id of the subscription.
+     * @param appType the uicc app type, must be USIM or SIM.
+     * @param fplmns the Forbiden plmns list that needed to be written to the SIM.
+     * @param callingPackage the op Package name.
+     * @return number of fplmns that is successfully written to the SIM.
+     */
+    public int setForbiddenPlmns(
+            int subId, int appType, List<String> fplmns, String callingPackage) {
+        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(
+                mApp, subId, callingPackage, "setForbiddenPlmns")) {
+            if (DBG) logv("no permissions for setForbiddenplmns");
+            throw new IllegalStateException("No Permissions for setForbiddenPlmns");
+        }
+        if (appType != TelephonyManager.APPTYPE_USIM && appType != TelephonyManager.APPTYPE_SIM) {
+            loge("setForbiddenPlmnList(): App Type must be USIM or SIM");
+            throw new IllegalArgumentException("Invalid appType: App Type must be USIM or SIM");
+        }
+        if (fplmns == null) {
+            throw new IllegalArgumentException("Fplmn List provided is null");
+        }
+        for (String fplmn : fplmns) {
+            if (!CellIdentity.isValidPlmn(fplmn)) {
+                throw new IllegalArgumentException("Invalid fplmn provided: " + fplmn);
+            }
+        }
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            Object response = sendRequest(
+                    CMD_SET_FORBIDDEN_PLMNS,
+                    new Pair<Integer, List<String>>(new Integer(appType), fplmns),
+                    subId);
+            return (int) response;
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -4859,13 +4959,13 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public int getCarrierPrivilegeStatusForUid(int subId, int uid) {
         final Phone phone = getPhone(subId);
         if (phone == null) {
-            loge("getCarrierPrivilegeStatus: Invalid subId");
+            loge("getCarrierPrivilegeStatusForUid: Invalid subId");
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_NO_ACCESS;
         }
         UiccProfile profile =
                 UiccController.getInstance().getUiccProfileForPhone(phone.getPhoneId());
         if (profile == null) {
-            loge("getCarrierPrivilegeStatus: No UICC");
+            loge("getCarrierPrivilegeStatusForUid: No UICC");
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_RULES_NOT_LOADED;
         }
         return getCarrierPrivilegeStatusFromCarrierConfigRules(
@@ -4921,7 +5021,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
         UiccCard card = UiccController.getInstance().getUiccCard(phoneId);
         if (card == null) {
-            loge("getCarrierPackageNamesForIntent: No UICC");
+            loge("getCarrierPackageNamesForIntentAndPhone: No UICC");
             return null ;
         }
         return card.getCarrierPackageNamesForIntent(mApp.getPackageManager(), intent);
@@ -6804,75 +6904,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
     }
 
-    private void ensureUserRunning(int userId) {
-        if (!mUserManager.isUserRunning(userId)) {
-            throw new IllegalStateException("User " + userId + " does not exist or not running");
-        }
-    }
-
-    /**
-     * Returns a list of SMS apps on a given user.
-     *
-     * Only the shell user (UID 2000 or 0) can call it.
-     * Target user must be running.
-     */
-    @Override
-    public String[] getSmsApps(int userId) {
-        TelephonyPermissions.enforceShellOnly(Binder.getCallingUid(), "getSmsApps");
-        ensureUserRunning(userId);
-
-        final Collection<SmsApplicationData> apps =
-                SmsApplication.getApplicationCollectionAsUser(mApp, userId);
-
-        String[] ret = new String[apps.size()];
-        int i = 0;
-        for (SmsApplicationData app : apps) {
-            ret[i++] = app.mPackageName;
-        }
-        return ret;
-    }
-
-    /**
-     * Returns the default SMS app package name on a given user.
-     *
-     * Only the shell user (UID 2000 or 0) can call it.
-     * Target user must be running.
-     */
-    @Override
-    public String getDefaultSmsApp(int userId) {
-        TelephonyPermissions.enforceShellOnly(Binder.getCallingUid(), "getDefaultSmsApp");
-        ensureUserRunning(userId);
-
-        final ComponentName cn = SmsApplication.getDefaultSmsApplicationAsUser(mApp,
-                /* updateIfNeeded= */ true, userId);
-        return cn == null ? null : cn.getPackageName();
-    }
-
-    /**
-     * Set a package as the default SMS app on a given user.
-     *
-     * Only the shell user (UID 2000 or 0) can call it.
-     * Target user must be running.
-     */
-    @Override
-    public void setDefaultSmsApp(int userId, String packageName) {
-        TelephonyPermissions.enforceShellOnly(Binder.getCallingUid(), "setDefaultSmsApp");
-        ensureUserRunning(userId);
-
-        boolean found = false;
-        for (String pkg : getSmsApps(userId)) {
-            if (TextUtils.equals(packageName, pkg)) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            throw new IllegalArgumentException("Package " + packageName + " is not an SMS app");
-        }
-
-        SmsApplication.setDefaultApplicationAsUser(packageName, mApp, userId);
-    }
-
     @Override
     public Map<Integer, List<EmergencyNumber>> getEmergencyNumberList(
             String callingPackage) {
@@ -7220,10 +7251,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public boolean isDataEnabledForApn(int apnType, int subId, String callingPackage) {
-        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(
-                mApp, subId, callingPackage, "isDataEnabledForApn")) {
-            throw new SecurityException("Needs READ_PHONE_STATE for isDataEnabledForApn");
-        }
+        enforceReadPrivilegedPermission("Needs READ_PRIVILEGED_PHONE_STATE for "
+                + "isDataEnabledForApn");
 
         // Now that all security checks passes, perform the operation as ourselves.
         final long identity = Binder.clearCallingIdentity();
@@ -7322,6 +7351,34 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             if (phone == null) return false;
 
             return phone.getDataEnabledSettings().isDataAllowedInVoiceCall();
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    /**
+     * Updates whether conference event pacakge handling is enabled.
+     * @param isCepEnabled {@code true} if CEP handling is enabled (default), or {@code false}
+     *                                 otherwise.
+     */
+    @Override
+    public void setCepEnabled(boolean isCepEnabled) {
+        TelephonyPermissions.enforceShellOnly(Binder.getCallingUid(), "setCepEnabled");
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            Rlog.i(LOG_TAG, "setCepEnabled isCepEnabled=" + isCepEnabled);
+            for (Phone phone : PhoneFactory.getPhones()) {
+                Phone defaultPhone = phone.getImsPhone();
+                if (defaultPhone != null && defaultPhone.getPhoneType() == PHONE_TYPE_IMS) {
+                    ImsPhone imsPhone = (ImsPhone) defaultPhone;
+                    ImsPhoneCallTracker imsPhoneCallTracker =
+                            (ImsPhoneCallTracker) imsPhone.getCallTracker();
+                    imsPhoneCallTracker.setConferenceEventPackageEnabled(isCepEnabled);
+                    Rlog.i(LOG_TAG, "setCepEnabled isCepEnabled=" + isCepEnabled + ", for imsPhone "
+                            + imsPhone.getMsisdn());
+                }
+            }
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
