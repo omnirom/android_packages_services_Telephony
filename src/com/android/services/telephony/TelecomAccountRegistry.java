@@ -44,6 +44,7 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneStateListener;
+import android.telephony.Rlog;
 import android.telephony.ServiceState;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
@@ -79,6 +80,7 @@ import org.codeaurora.internal.IExtTelephony;
  */
 public class TelecomAccountRegistry {
     private static final boolean DBG = false; /* STOP SHIP if true */
+    private static final String LOG_TAG = "TelecomAccountRegistry";
 
     // This icon is the one that is used when the Slot ID that we have for a particular SIM
     // is not supported, i.e. SubscriptionManager.INVALID_SLOT_ID or the 5th SIM in a phone.
@@ -406,7 +408,7 @@ public class TelecomAccountRegistry {
             }
             if(isMergedSim) {
                 groupId = GROUP_PREFIX + line1Number;
-                Log.i(this, "Adding Merged Account with group: " + Log.pii(groupId));
+                Log.i(this, "Adding Merged Account with group: " + Rlog.pii(LOG_TAG, groupId));
             }
 
             PhoneAccount account = PhoneAccount.builder(phoneAccountHandle, label)
@@ -889,7 +891,7 @@ public class TelecomAccountRegistry {
 
     TelecomAccountRegistry(Context context) {
         mContext = context;
-        mTelecomManager = TelecomManager.from(context);
+        mTelecomManager = context.getSystemService(TelecomManager.class);
         mTelephonyManager = TelephonyManager.from(context);
         mSubscriptionManager = SubscriptionManager.from(context);
     }
@@ -1161,7 +1163,7 @@ public class TelecomAccountRegistry {
                 R.bool.config_emergency_account_emergency_calls_only);
         List<PhoneAccountHandle> accountHandles = emergencyCallsOnlyEmergencyAccount
                 ? mTelecomManager.getAllPhoneAccountHandles()
-                : mTelecomManager.getCallCapablePhoneAccounts(true /* includeDisabled */);
+                : mTelecomManager.getCallCapablePhoneAccounts();
 
         for (PhoneAccountHandle handle : accountHandles) {
             if (telephonyComponentName.equals(handle.getComponentName()) &&
