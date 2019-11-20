@@ -56,8 +56,8 @@ public class ImsConferenceController {
         }
 
         @Override
-        public void onStateChanged(Conference conference, int oldState, int newState) {
-            Log.v(this, "onStateChanged: Conference = " + conference);
+        public void onConferenceMembershipChanged(Connection connection) {
+            Log.v(this, "onConferenceMembershipChanged: Connection = " + connection);
             recalculate();
         }
     };
