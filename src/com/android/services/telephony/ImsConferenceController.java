@@ -22,6 +22,7 @@ import android.telecom.Connection;
 import android.telecom.ConnectionService;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccountHandle;
+import android.telephony.Rlog;
 
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
@@ -38,11 +39,13 @@ import java.util.stream.Collectors;
  * Manages conferences for IMS connections.
  */
 public class ImsConferenceController {
+    private static final String LOG_TAG = "ImsConferenceController";
 
     /**
      * Conference listener; used to receive notification when a conference has been disconnected.
      */
-    private final Conference.Listener mConferenceListener = new Conference.Listener() {
+    private final TelephonyConferenceBase.TelephonyConferenceListener mConferenceListener =
+            new TelephonyConferenceBase.TelephonyConferenceListener() {
         @Override
         public void onDestroyed(Conference conference) {
             if (Log.VERBOSE) {
@@ -53,8 +56,8 @@ public class ImsConferenceController {
         }
 
         @Override
-        public void onStateChanged(Conference conference, int oldState, int newState) {
-            Log.v(this, "onStateChanged: Conference = " + conference);
+        public void onConferenceMembershipChanged(Connection connection) {
+            Log.v(this, "onConferenceMembershipChanged: Connection = " + connection);
             recalculate();
         }
     };
@@ -72,22 +75,16 @@ public class ImsConferenceController {
             Log.v(this, "onConferenceSupportedChanged");
             recalculate();
         }
-    };
 
-    /**
-     * Ims conference controller connection listener.  Used to respond to changes in state of the
-     * Telephony connections the controller is aware of.
-     */
-    private final Connection.Listener mConnectionListener = new Connection.Listener() {
         @Override
         public void onStateChanged(Connection c, int state) {
-            Log.v(this, "onStateChanged: %s", Log.pii(c.getAddress()));
+            Log.v(this, "onStateChanged: %s", Rlog.pii(LOG_TAG, c.getAddress()));
             recalculate();
         }
 
         @Override
         public void onDisconnected(Connection c, DisconnectCause disconnectCause) {
-            Log.v(this, "onDisconnected: %s", Log.pii(c.getAddress()));
+            Log.v(this, "onDisconnected: %s", Rlog.pii(LOG_TAG, c.getAddress()));
             recalculate();
         }
 
@@ -157,9 +154,9 @@ public class ImsConferenceController {
         }
 
         mTelephonyConnections.add(connection);
-        connection.addConnectionListener(mConnectionListener);
         connection.addTelephonyConnectionListener(mTelephonyConnectionListener);
         recalculateConference();
+        recalculateConferenceable();
     }
 
     /**
@@ -185,7 +182,6 @@ public class ImsConferenceController {
             Log.v(this, "remove connection: %s", connection);
         }
 
-        connection.removeConnectionListener(mConnectionListener);
         if (connection instanceof TelephonyConnection) {
             TelephonyConnection telephonyConnection = (TelephonyConnection) connection;
             telephonyConnection.removeTelephonyConnectionListener(mTelephonyConnectionListener);
@@ -393,7 +389,7 @@ public class ImsConferenceController {
         ImsConference conference = new ImsConference(mTelecomAccountRegistry, mConnectionService,
                 conferenceHostConnection, phoneAccountHandle, mFeatureFlagProxy);
         conference.setState(conferenceHostConnection.getState());
-        conference.addListener(mConferenceListener);
+        conference.addTelephonyConferenceListener(mConferenceListener);
         conference.updateConferenceParticipantsAfterCreation();
         mConnectionService.addConference(conference);
         conferenceHostConnection.setTelecomCallId(conference.getTelecomCallId());
@@ -401,13 +397,11 @@ public class ImsConferenceController {
         // Cleanup TelephonyConnection which backed the original connection and remove from telecom.
         // Use the "Other" disconnect cause to ensure the call is logged to the call log but the
         // disconnect tone is not played.
-        connection.removeConnectionListener(mConnectionListener);
         connection.removeTelephonyConnectionListener(mTelephonyConnectionListener);
-        connection.clearOriginalConnection();
-        connection.setDisconnected(new DisconnectCause(DisconnectCause.OTHER,
+        connection.setTelephonyConnectionDisconnected(new DisconnectCause(DisconnectCause.OTHER,
                 android.telephony.DisconnectCause.toString(
                         android.telephony.DisconnectCause.IMS_MERGED_SUCCESSFULLY)));
-        connection.destroy();
+        connection.close();
         mImsConferences.add(conference);
         // If one of the participants failed to join the conference, recalculate will set the
         // conferenceable connections for the conference to show merge calls option.

@@ -52,13 +52,13 @@ import android.os.ResultReceiver;
 import android.os.ServiceManager;
 import android.os.ServiceSpecificException;
 import android.os.ShellCallback;
-import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.os.WorkSource;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.provider.Telephony;
+import android.sysprop.TelephonyProperties;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -268,10 +268,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private static final int SELECT_P1 = 0x04;
     private static final int SELECT_P2 = 0;
     private static final int SELECT_P3 = 0x10;
-
-    private static final String DEFAULT_NETWORK_MODE_PROPERTY_NAME = "ro.telephony.default_network";
-    private static final String DEFAULT_DATA_ROAMING_PROPERTY_NAME = "ro.com.android.dataroaming";
-    private static final String DEFAULT_MOBILE_DATA_PROPERTY_NAME = "ro.com.android.mobiledata";
 
     /** The singleton instance. */
     private static PhoneInterfaceManager sInstance;
@@ -1966,7 +1962,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public Bundle getCellLocation(String callingPackage) {
+    public Bundle getCellLocation(String callingPackage, String callingFeatureId) {
         mApp.getSystemService(AppOpsManager.class)
                 .checkPackage(Binder.getCallingUid(), callingPackage);
 
@@ -1974,6 +1970,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 LocationAccessPolicy.checkLocationPermission(mApp,
                         new LocationAccessPolicy.LocationPermissionQuery.Builder()
                                 .setCallingPackage(callingPackage)
+                                .setCallingFeatureId(callingFeatureId)
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("getCellLocation")
@@ -2109,7 +2106,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<NeighboringCellInfo> getNeighboringCellInfo(String callingPackage) {
+    public List<NeighboringCellInfo> getNeighboringCellInfo(String callingPackage,
+            String callingFeatureId) {
         final int targetSdk = getTargetSdk(callingPackage);
         if (targetSdk >= android.os.Build.VERSION_CODES.Q) {
             throw new SecurityException(
@@ -2123,7 +2121,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
         if (DBG_LOC) log("getNeighboringCellInfo: is active user");
 
-        List<CellInfo> info = getAllCellInfo(callingPackage);
+        List<CellInfo> info = getAllCellInfo(callingPackage, callingFeatureId);
         if (info == null) return null;
 
         List<NeighboringCellInfo> neighbors = new ArrayList<NeighboringCellInfo>();
@@ -2147,7 +2145,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public List<CellInfo> getAllCellInfo(String callingPackage) {
+    public List<CellInfo> getAllCellInfo(String callingPackage, String callingFeatureId) {
         mApp.getSystemService(AppOpsManager.class)
                 .checkPackage(Binder.getCallingUid(), callingPackage);
 
@@ -2155,6 +2153,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 LocationAccessPolicy.checkLocationPermission(mApp,
                         new LocationAccessPolicy.LocationPermissionQuery.Builder()
                                 .setCallingPackage(callingPackage)
+                                .setCallingFeatureId(callingFeatureId)
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("getAllCellInfo")
@@ -2190,20 +2189,21 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void requestCellInfoUpdate(int subId, ICellInfoCallback cb, String callingPackage) {
-        requestCellInfoUpdateInternal(
-                subId, cb, callingPackage, getWorkSource(Binder.getCallingUid()));
+    public void requestCellInfoUpdate(int subId, ICellInfoCallback cb, String callingPackage,
+            String callingFeatureId) {
+        requestCellInfoUpdateInternal(subId, cb, callingPackage, callingFeatureId,
+                getWorkSource(Binder.getCallingUid()));
     }
 
     @Override
-    public void requestCellInfoUpdateWithWorkSource(
-            int subId, ICellInfoCallback cb, String callingPackage, WorkSource workSource) {
+    public void requestCellInfoUpdateWithWorkSource(int subId, ICellInfoCallback cb,
+            String callingPackage, String callingFeatureId, WorkSource workSource) {
         enforceModifyPermission();
-        requestCellInfoUpdateInternal(subId, cb, callingPackage, workSource);
+        requestCellInfoUpdateInternal(subId, cb, callingPackage, callingFeatureId, workSource);
     }
 
-    private void requestCellInfoUpdateInternal(
-            int subId, ICellInfoCallback cb, String callingPackage, WorkSource workSource) {
+    private void requestCellInfoUpdateInternal(int subId, ICellInfoCallback cb,
+            String callingPackage, String callingFeatureId, WorkSource workSource) {
         mApp.getSystemService(AppOpsManager.class)
                 .checkPackage(Binder.getCallingUid(), callingPackage);
 
@@ -2211,6 +2211,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 LocationAccessPolicy.checkLocationPermission(mApp,
                         new LocationAccessPolicy.LocationPermissionQuery.Builder()
                                 .setCallingPackage(callingPackage)
+                                .setCallingFeatureId(callingFeatureId)
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("requestCellInfoUpdate")
@@ -2645,7 +2646,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     @Override
     public Bundle getVisualVoicemailSettings(String callingPackage, int subId) {
         mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
-        String systemDialer = TelecomManager.from(mApp).getSystemDialerPackage();
+        TelecomManager tm = mApp.getSystemService(TelecomManager.class);
+        String systemDialer = tm.getSystemDialerPackage();
         if (!TextUtils.equals(callingPackage, systemDialer)) {
             throw new SecurityException("caller must be system dialer");
         }
@@ -2871,8 +2873,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public void sendDialerSpecialCode(String callingPackage, String inputCode) {
         final Phone defaultPhone = getDefaultPhone();
         mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
-        String defaultDialer = TelecomManager.from(defaultPhone.getContext())
-                .getDefaultDialerPackage();
+        TelecomManager tm = defaultPhone.getContext().getSystemService(TelecomManager.class);
+        String defaultDialer = tm.getDefaultDialerPackage();
         if (!TextUtils.equals(callingPackage, defaultDialer)) {
             TelephonyPermissions.enforceCallingOrSelfCarrierPrivilege(
                     getDefaultSubscription(), "sendDialerSpecialCode");
@@ -4705,13 +4707,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * Scans for available networks.
      */
     @Override
-    public CellNetworkScanResult getCellNetworkScanResults(int subId, String callingPackage) {
+    public CellNetworkScanResult getCellNetworkScanResults(int subId, String callingPackage,
+            String callingFeatureId) {
         TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(
                 mApp, subId, "getCellNetworkScanResults");
         LocationAccessPolicy.LocationPermissionResult locationResult =
                 LocationAccessPolicy.checkLocationPermission(mApp,
                         new LocationAccessPolicy.LocationPermissionQuery.Builder()
                                 .setCallingPackage(callingPackage)
+                                .setCallingFeatureId(callingFeatureId)
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("getCellNetworkScanResults")
@@ -4745,13 +4749,14 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     @Override
     public int requestNetworkScan(int subId, NetworkScanRequest request, Messenger messenger,
-            IBinder binder, String callingPackage) {
+            IBinder binder, String callingPackage, String callingFeatureId) {
         TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(
                 mApp, subId, "requestNetworkScan");
         LocationAccessPolicy.LocationPermissionResult locationResult =
                 LocationAccessPolicy.checkLocationPermission(mApp,
                         new LocationAccessPolicy.LocationPermissionQuery.Builder()
                                 .setCallingPackage(callingPackage)
+                                .setCallingFeatureId(callingFeatureId)
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("requestNetworkScan")
@@ -4908,7 +4913,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @hide
      */
     @Override
-    public boolean getTetherApnRequiredForSubscriber(int subId) {
+    public boolean isTetherApnRequiredForSubscriber(int subId) {
         enforceModifyPermission();
         final long identity = Binder.clearCallingIdentity();
         final Phone phone = getPhone(subId);
@@ -5626,7 +5631,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public boolean isTtyModeSupported() {
-        TelecomManager telecomManager = TelecomManager.from(mApp);
+        TelecomManager telecomManager = mApp.getSystemService(TelecomManager.class);
         return telecomManager.isTtySupported();
     }
 
@@ -5731,6 +5736,21 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         final long identity = Binder.clearCallingIdentity();
         try {
             return PhoneUtils.getSubIdForPhoneAccount(phoneAccount);
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    @Override
+    public int getSubIdForPhoneAccountHandle(
+            PhoneAccountHandle phoneAccountHandle, String callingPackage) {
+        if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(mApp, getDefaultSubscription(),
+                callingPackage, "getSubIdForPhoneAccountHandle")) {
+            throw new SecurityException("Requires READ_PHONE_STATE permission.");
+        }
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            return PhoneUtils.getSubIdForPhoneAccountHandle(phoneAccountHandle);
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -5987,7 +6007,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * Returns the service state information on specified subscription.
      */
     @Override
-    public ServiceState getServiceStateForSubscriber(int subId, String callingPackage) {
+    public ServiceState getServiceStateForSubscriber(int subId, String callingPackage,
+            String callingFeatureId) {
         if (!TelephonyPermissions.checkCallingOrSelfReadPhoneState(
                 mApp, subId, callingPackage, "getServiceStateForSubscriber")) {
             return null;
@@ -5997,6 +6018,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 LocationAccessPolicy.checkLocationPermission(mApp,
                         new LocationAccessPolicy.LocationPermissionQuery.Builder()
                                 .setCallingPackage(callingPackage)
+                                .setCallingFeatureId(callingFeatureId)
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("getServiceStateForSubscriber")
@@ -6008,6 +6030,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 LocationAccessPolicy.checkLocationPermission(mApp,
                         new LocationAccessPolicy.LocationPermissionQuery.Builder()
                                 .setCallingPackage(callingPackage)
+                                .setCallingFeatureId(callingFeatureId)
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("getServiceStateForSubscriber")
@@ -6078,8 +6101,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             PhoneAccountHandle phoneAccountHandle, Uri uri) {
         final Phone defaultPhone = getDefaultPhone();
         mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
-        if (!TextUtils.equals(callingPackage,
-                TelecomManager.from(defaultPhone.getContext()).getDefaultDialerPackage())) {
+        TelecomManager tm = defaultPhone.getContext().getSystemService(TelecomManager.class);
+        if (!TextUtils.equals(callingPackage, tm.getDefaultDialerPackage())) {
             TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(
                     mApp, PhoneUtils.getSubIdForPhoneAccountHandle(phoneAccountHandle),
                     "setVoicemailRingtoneUri");
@@ -6135,8 +6158,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             PhoneAccountHandle phoneAccountHandle, boolean enabled) {
         final Phone defaultPhone = getDefaultPhone();
         mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
-        if (!TextUtils.equals(callingPackage,
-                TelecomManager.from(defaultPhone.getContext()).getDefaultDialerPackage())) {
+        TelecomManager tm = defaultPhone.getContext().getSystemService(TelecomManager.class);
+        if (!TextUtils.equals(callingPackage, tm.getDefaultDialerPackage())) {
             TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(
                     mApp, PhoneUtils.getSubIdForPhoneAccountHandle(phoneAccountHandle),
                     "setVoicemailVibrationEnabled");
@@ -6479,7 +6502,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public void onShellCommand(FileDescriptor in, FileDescriptor out, FileDescriptor err,
             String[] args, ShellCallback callback, ResultReceiver resultReceiver)
             throws RemoteException {
-        (new TelephonyShellCommand(this)).exec(this, in, out, err, args, callback, resultReceiver);
+        (new TelephonyShellCommand(this, getDefaultPhone().getContext()))
+                .exec(this, in, out, err, args, callback, resultReceiver);
     }
 
     /**
@@ -6938,8 +6962,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * Returns false if the mobile data is disabled by default, otherwise return true.
      */
     private boolean getDefaultDataEnabled() {
-        return "true".equalsIgnoreCase(
-                SystemProperties.get(DEFAULT_MOBILE_DATA_PROPERTY_NAME, "true"));
+        return TelephonyProperties.mobile_data().orElse(true);
     }
 
     /**
@@ -6950,8 +6973,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     private boolean getDefaultDataRoamingEnabled(int subId) {
         final CarrierConfigManager configMgr = (CarrierConfigManager)
                 mApp.getSystemService(Context.CARRIER_CONFIG_SERVICE);
-        boolean isDataRoamingEnabled = "true".equalsIgnoreCase(
-                SystemProperties.get(DEFAULT_DATA_ROAMING_PROPERTY_NAME, "false"));
+        boolean isDataRoamingEnabled = TelephonyProperties.data_roaming().orElse(true);
         isDataRoamingEnabled |= configMgr.getConfigForSubId(subId).getBoolean(
                 CarrierConfigManager.KEY_CARRIER_DEFAULT_DATA_ROAMING_ENABLED_BOOL);
         return isDataRoamingEnabled;
@@ -6962,11 +6984,12 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * not set, return {@link Phone#PREFERRED_NT_MODE}.
      */
     private int getDefaultNetworkType(int subId) {
-        return Integer.parseInt(
-                TelephonyManager.getTelephonyProperty(
-                        mSubscriptionController.getPhoneId(subId),
-                        DEFAULT_NETWORK_MODE_PROPERTY_NAME,
-                        String.valueOf(Phone.PREFERRED_NT_MODE)));
+        List<Integer> list = TelephonyProperties.default_network();
+        int phoneId = mSubscriptionController.getPhoneId(subId);
+        if (phoneId >= 0 && phoneId < list.size() && list.get(phoneId) != null) {
+            return list.get(phoneId);
+        }
+        return Phone.PREFERRED_NT_MODE;
     }
 
     @Override
