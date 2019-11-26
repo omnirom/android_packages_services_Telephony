@@ -228,7 +228,7 @@ public class CallFeaturesSetting extends PreferenceActivity
         mSubscriptionInfoHelper.setActionBarTitle(
                 getActionBar(), getResources(), R.string.call_settings_with_label);
         mPhone = mSubscriptionInfoHelper.getPhone();
-        mTelecomManager = TelecomManager.from(this);
+        mTelecomManager = getSystemService(TelecomManager.class);
     }
 
     private void updateImsManager(Phone phone) {
@@ -243,8 +243,8 @@ public class CallFeaturesSetting extends PreferenceActivity
     }
 
     private void listenPhoneState(boolean listen) {
-        TelephonyManager telephonyManager =
-                (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        TelephonyManager telephonyManager = getSystemService(TelephonyManager.class)
+                .createForSubscriptionId(mPhone.getSubId());
         telephonyManager.listen(mPhoneStateListener, listen
                 ? PhoneStateListener.LISTEN_CALL_STATE : PhoneStateListener.LISTEN_NONE);
     }
@@ -253,10 +253,7 @@ public class CallFeaturesSetting extends PreferenceActivity
         @Override
         public void onCallStateChanged(int state, String incomingNumber) {
             if (DBG) log("PhoneStateListener onCallStateChanged: state is " + state);
-            // Use TelecomManager#getCallStete instead of 'state' parameter because it needs
-            // to check the current state of all phone calls.
-            boolean isCallStateIdle =
-                    mTelecomManager.getCallState() == TelephonyManager.CALL_STATE_IDLE;
+            boolean isCallStateIdle = state == TelephonyManager.CALL_STATE_IDLE;
             if (mEnableVideoCalling != null) {
                 mEnableVideoCalling.setEnabled(isCallStateIdle);
             }

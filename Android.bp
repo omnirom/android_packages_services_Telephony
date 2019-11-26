@@ -22,7 +22,6 @@ android_app {
         "telephony-common",
         "voip-common",
         "ims-common",
-        "org.apache.http.legacy",
         "libprotobuf-java-lite",
         "telephony-ext",
         "ims-ext-common",
@@ -34,17 +33,19 @@ android_app {
         "androidx.recyclerview_recyclerview",
         "androidx.legacy_legacy-preference-v14",
         "guava",
-        "volley",
         "android-support-annotations",
         "com.android.phone.common-lib",
     ],
 
     srcs: [
+        ":framework-telephony-stack-shared-srcs",
         "src/**/*.java",
         "sip/src/**/*.java",
         "ecc/proto/**/*.proto",
         "src/com/android/phone/EventLogTags.logtags",
     ],
+
+    jarjar_rules: ":jarjar-rules-shared",
 
     resource_dirs: [
         "res",

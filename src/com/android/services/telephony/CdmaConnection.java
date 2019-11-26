@@ -229,8 +229,8 @@ final class CdmaConnection extends TelephonyConnection {
             } catch (CallStateException e) {
                 Log.e(this, e, "Failed to hangup call waiting call");
             }
-            setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(telephonyDisconnectCause,
-                    null, getPhone().getPhoneId()));
+            setTelephonyConnectionDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
+                    telephonyDisconnectCause, null, getPhone().getPhoneId()));
         }
     }
 
@@ -323,7 +323,7 @@ final class CdmaConnection extends TelephonyConnection {
     }
 
     @Override
-    protected void close() {
+    public void close() {
         mIsConnectionTimeReset = false;
         if (getPhone() != null) {
             getPhone().unregisterForLineControlInfo(mHandler);
