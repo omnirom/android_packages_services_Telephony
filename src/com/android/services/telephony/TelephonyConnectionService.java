@@ -16,6 +16,10 @@
 
 package com.android.services.telephony;
 
+import static com.android.internal.telephony.TelephonyIntents.EXTRA_DIAL_CONFERENCE_URI;
+import static com.android.internal.telephony.TelephonyIntents.EXTRA_SKIP_SCHEMA_PARSING;
+import static com.android.internal.telephony.TelephonyIntents.ADD_PARTICIPANT_KEY;
+
 import android.annotation.NonNull;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -63,7 +67,6 @@ import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.imsphone.ImsExternalCallTracker;
 import com.android.internal.telephony.imsphone.ImsPhone;
 import com.android.internal.telephony.imsphone.ImsPhoneConnection;
-import com.android.internal.telephony.TelephonyProperties;
 import com.android.phone.MMIDialogActivity;
 import com.android.phone.PhoneUtils;
 import com.android.phone.R;
@@ -365,8 +368,8 @@ public class TelephonyConnectionService extends ConnectionService {
 
         Bundle bundle = request.getExtras();
         boolean isSkipSchemaOrConfUri = (bundle != null) && (bundle.getBoolean(
-                TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false) ||
-                bundle.getBoolean(TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false));
+                EXTRA_SKIP_SCHEMA_PARSING, false) ||
+                bundle.getBoolean(EXTRA_DIAL_CONFERENCE_URI, false));
         Uri handle = request.getAddress();
         if (!isSkipSchemaOrConfUri && handle == null) {
             Log.d(this, "onCreateOutgoingConnection, handle is null");
@@ -1283,7 +1286,7 @@ public class TelephonyConnectionService extends ConnectionService {
             TelephonyConnection connection, Phone phone, int videoState, Bundle extras) {
         String number = connection.getAddress().getSchemeSpecificPart();
         boolean isAddParticipant = (extras != null) && extras
-                .getBoolean(TelephonyProperties.ADD_PARTICIPANT_KEY, false);
+                .getBoolean(ADD_PARTICIPANT_KEY, false);
         Log.d(this, "placeOutgoingConnection isAddParticipant = " + isAddParticipant);
 
         updatePhoneAccount(connection, phone);
