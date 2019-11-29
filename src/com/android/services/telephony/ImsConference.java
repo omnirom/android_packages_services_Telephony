@@ -16,6 +16,8 @@
 
 package com.android.services.telephony;
 
+import static com.android.internal.telephony.TelephonyIntents.EXTRAS_IS_CONFERENCE_URI;
+
 import android.content.Context;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
@@ -42,7 +44,6 @@ import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
-import com.android.internal.telephony.TelephonyProperties;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.PhoneUtils;
 import com.android.phone.R;
@@ -157,7 +158,7 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
                 public void onExtrasChanged(Connection c, Bundle extras) {
                     Log.v(this, "onExtrasChanged: c=" + c + " Extras=" + extras);
                     mIsConferenceUri = extras.getBoolean(
-                            TelephonyProperties.EXTRAS_IS_CONFERENCE_URI, false);
+                            EXTRAS_IS_CONFERENCE_URI, false);
                     putExtras(extras);
                 }
 
