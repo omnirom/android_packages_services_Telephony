@@ -130,6 +130,8 @@ public class DisconnectCauseUtil {
     private static int toTelecomDisconnectCauseCode(int telephonyDisconnectCause) {
         switch (telephonyDisconnectCause) {
             case android.telephony.DisconnectCause.LOCAL:
+            //  The call was still disconnected locally, so this is not an error condition.
+            case android.telephony.DisconnectCause.OUTGOING_EMERGENCY_CALL_PLACED:
                 return DisconnectCause.LOCAL;
 
             case android.telephony.DisconnectCause.NORMAL:
@@ -1074,6 +1076,8 @@ public class DisconnectCauseUtil {
                 break;
             case android.telephony.DisconnectCause.IMS_ACCESS_BLOCKED:
                 return DisconnectCause.REASON_IMS_ACCESS_BLOCKED;
+            case android.telephony.DisconnectCause.OUTGOING_EMERGENCY_CALL_PLACED:
+                return DisconnectCause.REASON_EMERGENCY_CALL_PLACED;
         }
 
         // If no specific code-mapping found, then fall back to using the reason.

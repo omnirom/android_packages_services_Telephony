@@ -19,6 +19,7 @@ package com.android.services.telephony;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.AsyncResult;
@@ -45,6 +46,7 @@ import android.telephony.Rlog;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.ServiceState;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.telephony.ims.ImsCallProfile;
 import android.text.TextUtils;
@@ -155,7 +157,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                         if (connection != null &&
                             ((connection.getAddress() != null &&
                             mOriginalConnection.getAddress() != null &&
-                            mOriginalConnection.getAddress().contains(connection.getAddress())) ||
+                            mOriginalConnection.getAddress().equals(connection.getAddress())) ||
                             connection.getState() == mOriginalConnection.getStateBeforeHandover())) {
                             Log.d(TelephonyConnection.this,
                                     "SettingOriginalConnection " + mOriginalConnection.toString()
@@ -466,7 +468,9 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             }
         }
         if (messageId != -1 && getPhone() != null && getPhone().getContext() != null) {
-            return getPhone().getContext().getText(messageId);
+            Resources res = SubscriptionManager.getResourcesForSubId(
+                    getPhone().getContext(), getPhone().getSubId());
+            return res.getText(messageId);
         } else {
             return null;
         }
@@ -823,6 +827,11 @@ abstract class TelephonyConnection extends Connection implements Holdable,
      * Indicates whether this connection supports showing preciese call failed cause.
      */
     private boolean mShowPreciseFailedCause;
+
+    /**
+     * Provides a DisconnectCause associated with a hang up request.
+     */
+    private int mHangupDisconnectCause = DisconnectCause.NOT_VALID;
 
     /**
      * Listeners to our TelephonyConnection specific callbacks
@@ -1602,6 +1611,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
     protected void hangup(int telephonyDisconnectCode) {
         if (mOriginalConnection != null) {
+            mHangupDisconnectCause = telephonyDisconnectCode;
             try {
                 // Hanging up a ringing call requires that we invoke call.hangup() as opposed to
                 // connection.hangup(). Without this change, the party originating the call
@@ -1871,9 +1881,16 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                                 preciseDisconnectCause =
                                         mOriginalConnection.getPreciseDisconnectCause();
                             }
+                            int disconnectCause = mOriginalConnection.getDisconnectCause();
+                            if ((mHangupDisconnectCause != DisconnectCause.NOT_VALID)
+                                    && (mHangupDisconnectCause != disconnectCause)) {
+                                Log.i(LOG_TAG, "setDisconnected: override cause: " + disconnectCause
+                                        + " -> " + mHangupDisconnectCause);
+                                disconnectCause = mHangupDisconnectCause;
+                            }
                             setTelephonyConnectionDisconnected(
                                     DisconnectCauseUtil.toTelecomDisconnectCause(
-                                            mOriginalConnection.getDisconnectCause(),
+                                            disconnectCause,
                                             preciseDisconnectCause,
                                             mOriginalConnection.getVendorDisconnectCause(),
                                             getPhone().getPhoneId()));
@@ -1973,6 +1990,10 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         Log.v(this, "close");
         clearOriginalConnection();
         destroy();
+        if (mTelephonyConnectionService != null) {
+            removeTelephonyConnectionListener(
+                    mTelephonyConnectionService.getTelephonyConnectionListener());
+        }
         notifyDestroyed();
     }
 
@@ -2375,8 +2396,10 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             }
 
             Context context = getPhone().getContext();
+            Resources res =
+                    SubscriptionManager.getResourcesForSubId(context, getPhone().getSubId());
             setTelephonyStatusHints(new StatusHints(
-                    context.getString(labelId) + displaySubId,
+                    res.getString(labelId) + displaySubId,
                     Icon.createWithResource(
                             context, R.drawable.ic_signal_wifi_4_bar_24dp),
                     null /* extras */));
@@ -2769,8 +2792,11 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         // For IMS PS call conference call, it can be updated via its host connection
         // {@link #Listener.onExtrasChanged} event.
         if (getConference() != null) {
-            getConference().putExtra(TelecomManager.EXTRA_CALL_NETWORK_TYPE,
+            Bundle newExtras = new Bundle();
+            newExtras.putInt(
+                    TelecomManager.EXTRA_CALL_NETWORK_TYPE,
                     ServiceState.rilRadioTechnologyToNetworkType(vrat));
+            getConference().putExtras(newExtras);
         }
     }
 
