@@ -54,12 +54,6 @@ public class ImsConferenceController {
 
             mImsConferences.remove(conference);
         }
-
-        @Override
-        public void onConferenceMembershipChanged(Connection connection) {
-            Log.v(this, "onConferenceMembershipChanged: Connection = " + connection);
-            recalculate();
-        }
     };
 
     private final TelephonyConnection.TelephonyConnectionListener mTelephonyConnectionListener =
