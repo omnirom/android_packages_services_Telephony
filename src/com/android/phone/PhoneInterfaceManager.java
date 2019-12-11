@@ -2030,14 +2030,18 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     /**
      * Returns the target SDK version number for a given package name.
      *
+     * This call MUST be invoked before clearing the calling UID.
+     *
      * @return target SDK if the package is found or INT_MAX.
      */
     private int getTargetSdk(String packageName) {
         try {
-            final ApplicationInfo ai = mApp.getPackageManager().getApplicationInfo(
-                            packageName, 0);
+            final ApplicationInfo ai = mApp.getPackageManager().getApplicationInfoAsUser(
+                    packageName, 0, UserHandle.getUserId(Binder.getCallingUid()));
             if (ai != null) return ai.targetSdkVersion;
         } catch (PackageManager.NameNotFoundException unexpected) {
+            loge("Failed to get package info for pkg="
+                    + packageName + ", uid=" + Binder.getCallingUid());
         }
         return Integer.MAX_VALUE;
     }
@@ -4750,6 +4754,52 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
     }
 
+    private int getCarrierPrivilegeStatusFromCarrierConfigRules(int privilegeFromSim,
+            Phone phone) {
+        //load access rules from carrier configs, and check those as well: b/139133814
+        SubscriptionController subController = SubscriptionController.getInstance();
+        if (privilegeFromSim == TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS
+                || subController == null) return privilegeFromSim;
+
+        int uid = Binder.getCallingUid();
+        PackageManager pkgMgr = phone.getContext().getPackageManager();
+        String[] packages = pkgMgr.getPackagesForUid(uid);
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            SubscriptionInfo subInfo = subController.getSubscriptionInfo(phone.getSubId());
+            SubscriptionManager subManager = (SubscriptionManager)
+                    phone.getContext().getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+            for (String pkg : packages) {
+                if (subManager.canManageSubscription(subInfo, pkg)) {
+                    return TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS;
+                }
+            }
+            return privilegeFromSim;
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    private int getCarrierPrivilegeStatusFromCarrierConfigRules(int privilegeFromSim, Phone phone,
+            String pkgName) {
+        //load access rules from carrier configs, and check those as well: b/139133814
+        SubscriptionController subController = SubscriptionController.getInstance();
+        if (privilegeFromSim == TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS
+                || subController == null) return privilegeFromSim;
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            SubscriptionInfo subInfo = subController.getSubscriptionInfo(phone.getSubId());
+            SubscriptionManager subManager = (SubscriptionManager)
+                    phone.getContext().getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+            return subManager.canManageSubscription(subInfo, pkgName)
+                ? TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS : privilegeFromSim;
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
     @Override
     public int getCarrierPrivilegeStatus(int subId) {
         final Phone phone = getPhone(subId);
@@ -4762,8 +4812,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             loge("getCarrierPrivilegeStatus: No UICC");
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_RULES_NOT_LOADED;
         }
-        return card.getCarrierPrivilegeStatusForCurrentTransaction(
-                phone.getContext().getPackageManager());
+
+        return getCarrierPrivilegeStatusFromCarrierConfigRules(
+            card.getCarrierPrivilegeStatusForCurrentTransaction(
+                phone.getContext().getPackageManager()), phone);
     }
 
     @Override
@@ -4779,7 +4831,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             loge("getCarrierPrivilegeStatus: No UICC");
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_RULES_NOT_LOADED;
         }
-        return profile.getCarrierPrivilegeStatusForUid(phone.getContext().getPackageManager(), uid);
+        return getCarrierPrivilegeStatusFromCarrierConfigRules(
+            profile.getCarrierPrivilegeStatusForUid(
+                phone.getContext().getPackageManager(), uid), phone);
     }
 
     @Override
@@ -4794,8 +4848,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             loge("checkCarrierPrivilegesForPackage: No UICC on subId " + subId);
             return TelephonyManager.CARRIER_PRIVILEGE_STATUS_RULES_NOT_LOADED;
         }
-
-        return card.getCarrierPrivilegeStatus(mApp.getPackageManager(), pkgName);
+        return getCarrierPrivilegeStatusFromCarrierConfigRules(
+            card.getCarrierPrivilegeStatus(mApp.getPackageManager(), pkgName),
+            getPhone(phoneId), pkgName);
     }
 
     @Override
@@ -4810,7 +4865,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
               continue;
             }
 
-            result = card.getCarrierPrivilegeStatus(mApp.getPackageManager(), pkgName);
+            result = getCarrierPrivilegeStatusFromCarrierConfigRules(
+                card.getCarrierPrivilegeStatus(mApp.getPackageManager(), pkgName),
+                getPhone(i), pkgName);
             if (result == TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS) {
                 break;
             }
@@ -4845,9 +4902,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 if (packages == null) {
                     // Only check packages in user 0 for now
                     packages = pm.getInstalledPackagesAsUser(
-                            PackageManager.MATCH_DISABLED_COMPONENTS
-                                    | PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS
-                                    | PackageManager.GET_SIGNATURES, UserHandle.USER_SYSTEM);
+                        PackageManager.MATCH_DISABLED_COMPONENTS
+                            | PackageManager.MATCH_DISABLED_UNTIL_USED_COMPONENTS
+                            | PackageManager.GET_SIGNING_CERTIFICATES,
+                            UserHandle.USER_SYSTEM);
                 }
                 for (int p = packages.size() - 1; p >= 0; p--) {
                     PackageInfo pkgInfo = packages.get(p);
@@ -6471,7 +6529,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 if (card != null) {
                     cardId = card.getCardId();
                 } else {
-                    cardId = slot.getIccId();
+                    cardId = slot.getEid();
+                    if (TextUtils.isEmpty(cardId)) {
+                        cardId = slot.getIccId();
+                    }
                 }
 
                 int cardState = 0;
