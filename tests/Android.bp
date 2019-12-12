@@ -1,4 +1,5 @@
-// Copyright (C) 2018 The Android Open Source Project
+//
+// Copyright (C) 2009 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,18 +12,31 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
-java_library_static {
-    name: "ecc-protos-lite",
-    proto: {
-        type: "nano",
-        output_params: [
-            "store_unknown_fields=true",
-            "enum_style=java",
-        ],
-    },
-    srcs: ["protobuf_ecc_data.proto"],
-    sdk_version: "system_current",
-    jarjar_rules: "jarjar-rules.txt",
-    java_version: "1.8",
+android_test {
+    name: "TeleServiceTests",
+
+    srcs: ["src/**/*.java"],
+
+    libs: [
+        "android.test.runner",
+        "telephony-common",
+        "android.test.base",
+        "ims-common",
+    ],
+    platform_apis: true,
+    certificate: "platform",
+
+    instrumentation_for: "TeleService",
+
+    static_libs: [
+        "androidx.test.rules",
+        "mockito-target-minus-junit4",
+        "androidx.test.espresso.core",
+        "truth-prebuilt",
+    ],
+
+    test_suites: ["device-tests"],
+
 }

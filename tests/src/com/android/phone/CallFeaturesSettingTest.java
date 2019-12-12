@@ -24,6 +24,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
+import android.app.KeyguardManager;
 import android.content.Context;
 
 import androidx.test.InstrumentationRegistry;
@@ -49,15 +50,16 @@ public class CallFeaturesSettingTest {
     IccCard mMockIccCard;
     @Rule
     public ActivityTestRule<CallFeaturesSetting> mRule =
-            new ActivityTestRule<>(CallFeaturesSetting.class);
+            new ActivityTestRule<>(CallFeaturesSetting.class, false, true);
     private CallFeaturesSetting mActivity;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Throwable {
         MockitoAnnotations.initMocks(this);
         mActivity = mRule.getActivity();
         Context targetContext = InstrumentationRegistry.getTargetContext();
         doReturn(targetContext).when(mMockPhone).getContext();
+        keepScreenOn(mRule, mActivity);
     }
 
     @FlakyTest
@@ -69,7 +71,7 @@ public class CallFeaturesSettingTest {
         when(mMockIccCard.getIccFdnAvailable()).thenReturn(true);
         getField("mPhone").set(mActivity, mMockPhone);
 
-        mActivity.onResume();
+        mActivity.runOnUiThread(() -> mActivity.onResume());
 
         // Check the FDN menu is displayed.
         onView(withText(R.string.fdn)).check(matches(isDisplayed()));
@@ -83,7 +85,7 @@ public class CallFeaturesSettingTest {
         when(mMockPhone.getIccCard()).thenReturn(null);
         getField("mPhone").set(mActivity, mMockPhone);
 
-        mActivity.onResume();
+        mActivity.runOnUiThread(() -> mActivity.onResume());
 
         // Check the FDN menu is not displayed.
         onView(withText(R.string.fdn)).check(doesNotExist());
@@ -98,7 +100,7 @@ public class CallFeaturesSettingTest {
         when(mMockIccCard.getIccFdnAvailable()).thenReturn(false);
         getField("mPhone").set(mActivity, mMockPhone);
 
-        mActivity.onResume();
+        mActivity.runOnUiThread(() -> mActivity.onResume());
 
         // Check the FDN menu is not displayed.
         onView(withText(R.string.fdn)).check(doesNotExist());
@@ -108,5 +110,20 @@ public class CallFeaturesSettingTest {
         Field field = mActivity.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         return field;
+    }
+
+    /**
+     * Automatically wake up device to perform tests.
+     */
+    private static void keepScreenOn(ActivityTestRule activityTestRule,
+            final CallFeaturesSetting activity) throws Throwable {
+        activityTestRule.runOnUiThread(() -> {
+            activity.setTurnScreenOn(true);
+            activity.setShowWhenLocked(true);
+            KeyguardManager keyguardManager =
+                    activity.getSystemService(KeyguardManager.class);
+            keyguardManager.requestDismissKeyguard(activity, null);
+        });
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
     }
 }
