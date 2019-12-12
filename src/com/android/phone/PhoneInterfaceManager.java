@@ -877,7 +877,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                     }
                     // Result cannot be null. Return ModemActivityInfo with all fields set to 0.
                     if (request.result == null) {
-                        request.result = new ModemActivityInfo(0, 0, 0, null, 0);
+                        request.result = new ModemActivityInfo(0, 0, 0, new int[0], 0);
                     }
                     notifyRequester(request);
                     break;
@@ -2454,6 +2454,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     private void enforceModifyPermission() {
         mApp.enforceCallingOrSelfPermission(android.Manifest.permission.MODIFY_PHONE_STATE, null);
+    }
+
+    private void enforceActiveEmergencySessionPermission() {
+        mApp.enforceCallingOrSelfPermission(
+                android.Manifest.permission.READ_ACTIVE_EMERGENCY_SESSION, null);
     }
 
     /**
@@ -4987,7 +4992,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      * @hide
      */
     @Override
-    public boolean isTetherApnRequiredForSubscriber(int subId) {
+    public boolean isTetheringApnRequiredForSubscriber(int subId) {
         enforceModifyPermission();
         final long identity = Binder.clearCallingIdentity();
         final Phone phone = getPhone(subId);
@@ -7272,6 +7277,57 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 }
             }
             return new ArrayList<>(emergencyNumbers);
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    @Override
+    public int getEmergencyNumberDbVersion(int subId) {
+        enforceReadPrivilegedPermission("getEmergencyNumberDbVersion");
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            final Phone phone = getPhone(subId);
+            if (phone == null) {
+                loge("getEmergencyNumberDbVersion fails with invalid subId: " + subId);
+                return TelephonyManager.INVALID_EMERGENCY_NUMBER_DB_VERSION;
+            }
+            return phone.getEmergencyNumberDbVersion();
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    @Override
+    public void notifyOtaEmergencyNumberDbInstalled() {
+        enforceModifyPermission();
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            for (Phone phone: PhoneFactory.getPhones()) {
+                EmergencyNumberTracker tracker = phone.getEmergencyNumberTracker();
+                if (tracker != null) {
+                    tracker.updateOtaEmergencyNumberDatabase();
+                }
+            }
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    @Override
+    public void updateTestOtaEmergencyNumberDbFilePath(String otaFilePath) {
+        enforceActiveEmergencySessionPermission();
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            for (Phone phone: PhoneFactory.getPhones()) {
+                EmergencyNumberTracker tracker = phone.getEmergencyNumberTracker();
+                if (tracker != null) {
+                    tracker.updateTestOtaEmergencyNumberDbFilePath(otaFilePath);
+                }
+            }
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
