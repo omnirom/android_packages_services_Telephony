@@ -1,4 +1,4 @@
-// Copyright 2019 Google Inc. All rights reserved.
+// Copyright (C) 2019 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,30 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Build the Phone app which includes the emergency dialer. See Contacts
-// for the 'other' dialer.
-
-android_app {
-    name: "TeleService",
-
-    libs: [
-        "telephony-common",
-        "voip-common",
-        "ims-common",
-        "libprotobuf-java-lite",
-        "TeleServiceLib",
+apex {
+    name: "test_com.android.telephony",
+    visibility: [
+        "//system/apex/tests",
     ],
-
-    required: ["TeleServiceLib"],
-
-    platform_apis: true,
-
-    certificate: "platform",
-    privileged: true,
-
-    defaults: ["SettingsLibDefaults"],
-
-    proto: {
-        type: "lite",
-    },
+    defaults: ["com.android.telephony-defaults"],
+    manifest: "test_manifest.json",
+    file_contexts: ":com.android.telephony-file_contexts",
+    // Test APEX, should never be installed
+    installable: false,
 }

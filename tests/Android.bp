@@ -25,11 +25,12 @@ android_test {
         "telephony-common",
         "android.test.base",
         "ims-common",
+        "android.test.mock",
     ],
     platform_apis: true,
     certificate: "platform",
 
-    instrumentation_for: "TeleServiceLib",
+    instrumentation_for: "TeleService",
 
     static_libs: [
         "androidx.test.rules",
