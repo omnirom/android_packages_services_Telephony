@@ -279,7 +279,8 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
                                 @Override
                                 public boolean onPreferenceClick(Preference preference) {
                                     Intent intent = new Intent(CALL_WAITING_INTENT);
-                                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                                    intent.putExtra(
+                                        SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX,
                                         mPhone.getSubId());
                                     startActivity(intent);
                                     return true;
@@ -301,7 +302,8 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
                                     intent.putExtra(PhoneUtils.SERVICE_CLASS,
                                         CommandsInterface.SERVICE_CLASS_VOICE);
                                 } else {
-                                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                                    intent.putExtra(
+                                        SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX,
                                         mPhone.getSubId());
                                 }
                                 startActivity(intent);
@@ -333,7 +335,8 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
                                 @Override
                                 public boolean onPreferenceClick(Preference preference) {
                                     Intent intent = new Intent(CALL_WAITING_INTENT);
-                                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY,
+                                    intent.putExtra(
+                                        SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX,
                                         mPhone.getSubId());
                                     startActivity(intent);
                                     return true;

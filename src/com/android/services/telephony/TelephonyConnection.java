@@ -49,12 +49,14 @@ import android.telephony.ServiceState;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.telephony.ims.ImsCallProfile;
+import android.telephony.ims.ImsStreamMediaProfile;
 import android.text.TextUtils;
 import android.util.Pair;
 import android.widget.Toast;
 
 import com.android.ims.ImsCall;
 import com.android.ims.internal.ConferenceParticipant;
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.SomeArgs;
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallFailCause;
@@ -468,12 +470,24 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             }
         }
         if (messageId != -1 && getPhone() != null && getPhone().getContext() != null) {
-            Resources res = SubscriptionManager.getResourcesForSubId(
-                    getPhone().getContext(), getPhone().getSubId());
-            return res.getText(messageId);
+            return getResourceText(messageId);
         } else {
             return null;
         }
+    }
+
+    @VisibleForTesting
+    public CharSequence getResourceText(int id) {
+        Resources resources = SubscriptionManager.getResourcesForSubId(getPhone().getContext(),
+                getPhone().getSubId());
+        return resources.getText(id);
+    }
+
+    @VisibleForTesting
+    public String getResourceString(int id) {
+        Resources resources = SubscriptionManager.getResourcesForSubId(getPhone().getContext(),
+                getPhone().getSubId());
+        return resources.getString(id);
     }
 
     /**
@@ -1453,6 +1467,75 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         }
     }
 
+    private void refreshCodecType() {
+        Bundle newExtras = getExtras();
+        if (newExtras == null) {
+            newExtras = new Bundle();
+        }
+        int newCodecType;
+        if (isImsConnection()) {
+            newCodecType = transformCodec(getOriginalConnection().getAudioCodec());
+        } else {
+            // For SRVCC, report AUDIO_CODEC_NONE.
+            newCodecType = Connection.AUDIO_CODEC_NONE;
+        }
+        int oldCodecType = newExtras.getInt(Connection.EXTRA_AUDIO_CODEC,
+                Connection.AUDIO_CODEC_NONE);
+        if (newCodecType != oldCodecType) {
+            newExtras.putInt(Connection.EXTRA_AUDIO_CODEC, newCodecType);
+            putTelephonyExtras(newExtras);
+        }
+    }
+
+    private int transformCodec(int codec) {
+        switch (codec) {
+            case ImsStreamMediaProfile.AUDIO_QUALITY_NONE:
+                return Connection.AUDIO_CODEC_NONE;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_AMR:
+                return Connection.AUDIO_CODEC_AMR;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_AMR_WB:
+                return Connection.AUDIO_CODEC_AMR_WB;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_QCELP13K:
+                return Connection.AUDIO_CODEC_QCELP13K;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_EVRC:
+                return Connection.AUDIO_CODEC_EVRC;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_EVRC_B:
+                return Connection.AUDIO_CODEC_EVRC_B;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_EVRC_WB:
+                return Connection.AUDIO_CODEC_EVRC_WB;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_EVRC_NW:
+                return Connection.AUDIO_CODEC_EVRC_NW;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_GSM_EFR:
+                return Connection.AUDIO_CODEC_GSM_EFR;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_GSM_FR:
+                return Connection.AUDIO_CODEC_GSM_FR;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_GSM_HR:
+                return Connection.AUDIO_CODEC_GSM_HR;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_G711U:
+                return Connection.AUDIO_CODEC_G711U;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_G723:
+                return Connection.AUDIO_CODEC_G723;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_G711A:
+                return Connection.AUDIO_CODEC_G711A;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_G722:
+                return Connection.AUDIO_CODEC_G722;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_G711AB:
+                return Connection.AUDIO_CODEC_G711AB;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_G729:
+                return Connection.AUDIO_CODEC_G729;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_EVS_NB:
+                return Connection.AUDIO_CODEC_EVS_NB;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_EVS_WB:
+                return Connection.AUDIO_CODEC_EVS_WB;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_EVS_SWB:
+                return Connection.AUDIO_CODEC_EVS_SWB;
+            case ImsStreamMediaProfile.AUDIO_QUALITY_EVS_FB:
+                return Connection.AUDIO_CODEC_EVS_FB;
+            default:
+                return Connection.AUDIO_CODEC_NONE;
+        }
+    }
+
     private boolean shouldSetDisableAddCallExtra() {
         if (mOriginalConnection == null) {
             return false;
@@ -1542,7 +1625,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                 || !VideoProfile.isVideo(getVideoState()));
     }
 
-    private PersistableBundle getCarrierConfig() {
+    @VisibleForTesting
+    public PersistableBundle getCarrierConfig() {
         Phone phone = getPhone();
         if (phone == null) {
             return null;
@@ -1916,6 +2000,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         updateAddress();
         updateMultiparty();
         refreshDisableAddCall();
+        refreshCodecType();
     }
 
     /**
@@ -2396,10 +2481,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             }
 
             Context context = getPhone().getContext();
-            Resources res =
-                    SubscriptionManager.getResourcesForSubId(context, getPhone().getSubId());
             setTelephonyStatusHints(new StatusHints(
-                    res.getString(labelId) + displaySubId,
+                    getResourceString(labelId) + displaySubId,
                     Icon.createWithResource(
                             context, R.drawable.ic_signal_wifi_4_bar_24dp),
                     null /* extras */));
@@ -2482,7 +2565,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
      * 3. If call is a video call, carrier supports video conference calls.
      * 4. If call is a wifi call and VoWIFI is disabled and carrier supports merging these calls.
      */
-    private void refreshConferenceSupported() {
+    @VisibleForTesting
+    void refreshConferenceSupported() {
         boolean isVideoCall = VideoProfile.isVideo(getVideoState());
         Phone phone = getPhone();
         if (phone == null) {
