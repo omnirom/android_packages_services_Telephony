@@ -447,8 +447,9 @@ public class CallFeaturesSetting extends PreferenceActivity
                                         public boolean onPreferenceClick(Preference preference) {
                                             Intent intent = new Intent(CdmaCallOptions.
                                                     CALL_WAITING_INTENT);
-                                            intent.putExtra(PhoneConstants.
-                                                    SUBSCRIPTION_KEY,mPhone.getSubId());
+                                            intent.putExtra(
+                                                SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX,
+                                                mPhone.getSubId());
                                             startActivity(intent);
                                             return true;
                                         }
@@ -464,8 +465,9 @@ public class CallFeaturesSetting extends PreferenceActivity
                                              Intent intent = mPhone.isUtEnabled() ?
                                                 mSubscriptionInfoHelper.getIntent(CallForwardType.class)
                                                 : new Intent(CdmaCallOptions.CALL_FORWARD_INTENT);
-                                            intent.putExtra(PhoneConstants.
-                                                    SUBSCRIPTION_KEY, mPhone.getSubId());
+                                            intent.putExtra(
+                                                SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX,
+                                                mPhone.getSubId());
                                             startActivity(intent);
                                             return true;
                                         }
