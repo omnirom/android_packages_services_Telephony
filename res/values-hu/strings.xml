@@ -252,10 +252,15 @@
     <string name="roaming_enable" msgid="7331106985174381987">"Csatlakozás adatszolgáltatásokhoz barangolás során"</string>
     <string name="roaming_disable" msgid="1843417228755568110">"Csatlakozás adatszolgáltatásokhoz barangolás során"</string>
     <string name="roaming_reenable_message" msgid="6843814381576397939">"Az adatbarangolás ki van kapcsolva. Koppintson a bekapcsolásához."</string>
+    <string name="roaming_enabled_message" msgid="7176375330428295945">"A szolgáltató adatroamingdíjat számíthat fel. Koppintson a módosításhoz."</string>
     <string name="roaming_notification_title" msgid="4749053220884743110">"Nincs mobiladat-kapcsolat"</string>
+    <string name="roaming_on_notification_title" msgid="5102274082214238655">"Az adatroaming be van kapcsolva"</string>
     <string name="roaming_warning" msgid="1603164667540144353">"Lehet, hogy jelentős összeget számítanak fel érte."</string>
     <string name="roaming_check_price_warning" msgid="7497570906830902550">"Az árakat a szolgáltatótól tudhatja meg."</string>
     <string name="roaming_alert_title" msgid="3654815360303826008">"Engedélyezi az adatbarangolást?"</string>
+    <string name="limited_sim_function_notification_title" msgid="7611588665358096385">"Korlátozott SIM-funkció"</string>
+    <string name="limited_sim_function_with_phone_num_notification_message" msgid="8629471534217382598">"A(z) <xliff:g id="PHONE_NUMBER">%2$s</xliff:g> szám használatakor előfordulhat, hogy a(z) <xliff:g id="CARRIER_NAME">%1$s</xliff:g>-hívások és az adatszolgáltatások nem működnek."</string>
+    <string name="limited_sim_function_notification_message" msgid="2820647701127014781">"Másik SIM esetén lehet, hogy a(z) <xliff:g id="CARRIER_NAME">%1$s</xliff:g>-hívások és -adatszolgáltatások nem működnek."</string>
     <string name="data_usage_title" msgid="4042209259808900283">"Alkalmazás adathasználata"</string>
     <string name="data_usage_template" msgid="8526428824844656364">"<xliff:g id="ID_1">%1$s</xliff:g> mobiladat felhasználva a következő dátumok között: <xliff:g id="ID_2">%2$s</xliff:g>"</string>
     <string name="advanced_options_title" msgid="8074895510265488035">"Speciális"</string>
@@ -403,7 +408,7 @@
     <string name="fdn_disabled" msgid="4700049736675368279">"A fix hívószámok letiltva"</string>
     <string name="enable_fdn" msgid="3740191529180493851">"Fix hívószám engedélyezése"</string>
     <string name="disable_fdn" msgid="7944020890722540616">"Fix hívószám letiltása"</string>
-    <string name="change_pin2" msgid="2153563695382176676">"PIN2 kód módosítása"</string>
+    <string name="change_pin2" msgid="2153563695382176676">"PIN2-kód módosítása"</string>
     <string name="enable_fdn_ok" msgid="7215588870329688132">"Fix hívószám letiltása"</string>
     <string name="disable_fdn_ok" msgid="5727046928930740173">"Fix hívószám engedélyezése"</string>
     <string name="sum_fdn" msgid="1959399454900272878">"Fix hívószámok kezelése"</string>
@@ -459,11 +464,11 @@
     <string name="pin_changed" msgid="4455736268023261662">"PIN-kód frissítve"</string>
     <string name="puk_requested" msgid="5921393215789090200">"A jelszó helytelen. PIN-kód letiltva. Adja meg a PUK kódot."</string>
     <string name="enter_pin2_text" msgid="8339444124477720345">"PIN2"</string>
-    <string name="oldPin2Label" msgid="8559146795026261502">"Régi PIN2 kód"</string>
+    <string name="oldPin2Label" msgid="8559146795026261502">"Régi PIN2-kód"</string>
     <string name="newPin2Label" msgid="4573956902204349054">"Új PIN2 kód"</string>
     <string name="confirmPin2Label" msgid="8100319484454787708">"Erősítse meg az új PIN2-kódot"</string>
     <string name="badPuk2" msgid="7910064009531541708">"A PUK2 kód helytelen. Próbálja újra."</string>
-    <string name="badPin2" msgid="6646896629970023109">"A régi PIN2 kód helytelen. Próbálja újra."</string>
+    <string name="badPin2" msgid="6646896629970023109">"A régi PIN2-kód helytelen. Próbálja újra."</string>
     <string name="mismatchPin2" msgid="4177967478551851117">"A PIN2 kódok nem egyeznek. Próbálja újra."</string>
     <string name="invalidPin2" msgid="1757045131429105595">"4–8 számjegyből álló PIN2 kódot adjon meg."</string>
     <string name="invalidPuk2" msgid="7059081153334815973">"8 számjegyből álló PUK2 kódot adjon meg."</string>
@@ -639,6 +644,8 @@
     <string name="callFailed_wifi_lost" msgid="5968076625137297184">"A Wi-Fi-kapcsolat megszakadt. A hívás befejeződött."</string>
     <string name="dialFailed_low_battery" msgid="8760548177088774268">"Az alacsony töltöttség miatt nem indítható videohívás."</string>
     <string name="callFailed_low_battery" msgid="4913582435905872616">"A videohívás az alacsony töltöttség miatt befejeződött."</string>
+    <string name="callFailed_emergency_call_over_wfc_not_available" msgid="4890063404231305951">"A Wi-Fi-híváson keresztüli segélyhívások nem állnak rendelkezésre ezen a helyen."</string>
+    <string name="callFailed_wfc_service_not_available_in_this_location" msgid="7616738479038819001">"A Wi-Fi-hívás nem áll rendelkezésre ezen a helyen."</string>
     <string name="change_pin_title" msgid="7790232089699034029">"A hangposta PIN-kódjának módosítása"</string>
     <string name="change_pin_continue_label" msgid="2135088662420163447">"Folytatás"</string>
     <string name="change_pin_cancel_label" msgid="353535488390948596">"Mégse"</string>

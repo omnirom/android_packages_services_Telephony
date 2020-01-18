@@ -72,8 +72,7 @@ final class GsmConnection extends TelephonyConnection {
         int capabilities = super.buildConnectionCapabilities();
         capabilities |= CAPABILITY_MUTE;
         // Overwrites TelephonyConnection.buildConnectionCapabilities() and resets the hold options
-        // because all GSM calls should hold, even if the carrier config option is set to not show
-        // hold for IMS calls.
+        // because all GSM calls should hold.
         if (!shouldTreatAsEmergencyCall() && !isImsConnection()) {
             capabilities |= CAPABILITY_SUPPORT_HOLD;
             if (isHoldable() && (getState() == STATE_ACTIVE || getState() == STATE_HOLDING)) {
