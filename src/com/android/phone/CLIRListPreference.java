@@ -55,7 +55,7 @@ public class CLIRListPreference extends ListPreference {
             }
         } else {
             Log.d(LOG_TAG, String.format("onDialogClosed: positiveResult=%b value=%s -- do nothing",
-                    positiveResult, getValue()));
+                        positiveResult, getValue()));
         }
     }
 
