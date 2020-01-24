@@ -40,7 +40,7 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.VideoProfile;
 import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneNumberUtils;
-import android.telephony.Rlog;
+import com.android.telephony.Rlog;
 import android.telephony.SubscriptionManager;
 import android.text.TextUtils;
 import android.util.Log;
@@ -720,7 +720,7 @@ public class PhoneUtils {
      * {@code false} otherwise.
      */
     public static boolean isPhoneAccountActive(SubscriptionManager sm, PhoneAccountHandle handle) {
-        return sm.getActiveSubscriptionInfoForIccIndex(handle.getId()) != null;
+        return sm.getActiveSubscriptionInfoForIcc(handle.getId()) != null;
     }
 
     private static ComponentName getPstnConnectionServiceName() {

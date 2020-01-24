@@ -1515,6 +1515,12 @@ public class TelephonyConnectionService extends ConnectionService {
                                                         .OUTGOING_EMERGENCY_CALL_PLACED);
                                     }
                                 }
+                                for (Conference c : getAllConferences()) {
+                                    if (c.getState() != Connection.STATE_DISCONNECTED
+                                            && c instanceof Conference) {
+                                        ((Conference) c).onDisconnect();
+                                    }
+                                }
                             } else if (!isVideoCallHoldAllowed(phone)) {
                                 // If we do not support holding ongoing video call for an outgoing
                                 // emergency call, disconnect the ongoing video call.
@@ -1584,7 +1590,7 @@ public class TelephonyConnectionService extends ConnectionService {
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                         Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
                 if (SubscriptionManager.isValidSubscriptionId(subId)) {
-                    intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, subId);
+                    SubscriptionManager.putSubscriptionIdExtra(intent, subId);
                 }
                 startActivity(intent);
             }

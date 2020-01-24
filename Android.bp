@@ -33,13 +33,14 @@ android_app {
         "androidx.preference_preference",
         "androidx.recyclerview_recyclerview",
         "androidx.legacy_legacy-preference-v14",
-        "guava",
         "android-support-annotations",
         "com.android.phone.common-lib",
+        "guava",
+        "PlatformProperties",
     ],
 
     srcs: [
-        ":framework-telephony-stack-shared-srcs",
+        ":framework-telephony-common-shared-srcs",
         "src/**/*.java",
         "sip/src/**/*.java",
         "ecc/proto/**/*.proto",
