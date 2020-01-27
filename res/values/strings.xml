@@ -691,6 +691,7 @@
     <string name="ussd_dialog_sep" translatable="false">----------</string>
 
     <string name="gsm_umts_options">GSM/UMTS Options</string>
+    <string name="call_forward_option">CallForward Options</string>
     <string name="cdma_options">CDMA Options</string>
 
     <!-- Screen option on the mobile network settings to go into data usage settings -->
