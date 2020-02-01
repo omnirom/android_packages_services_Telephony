@@ -605,17 +605,6 @@ public class NotificationMgr {
 
         // "Mobile network settings" screen / dialog
         Intent intent = new Intent(Settings.ACTION_DATA_ROAMING_SETTINGS);
-        boolean isVendorNetworkSettingApkAvailable =
-                PhoneUtils.isNetworkSettingsApkAvailable();
-        if (isVendorNetworkSettingApkAvailable) {
-            // prepare intent to start qti MobileNetworkSettings activity
-            intent.setComponent(new ComponentName("com.qualcomm.qti.networksetting",
-                    "com.qualcomm.qti.networksetting.MobileNetworkSettings"));
-        } else {
-            // vendor MobileNetworkSettings not available, launch the default activity
-            log("vendor MobileNetworkSettings is not available");
-        }
-
         intent.putExtra(Settings.EXTRA_SUB_ID, subId);
         PendingIntent contentIntent = PendingIntent.getActivity(mContext, subId, intent, 0);
 
@@ -633,9 +622,6 @@ public class NotificationMgr {
                 .setContentText(contentText)
                 .setChannelId(NotificationChannelController.CHANNEL_ID_MOBILE_DATA_STATUS)
                 .setContentIntent(contentIntent);
-        if (isVendorNetworkSettingApkAvailable) {
-            builder.setAutoCancel(true);
-        }
         final Notification notif =
                 new Notification.BigTextStyle(builder).bigText(contentText).build();
         notifyAsUser(null /* tag */, DATA_ROAMING_NOTIFICATION, notif, UserHandle.ALL);
@@ -791,18 +777,9 @@ public class NotificationMgr {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                 Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         // Use MobileNetworkSettings to handle the selection intent
-        boolean isVendorNetworkSettingApkAvailable =
-                PhoneUtils.isNetworkSettingsApkAvailable();
-        if (isVendorNetworkSettingApkAvailable) {
-            // Use Vendor NetworkSetting to handle the selection intent
-            intent.setComponent(new ComponentName("com.qualcomm.qti.networksetting",
-                    "com.qualcomm.qti.networksetting.MobileNetworkSettings"));
-        } else {
-            // Use aosp NetworkSetting to handle the selection intent
-            intent.setComponent(new ComponentName(
-                    mContext.getString(R.string.mobile_network_settings_package),
-                    mContext.getString(R.string.mobile_network_settings_class)));
-        }
+        intent.setComponent(new ComponentName(
+                mContext.getString(R.string.mobile_network_settings_package),
+                mContext.getString(R.string.mobile_network_settings_class)));
         intent.putExtra(Settings.EXTRA_SUB_ID, subId);
         builder.setContentIntent(PendingIntent.getActivity(mContext, 0, intent, 0));
         notifyAsUser(
