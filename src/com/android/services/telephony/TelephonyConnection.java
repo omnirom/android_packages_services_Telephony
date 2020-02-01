@@ -1950,7 +1950,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                                 == android.telephony.DisconnectCause.EMERGENCY_PERM_FAILURE);
                     } else {
                         if (mSsNotification != null) {
-                            setDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
+                            setTelephonyConnectionDisconnected(
+                                    DisconnectCauseUtil.toTelecomDisconnectCause(
                                     mOriginalConnection.getDisconnectCause(),
                                     mOriginalConnection.getVendorDisconnectCause(),
                                     mSsNotification.notificationType,
