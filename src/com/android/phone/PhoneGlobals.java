@@ -16,6 +16,7 @@
 
 package com.android.phone;
 
+import android.annotation.IntDef;
 import android.app.Activity;
 import android.app.KeyguardManager;
 import android.app.ProgressDialog;
@@ -47,6 +48,7 @@ import android.telephony.AccessNetworkConstants;
 import android.telephony.AnomalyReporter;
 import android.telephony.CarrierConfigManager;
 import android.telephony.ServiceState;
+import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.telephony.data.ApnSetting;
@@ -74,6 +76,9 @@ import com.android.services.telephony.sip.SipUtil;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.util.List;
 
 /**
  * Global state for the telephony subsystem when running in the primary
@@ -107,14 +112,15 @@ public class PhoneGlobals extends ContextWrapper {
     // Message codes; see mHandler below.
     private static final int EVENT_SIM_NETWORK_LOCKED = 3;
     private static final int EVENT_SIM_STATE_CHANGED = 8;
-    private static final int EVENT_SIM_STATE_CHANGED_CHECKREADY = 16;
+    private static final int EVENT_SIM_STATE_CHANGED_CHECKREADY = 17;
     private static final int EVENT_DATA_ROAMING_DISCONNECTED = 10;
-    private static final int EVENT_DATA_ROAMING_OK = 11;
-    private static final int EVENT_UNSOL_CDMA_INFO_RECORD = 12;
-    private static final int EVENT_RESTART_SIP = 13;
-    private static final int EVENT_DATA_ROAMING_SETTINGS_CHANGED = 14;
-    private static final int EVENT_MOBILE_DATA_SETTINGS_CHANGED = 15;
-    private static final int EVENT_DATA_CONNECTION_ATTACHED = 17;
+    private static final int EVENT_DATA_ROAMING_CONNECTED = 11;
+    private static final int EVENT_DATA_ROAMING_OK = 12;
+    private static final int EVENT_UNSOL_CDMA_INFO_RECORD = 13;
+    private static final int EVENT_RESTART_SIP = 14;
+    private static final int EVENT_DATA_ROAMING_SETTINGS_CHANGED = 15;
+    private static final int EVENT_MOBILE_DATA_SETTINGS_CHANGED = 16;
+    private static final int EVENT_DATA_CONNECTION_ATTACHED = 18;
 
     // The MMI codes are also used by the InCallScreen.
     public static final int MMI_INITIATE = 51;
@@ -161,7 +167,21 @@ public class PhoneGlobals extends ContextWrapper {
     private Activity mPUKEntryActivity;
     private ProgressDialog mPUKEntryProgressDialog;
 
-    private boolean mNoDataDueToRoaming = false;
+    /** @hide */
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef(prefix = {"ROAMING_NOTIFICATION_"},
+            value = {
+                    ROAMING_NOTIFICATION_NO_NOTIFICATION,
+                    ROAMING_NOTIFICATION_CONNECTED,
+                    ROAMING_NOTIFICATION_DISCONNECTED})
+    public @interface RoamingNotification {}
+
+    private static final int ROAMING_NOTIFICATION_NO_NOTIFICATION = 0;
+    private static final int ROAMING_NOTIFICATION_CONNECTED       = 1;
+    private static final int ROAMING_NOTIFICATION_DISCONNECTED    = 2;
+
+    @RoamingNotification
+    private int mPrevRoamingNotification = ROAMING_NOTIFICATION_NO_NOTIFICATION;
 
     private WakeState mWakeState = WakeState.SLEEP;
 
@@ -219,11 +239,15 @@ public class PhoneGlobals extends ContextWrapper {
                     break;
 
                 case EVENT_DATA_ROAMING_DISCONNECTED:
-                    notificationMgr.showDataDisconnectedRoaming(msg.arg1);
+                    notificationMgr.showDataRoamingNotification(msg.arg1, false);
+                    break;
+
+                case EVENT_DATA_ROAMING_CONNECTED:
+                    notificationMgr.showDataRoamingNotification(msg.arg1, true);
                     break;
 
                 case EVENT_DATA_ROAMING_OK:
-                    notificationMgr.hideDataDisconnectedRoaming();
+                    notificationMgr.hideDataRoamingNotification();
                     break;
 
                 case MMI_COMPLETE:
@@ -273,7 +297,7 @@ public class PhoneGlobals extends ContextWrapper {
                     break;
                 case EVENT_DATA_CONNECTION_ATTACHED:
                     int subId = (Integer)((AsyncResult)msg.obj).userObj;
-                    if (!mNoDataDueToRoaming
+                    if (mPrevRoamingNotification != ROAMING_NOTIFICATION_DISCONNECTED
                             && subId == mDefaultDataSubId) {
                         if (VDBG) Log.v(LOG_TAG, "EVENT_DATA_CONNECTION_ATTACHED");
                         updateDataRoamingStatus();
@@ -369,6 +393,10 @@ public class PhoneGlobals extends ContextWrapper {
 
             // register for MMI/USSD
             mCM.registerForMmiComplete(mHandler, MMI_COMPLETE, null);
+
+            // Initialize cell status using current airplane mode.
+            handleAirplaneModeChange(this, Settings.Global.getInt(getContentResolver(),
+                    Settings.Global.AIRPLANE_MODE_ON, AIRPLANE_OFF));
 
             // Register for misc other intent broadcasts.
             IntentFilter intentFilter =
@@ -685,6 +713,7 @@ public class PhoneGlobals extends ContextWrapper {
                 // Roaming status could be overridden by carrier config, so we need to update it.
                 if (VDBG) Log.v(LOG_TAG, "carrier config changed.");
                 updateDataRoamingStatus();
+                updateLimitedSimFunctionForDualSim();
             } else if (action.equals(TelephonyIntents.ACTION_DEFAULT_DATA_SUBSCRIPTION_CHANGED)) {
                 // We also need to pay attention when default data subscription changes.
                 if (VDBG) Log.v(LOG_TAG, "default data sub changed.");
@@ -754,6 +783,16 @@ public class PhoneGlobals extends ContextWrapper {
     }
 
     /**
+     * @return whether or not we should show a notification when connecting to data roaming if the
+     * user has data roaming enabled
+     */
+    private boolean shouldShowDataConnectedRoaming(int subId) {
+        PersistableBundle config = getCarrierConfigForSubId(subId);
+        return config.getBoolean(CarrierConfigManager
+                .KEY_SHOW_DATA_CONNECTED_ROAMING_NOTIFICATION_BOOL);
+    }
+
+    /**
      * When roaming, if mobile data cannot be established due to data roaming not enabled, we need
      * to notify the user so they can enable it through settings. Vise versa if the condition
      * changes, we need to dismiss the notification.
@@ -770,25 +809,78 @@ public class PhoneGlobals extends ContextWrapper {
         boolean dataAllowed = phone.isDataAllowed(ApnSetting.TYPE_DEFAULT, reasons);
         mDataRoamingNotifLog.log("dataAllowed=" + dataAllowed + ", reasons=" + reasons);
         if (VDBG) Log.v(LOG_TAG, "dataAllowed=" + dataAllowed + ", reasons=" + reasons);
-        if (!mNoDataDueToRoaming
-                && !dataAllowed
-                && reasons.containsOnly(DataDisallowedReasonType.ROAMING_DISABLED)) {
+        if (!dataAllowed && reasons.containsOnly(DataDisallowedReasonType.ROAMING_DISABLED)) {
+            // No need to show it again if we never cancelled it explicitly.
+            if (mPrevRoamingNotification == ROAMING_NOTIFICATION_DISCONNECTED) return;
             // If the only reason of no data is data roaming disabled, then we notify the user
             // so the user can turn on data roaming.
-            mNoDataDueToRoaming = true;
+            mPrevRoamingNotification = ROAMING_NOTIFICATION_DISCONNECTED;
             Log.d(LOG_TAG, "Show roaming disconnected notification");
-            mDataRoamingNotifLog.log("Show");
+            mDataRoamingNotifLog.log("Show roaming off.");
             Message msg = mHandler.obtainMessage(EVENT_DATA_ROAMING_DISCONNECTED);
             msg.arg1 = mDefaultDataSubId;
             msg.sendToTarget();
-        } else if (mNoDataDueToRoaming && (dataAllowed
-                || !reasons.containsOnly(DataDisallowedReasonType.ROAMING_DISABLED))) {
-            // Otherwise dismiss the notification we showed earlier.
-            mNoDataDueToRoaming = false;
-            Log.d(LOG_TAG, "Dismiss roaming disconnected notification");
+        } else if (dataAllowed && dataIsNowRoaming(mDefaultDataSubId)
+                && shouldShowDataConnectedRoaming(mDefaultDataSubId)) {
+            // No need to show it again if we never cancelled it explicitly, or carrier config
+            // indicates this is not needed.
+            if (mPrevRoamingNotification == ROAMING_NOTIFICATION_CONNECTED) return;
+            mPrevRoamingNotification = ROAMING_NOTIFICATION_CONNECTED;
+            Log.d(LOG_TAG, "Show roaming connected notification");
+            mDataRoamingNotifLog.log("Show roaming on.");
+            Message msg = mHandler.obtainMessage(EVENT_DATA_ROAMING_CONNECTED);
+            msg.arg1 = mDefaultDataSubId;
+            msg.sendToTarget();
+        } else if (mPrevRoamingNotification != ROAMING_NOTIFICATION_NO_NOTIFICATION) {
+            // Otherwise we either 1) we are not roaming or 2) roaming is off but ROAMING_DISABLED
+            // is not the only data disable reason. In this case we dismiss the notification we
+            // showed earlier.
+            mPrevRoamingNotification = ROAMING_NOTIFICATION_NO_NOTIFICATION;
+            Log.d(LOG_TAG, "Dismiss roaming notification");
             mDataRoamingNotifLog.log("Hide. data allowed=" + dataAllowed + ", reasons=" + reasons);
             mHandler.sendEmptyMessage(EVENT_DATA_ROAMING_OK);
         }
+    }
+
+    /**
+     *
+     * @param subId to check roaming on
+     * @return whether we have transitioned to dataRoaming
+     */
+    private boolean dataIsNowRoaming(int subId) {
+        return getPhone(subId).getServiceState().getDataRoaming();
+    }
+
+    private void updateLimitedSimFunctionForDualSim() {
+        if (DBG) Log.d(LOG_TAG, "updateLimitedSimFunctionForDualSim");
+        // check conditions to display limited SIM function notification under dual SIM
+        SubscriptionManager subMgr = (SubscriptionManager) getSystemService(
+                Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+        List<SubscriptionInfo> subList = subMgr.getActiveSubscriptionInfoList(false);
+        if (subList != null && subList.size() > 1) {
+            CarrierConfigManager configMgr = (CarrierConfigManager)
+                    getSystemService(Context.CARRIER_CONFIG_SERVICE);
+            for (SubscriptionInfo info : subList) {
+                PersistableBundle b = configMgr.getConfigForSubId(info.getSubscriptionId());
+                if (b != null) {
+                    if (b.getBoolean(CarrierConfigManager
+                            .KEY_LIMITED_SIM_FUNCTION_NOTIFICATION_FOR_DSDS_BOOL)) {
+                        notificationMgr.showLimitedSimFunctionWarningNotification(
+                                info.getSubscriptionId(),
+                                info.getDisplayName().toString());
+                    } else {
+                        notificationMgr.dismissLimitedSimFunctionWarningNotification(
+                                info.getSubscriptionId());
+                    }
+                }
+            }
+        } else {
+            // cancel notifications for all subs
+            notificationMgr.dismissLimitedSimFunctionWarningNotification(
+                    SubscriptionManager.INVALID_SUBSCRIPTION_ID);
+        }
+        notificationMgr.dismissLimitedSimFunctionWarningNotificationForInactiveSubs();
+
     }
 
     public Phone getPhoneInEcm() {
@@ -829,7 +921,7 @@ public class PhoneGlobals extends ContextWrapper {
         IndentingPrintWriter pw = new IndentingPrintWriter(printWriter, "  ");
         pw.println("------- PhoneGlobals -------");
         pw.increaseIndent();
-        pw.println("mNoDataDueToRoaming=" + mNoDataDueToRoaming);
+        pw.println("mPrevRoamingNotification=" + mPrevRoamingNotification);
         pw.println("mDefaultDataSubId=" + mDefaultDataSubId);
         pw.println("mDataRoamingNotifLog:");
         pw.println("isSmsCapable=" + TelephonyManager.from(this).isSmsCapable());
