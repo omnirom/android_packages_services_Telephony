@@ -41,7 +41,7 @@ import android.telecom.VideoProfile;
 import android.telephony.CarrierConfigManager;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
-import android.telephony.Rlog;
+import com.android.telephony.Rlog;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.ServiceState;
@@ -887,7 +887,6 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     public void onDisconnect() {
         Log.v(this, "onDisconnect");
         mHandler.obtainMessage(MSG_HANGUP, android.telephony.DisconnectCause.LOCAL).sendToTarget();
-        PhoneNumberUtils.resetCountryDetectorInfo();
     }
 
     /**
