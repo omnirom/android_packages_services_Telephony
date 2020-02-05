@@ -16,11 +16,8 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="phoneAppLabel" product="tablet" msgid="1916019789885839910">"Բջջային տվյալներ"</string>
-    <string name="phoneAppLabel" product="default" msgid="130465039375347763">"Հեռախոսի ծառայություններ"</string>
     <string name="emergencyDialerIconLabel" msgid="8668005772339436680">"Արտակարգ իրավիճակների համարհավաքիչ"</string>
     <string name="phoneIconLabel" msgid="3015941229249651419">"Հեռախոս"</string>
-    <string name="fdnListLabel" msgid="4119121875004244097">"FDN ցուցակ"</string>
     <string name="unknown" msgid="8279698889921830815">"Անհայտ"</string>
     <string name="private_num" msgid="4487990167889159992">"Գաղտնի համար"</string>
     <string name="payphone" msgid="7936735771836716941">"Բջջային տերմինալ"</string>
@@ -300,8 +297,6 @@
     <string name="sim_change_data_message" msgid="3567358694255933280">"Օգտագործե՞լ <xliff:g id="NEW_SIM">%1$s</xliff:g> քարտը <xliff:g id="OLD_SIM">%2$s</xliff:g> քարտի փոխարեն բջջային ինտերնետի համար:"</string>
     <string name="wifi_calling_settings_title" msgid="5800018845662016507">"Զանգեր Wi-Fi-ի միջոցով"</string>
     <string name="video_calling_settings_title" msgid="342829454913266078">"Տեսազանգեր բջջային ցանցի միջոցով"</string>
-    <string name="gsm_umts_options" msgid="4968446771519376808">"GSM/UMTS ընտրանքներ"</string>
-    <string name="cdma_options" msgid="3669592472226145665">"CDMA ընտրանքներ"</string>
     <string name="throttle_data_usage" msgid="1944145350660420711">"Տվյալների օգտագործումը"</string>
     <string name="throttle_current_usage" msgid="7483859109708658613">"Ընթացիկ ժամանակահատվածում օգտագործված տվյալները"</string>
     <string name="throttle_time_frame" msgid="1813452485948918791">"Տվյալների օգտագործման ժամանահատվածը"</string>
@@ -472,7 +467,6 @@
     <string name="fdn_failed" msgid="216592346853420250">"FDN գործողությունը ձախողվեց:"</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"Ընթերցում է SIM քարտից..."</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"Ձեր SIM քարտում կոնտակտներ չկան:"</string>
-    <string name="simContacts_title" msgid="2714029230160136647">"Ընտրեք կոնտակտները ներմուծման համար"</string>
     <string name="simContacts_airplaneMode" msgid="4654884030631503808">"Կոնտակտները SIM քարտից ներմուծելու համար անջատեք Ավիառեժիմը:"</string>
     <string name="enable_pin" msgid="967674051730845376">"Միացնել/անջատել SIM PIN-ը"</string>
     <string name="change_pin" msgid="3657869530942905790">"Փոխել SIM PIN-ը"</string>
@@ -787,14 +781,13 @@
     <string name="call_barring_confirm_pwd" msgid="7552526161616461858">"Հաստատել գաղտնաբառը"</string>
     <string name="messageCallBarring" msgid="5537730400652466912">"Մուտքագրեք գաղտնաբառը"</string>
     <string name="call_barring_settings" msgid="4616607285790258919">"Զանգերի արգելափակման կարգավորումներ"</string>
-    <string name="call_barring_deactivate_all_no_password" msgid="1722810133682258452">"Անջատե՞լ զանգերի արգելափակման բոլոր կարգավորումները"</string>
     <string name="callFailed_NetworkBusy" msgid="5437103975842913681">"Ցանցը զբաղված է: Ավելի ուշ նորից փորձեք զանգել:"</string>
     <string name="callFailed_NetworkCongested" msgid="6801283142342775380">"Ցանցը ծանրաբեռնված է: Օգնության համար դիմեք ձեր բջջային օպերատորին:"</string>
     <string name="supp_service_notification_call_deflected" msgid="4980942818105909813">"Զանգը վերահասցեավորվեց:"</string>
     <string name="supp_service_notification_call_forwarded" msgid="7102930311735433088">"Զանգը վերահասցեավորվեց:"</string>
     <string name="supp_service_notification_call_waiting" msgid="4577403881609445324">"Զանգը սպասման մեջ է:"</string>
     <string name="supp_service_clir_suppression_rejected" msgid="6105737020194776121">"Համարի արգելափակումը մերժված է:"</string>
-    <string name="supp_service_closed_user_group_call" msgid="2811636666505250689">"Կապակցում օգտատերերի փակ խմբի հետ"</string>
+    <string name="supp_service_closed_user_group_call" msgid="2811636666505250689">"Միացում օգտատերերի փակ խմբի հետ"</string>
     <string name="supp_service_incoming_calls_barred" msgid="2034627421274447674">"Բոլոր մուտքային զանգերն արգելափակված են:"</string>
     <string name="supp_service_outgoing_calls_barred" msgid="5205725332394087112">"Բոլոր ելքային զանգերն արգելափակված են:"</string>
     <string name="supp_service_call_forwarding_active" msgid="7910162960395132464">"Զանգի վերահասցեավորումն ակտիվ է:"</string>
