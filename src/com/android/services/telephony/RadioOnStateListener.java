@@ -56,8 +56,9 @@ public class RadioOnStateListener {
     @VisibleForTesting
     public static final int MSG_SERVICE_STATE_CHANGED = 2;
     private static final int MSG_RETRY_TIMEOUT = 3;
-    private static final int MSG_RADIO_ON = 4;
-    private static final int MSG_RADIO_OFF_OR_NOT_AVAILABLE = 5;
+    @VisibleForTesting
+    public static final int MSG_RADIO_ON = 4;
+    public static final int MSG_RADIO_OFF_OR_NOT_AVAILABLE = 5;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
