@@ -112,14 +112,14 @@ public class PhoneGlobals extends ContextWrapper {
     // Message codes; see mHandler below.
     private static final int EVENT_SIM_NETWORK_LOCKED = 3;
     private static final int EVENT_SIM_STATE_CHANGED = 8;
-    private static final int EVENT_SIM_STATE_CHANGED_CHECKREADY = 16;
+    private static final int EVENT_SIM_STATE_CHANGED_CHECKREADY = 17;
     private static final int EVENT_DATA_ROAMING_DISCONNECTED = 10;
     private static final int EVENT_DATA_ROAMING_CONNECTED = 11;
     private static final int EVENT_DATA_ROAMING_OK = 12;
     private static final int EVENT_UNSOL_CDMA_INFO_RECORD = 13;
     private static final int EVENT_RESTART_SIP = 14;
     private static final int EVENT_DATA_ROAMING_SETTINGS_CHANGED = 15;
-    private static final int EVENT_MOBILE_DATA_SETTINGS_CHANGED = 17;
+    private static final int EVENT_MOBILE_DATA_SETTINGS_CHANGED = 16;
     private static final int EVENT_DATA_CONNECTION_ATTACHED = 18;
 
     // The MMI codes are also used by the InCallScreen.
@@ -296,7 +296,12 @@ public class PhoneGlobals extends ContextWrapper {
                     updateDataRoamingStatus();
                     break;
                 case EVENT_DATA_CONNECTION_ATTACHED:
-                    updateDataRoamingStatus();
+                    int subId = (Integer)((AsyncResult)msg.obj).userObj;
+                    if (mPrevRoamingNotification != ROAMING_NOTIFICATION_DISCONNECTED
+                            && subId == mDefaultDataSubId) {
+                        if (VDBG) Log.v(LOG_TAG, "EVENT_DATA_CONNECTION_ATTACHED");
+                        updateDataRoamingStatus();
+                    }
                     break;
             }
         }
@@ -388,6 +393,10 @@ public class PhoneGlobals extends ContextWrapper {
 
             // register for MMI/USSD
             mCM.registerForMmiComplete(mHandler, MMI_COMPLETE, null);
+
+            // Initialize cell status using current airplane mode.
+            handleAirplaneModeChange(this, Settings.Global.getInt(getContentResolver(),
+                    Settings.Global.AIRPLANE_MODE_ON, AIRPLANE_OFF));
 
             // Register for misc other intent broadcasts.
             IntentFilter intentFilter =
