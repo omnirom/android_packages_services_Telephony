@@ -120,7 +120,11 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     private static final int MSG_SET_CALL_RADIO_TECH = 18;
     private static final int MSG_ON_CONNECTION_EVENT = 19;
     private static final int MSG_REDIAL_CONNECTION_CHANGED = 20;
-    private static final int MSG_CONNECTION_REMOVED = 21;
+    private static final int MSG_REJECT = 21;
+    private static final int MSG_CONNECTION_REMOVED = 22;
+
+    private List<Uri> mParticipants;
+    private boolean mIsAdhocConferenceCall;
 
     private boolean mIsEmergencyNumber = false;
     /**
@@ -199,7 +203,9 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                                 "not foreground connection, skipping");
                         return;
                     }
-                    setRingbackRequested((Boolean) ((AsyncResult) msg.obj).result);
+                    boolean ringback = (Boolean) ((AsyncResult) msg.obj).result;
+                    setRingbackRequested(ringback);
+                    notifyRingbackRequested(ringback);
                     break;
                 case MSG_DISCONNECT:
                     updateState();
@@ -310,6 +316,10 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                 case MSG_HANGUP:
                     int cause = (int) msg.obj;
                     hangup(cause);
+                    break;
+                case MSG_REJECT:
+                    int rejectReason = (int) msg.obj;
+                    reject(rejectReason);
                     break;
                 case MSG_CONNECTION_REMOVED:
                     Log.d(this, "MSG_CONNECTION_REMOVED");
@@ -523,6 +533,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         public void onVideoProviderChanged(android.telecom.Connection c,
                 Connection.VideoProvider videoProvider) {}
         public void onVideoStateChanged(android.telecom.Connection c, int videoState) {}
+        public void onRingbackRequested(Connection c, boolean ringback) {}
     }
 
     private final PostDialListener mPostDialListener = new PostDialListener() {
@@ -936,14 +947,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
     @Override
     public void onAnswer(int videoState) {
-        Log.v(this, "onAnswer");
-        if (isValidRingingCall() && getPhone() != null) {
-            try {
-                getPhone().acceptCall(videoState);
-            } catch (CallStateException e) {
-                Log.e(this, e, "Failed to accept call.");
-            }
-        }
+        performAnswer(videoState);
     }
 
     @Override
@@ -987,9 +991,18 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
     @Override
     public void onReject() {
-        Log.v(this, "onReject");
+        performReject(android.telecom.Call.REJECT_REASON_DECLINED);
+    }
+
+    @Override
+    public void onReject(@android.telecom.Call.RejectReason int rejectReason) {
+        performReject(rejectReason);
+    }
+
+    public void performReject(int rejectReason) {
+        Log.v(this, "performReject");
         if (isValidRingingCall()) {
-            mHandler.obtainMessage(MSG_HANGUP, android.telephony.DisconnectCause.INCOMING_REJECTED)
+            mHandler.obtainMessage(MSG_REJECT, rejectReason)
                     .sendToTarget();
         }
         super.onReject();
@@ -1059,6 +1072,17 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         }
         ImsPhoneConnection originalConnection = (ImsPhoneConnection) mOriginalConnection;
         originalConnection.sendRttModifyResponse(textStream);
+    }
+
+    public void performAnswer(int videoState) {
+        Log.v(this, "performAnswer");
+        if (isValidRingingCall() && getPhone() != null) {
+            try {
+                getPhone().acceptCall(videoState);
+            } catch (CallStateException e) {
+                Log.e(this, e, "Failed to accept call.");
+            }
+        }
     }
 
     @Override
@@ -1249,6 +1273,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         newProperties = changeBitmask(newProperties, PROPERTY_IS_RTT, isRtt());
         newProperties = changeBitmask(newProperties, PROPERTY_NETWORK_IDENTIFIED_EMERGENCY_CALL,
                 isNetworkIdentifiedEmergencyCall());
+        newProperties = changeBitmask(newProperties, PROPERTY_IS_ADHOC_CONFERENCE,
+                isAdhocConferenceCall());
 
         if (getConnectionProperties() != newProperties) {
             setTelephonyConnectionProperties(newProperties);
@@ -1346,6 +1372,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         setTelephonyVideoState(mOriginalConnection.getVideoState());
         setOriginalConnectionCapabilities(mOriginalConnection.getConnectionCapabilities());
         setIsNetworkIdentifiedEmergencyCall(mOriginalConnection.isNetworkIdentifiedEmergencyCall());
+        setIsAdhocConferenceCall(mOriginalConnection.isAdhocConference());
         setAudioModeIsVoip(mOriginalConnection.getAudioModeIsVoip());
         setTelephonyVideoProvider(mOriginalConnection.getVideoProvider());
         setAudioQuality(mOriginalConnection.getAudioQuality());
@@ -1615,6 +1642,39 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         return true;
     }
 
+    /**
+     * @return The address's to which this Connection is currently communicating.
+     */
+    public final @Nullable List<Uri> getParticipants() {
+        return mParticipants;
+    }
+
+    /**
+     * Sets the value of the {@link #getParticipants()} property.
+     *
+     * @param address The participant address's.
+     */
+    public final void setParticipants(@Nullable List<Uri> address) {
+        mParticipants = address;
+    }
+
+    /**
+     * @return true if connection is adhocConference call else false.
+     */
+    public final boolean isAdhocConferenceCall() {
+        return mIsAdhocConferenceCall;
+    }
+
+    /**
+     * Sets the value of the {@link #isAdhocConferenceCall()} property.
+     *
+     * @param isAdhocConferenceCall represents if the call is adhoc conference call or not.
+     */
+    public void setIsAdhocConferenceCall(boolean isAdhocConferenceCall) {
+        mIsAdhocConferenceCall = isAdhocConferenceCall;
+        updateConnectionProperties();
+    }
+
     private boolean canHoldImsCalls() {
         PersistableBundle b = getCarrierConfig();
         // Return true if the CarrierConfig is unavailable
@@ -1703,6 +1763,46 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                     Call call = getCall();
                     if (call != null) {
                         call.hangup();
+                    } else {
+                        Log.w(this, "Attempting to hangup a connection without backing call.");
+                    }
+                } else {
+                    // We still prefer to call connection.hangup() for non-ringing calls
+                    // in order to support hanging-up specific calls within a conference call.
+                    // If we invoked call.hangup() while in a conference, we would end up
+                    // hanging up the entire conference call instead of the specific connection.
+                    mOriginalConnection.hangup();
+                }
+            } catch (CallStateException e) {
+                Log.e(this, e, "Call to Connection.hangup failed with exception");
+            }
+        } else {
+            if (getState() == STATE_DISCONNECTED) {
+                Log.i(this, "hangup called on an already disconnected call!");
+                close();
+            } else {
+                // There are a few cases where mOriginalConnection has not been set yet. For
+                // example, when the radio has to be turned on to make an emergency call,
+                // mOriginalConnection could not be set for many seconds.
+                setTelephonyConnectionDisconnected(DisconnectCauseUtil.toTelecomDisconnectCause(
+                        android.telephony.DisconnectCause.LOCAL,
+                        "Local Disconnect before connection established."));
+                close();
+            }
+        }
+    }
+
+    protected void reject(@android.telecom.Call.RejectReason int rejectReason) {
+        if (mOriginalConnection != null) {
+            mHangupDisconnectCause = android.telephony.DisconnectCause.INCOMING_REJECTED;
+            try {
+                // Hanging up a ringing call requires that we invoke call.hangup() as opposed to
+                // connection.hangup(). Without this change, the party originating the call
+                // will not get sent to voicemail if the user opts to reject the call.
+                if (isValidRingingCall()) {
+                    Call call = getCall();
+                    if (call != null) {
+                        call.hangup(rejectReason);
                     } else {
                         Log.w(this, "Attempting to hangup a connection without backing call.");
                     }
@@ -2703,6 +2803,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         }
         sb.append(" confSupported:");
         sb.append(mIsConferenceSupported ? "Y" : "N");
+        sb.append(" isAdhocConf:");
+        sb.append(isAdhocConferenceCall() ? "Y" : "N");
         sb.append("]");
         return sb.toString();
     }
@@ -2827,8 +2929,13 @@ abstract class TelephonyConnection extends Connection implements Holdable,
      * <p>
      * Note: This should be used instead of {@link #setVideoState(int)} to ensure listeners are
      * notified.
+     * @param videoState The new video state. Valid values:
+     *                   {@link VideoProfile#STATE_AUDIO_ONLY},
+     *                   {@link VideoProfile#STATE_BIDIRECTIONAL},
+     *                   {@link VideoProfile#STATE_TX_ENABLED},
+     *                   {@link VideoProfile#STATE_RX_ENABLED}.
      */
-    public void setTelephonyVideoState(@VideoProfile.VideoState int videoState) {
+    public void setTelephonyVideoState(int videoState) {
         setVideoState(videoState);
         notifyVideoStateChanged(videoState);
     }
@@ -3019,11 +3126,25 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
     /**
      * Notifies {@link TelephonyConnectionListener}s of a change to the video state of a connection.
-     * @param videoState The new video state.
+     * @param videoState The new video state. Valid values:
+     *                   {@link VideoProfile#STATE_AUDIO_ONLY},
+     *                   {@link VideoProfile#STATE_BIDIRECTIONAL},
+     *                   {@link VideoProfile#STATE_TX_ENABLED},
+     *                   {@link VideoProfile#STATE_RX_ENABLED}.
      */
-    private void notifyVideoStateChanged(@VideoProfile.VideoState int videoState) {
+    private void notifyVideoStateChanged(int videoState) {
         for (TelephonyConnectionListener listener : mTelephonyListeners) {
             listener.onVideoStateChanged(this, videoState);
+        }
+    }
+
+    /**
+     * Notifies {@link TelephonyConnectionListener}s of a whether to play Ringback Tone or not.
+     * @param ringback Whether the ringback tone is to be played
+     */
+    private void notifyRingbackRequested(boolean ringback) {
+        for (TelephonyConnectionListener listener : mTelephonyListeners) {
+            listener.onRingbackRequested(this, ringback);
         }
     }
 

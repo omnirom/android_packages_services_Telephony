@@ -64,10 +64,7 @@ public class CallBarringEditPreference extends EditPinPreference {
     private CharSequence mDisableText;
     private CharSequence mSummaryOn;
     private CharSequence mSummaryOff;
-    private CharSequence mDialogMessageEnabled;
-    private CharSequence mDialogMessageDisabled;
     private int mButtonClicked;
-    private boolean mShowPassword;
     private final MyHandler mHandler = new MyHandler(this);
     private Phone mPhone;
     private TimeConsumingPreferenceListener mTcpListener;
@@ -100,10 +97,6 @@ public class CallBarringEditPreference extends EditPinPreference {
         typedArray = context.obtainStyledAttributes(attrs,
                 R.styleable.CallBarringEditPreference, 0, R.style.EditPhoneNumberPreference);
         mFacility = typedArray.getString(R.styleable.CallBarringEditPreference_facility);
-        mDialogMessageEnabled = typedArray.getString(
-                R.styleable.CallBarringEditPreference_dialogMessageEnabledNoPwd);
-        mDialogMessageDisabled = typedArray.getString(
-                R.styleable.CallBarringEditPreference_dialogMessageDisabledNoPwd);
         typedArray.recycle();
     }
 
@@ -142,29 +135,8 @@ public class CallBarringEditPreference extends EditPinPreference {
     }
 
     @Override
-    protected boolean needInputMethod() {
-        // Input method should only be displayed if the password-field is shown.
-        return mShowPassword;
-    }
-
-    void setInputMethodNeeded(boolean needed) {
-        mShowPassword = needed;
-    }
-
-    @Override
     protected void showDialog(Bundle state) {
-        setShowPassword();
-        if (mShowPassword) {
-            setDialogMessage(getContext().getString(R.string.messageCallBarring));
-        } else {
-            setDialogMessage(mIsActivated ? mDialogMessageEnabled : mDialogMessageDisabled);
-        }
-
-        if (DBG) {
-            Log.d(LOG_TAG, "showDialog: mShowPassword: " + mShowPassword
-                    + ", mIsActivated: " + mIsActivated);
-        }
-
+        setDialogMessage(getContext().getString(R.string.messageCallBarring));
         super.showDialog(state);
     }
 
@@ -216,8 +188,7 @@ public class CallBarringEditPreference extends EditPinPreference {
             editText.setTransformationMethod(PasswordTransformationMethod.getInstance());
             editText.setKeyListener(DigitsKeyListener.getInstance());
 
-            // Hide the input-text-line if the password is not shown.
-            editText.setVisibility(mShowPassword ? View.VISIBLE : View.GONE);
+            editText.setVisibility(View.VISIBLE);
         }
     }
 
@@ -229,17 +200,14 @@ public class CallBarringEditPreference extends EditPinPreference {
                     + positiveResult);
         }
         if (mButtonClicked != DialogInterface.BUTTON_NEGATIVE) {
-            String password = null;
-            if (mShowPassword) {
-                password = getEditText().getText().toString();
+            String password = getEditText().getText().toString();
 
-                // Check if the password is valid.
-                if (password == null || password.length() != PW_LENGTH) {
-                    Toast.makeText(getContext(),
-                            getContext().getString(R.string.call_barring_right_pwd_number),
-                            Toast.LENGTH_SHORT).show();
-                    return;
-                }
+            // Check if the password is valid.
+            if (password == null || password.length() != PW_LENGTH) {
+                Toast.makeText(getContext(),
+                        getContext().getString(R.string.call_barring_right_pwd_number),
+                        Toast.LENGTH_SHORT).show();
+                return;
             }
 
             if (DBG) {
@@ -276,10 +244,6 @@ public class CallBarringEditPreference extends EditPinPreference {
     void updateSummaryText() {
         notifyChanged();
         notifyDependencyChange(shouldDisableDependents());
-    }
-
-    private void setShowPassword() {
-        mShowPassword = true;
     }
 
     @Override
@@ -333,16 +297,6 @@ public class CallBarringEditPreference extends EditPinPreference {
                 pref.mTcpListener.onFinished(pref, false);
             } else {
                 pref.mTcpListener.onFinished(pref, true);
-                ImsPhone imsPhone = pref.mPhone != null
-                        ? (ImsPhone) pref.mPhone.getImsPhone() : null;
-                if (!pref.mShowPassword && (imsPhone == null || !imsPhone.isUtEnabled())) {
-                    // Re-enable password when rejected from NW and modem would perform CSFB
-                    pref.mShowPassword = true;
-                    if (DBG) {
-                        Log.d(LOG_TAG,
-                                "handleGetCallBarringResponse: mShowPassword changed for CSFB");
-                    }
-                }
             }
 
             // Unsuccessful query for call barring.
