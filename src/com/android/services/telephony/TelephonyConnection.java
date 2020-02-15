@@ -41,7 +41,6 @@ import android.telecom.VideoProfile;
 import android.telephony.CarrierConfigManager;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
-import com.android.telephony.Rlog;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
 import android.telephony.ServiceState;
@@ -55,6 +54,7 @@ import android.util.Pair;
 import android.widget.Toast;
 
 import com.android.ims.ImsCall;
+import com.android.ims.ImsException;
 import com.android.ims.internal.ConferenceParticipant;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.os.SomeArgs;
@@ -67,12 +67,15 @@ import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.gsm.SuppServiceNotification;
 import com.android.internal.telephony.imsphone.ImsPhone;
+import com.android.internal.telephony.imsphone.ImsPhoneCall;
 import com.android.internal.telephony.imsphone.ImsPhoneCallTracker;
 import com.android.internal.telephony.imsphone.ImsPhoneConnection;
+import com.android.internal.telephony.util.TelephonyResourceUtils;
 import com.android.phone.ImsUtil;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.PhoneUtils;
 import com.android.phone.R;
+import com.android.telephony.Rlog;
 
 import org.codeaurora.ims.utils.QtiImsExtUtils;
 
@@ -127,12 +130,6 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     private boolean mIsAdhocConferenceCall;
 
     private boolean mIsEmergencyNumber = false;
-    /**
-     * Extra indicating the conference support from lower layers
-     * <p>
-     * Type: boolean (true if conference is supported else false)
-     */
-    static final String CONF_SUPPORT_IND_EXTRA_KEY = "ConfSupportInd";
 
     private SuppServiceNotification mSsNotification = null;
 
@@ -930,6 +927,11 @@ abstract class TelephonyConnection extends Connection implements Holdable,
     }
 
     @Override
+    public void onAddConferenceParticipants(List<Uri> participants) {
+        performAddConferenceParticipants(participants);
+    }
+
+    @Override
     public void onAbort() {
         Log.v(this, "onAbort");
         mHandler.obtainMessage(MSG_HANGUP, android.telephony.DisconnectCause.LOCAL).sendToTarget();
@@ -1187,6 +1189,29 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         }
     }
 
+    private String[] getAddConferenceParticipants(List<Uri> participants) {
+        String[] addConfParticipants = new String[participants.size()];
+        int i = 0;
+        for (Uri participant : participants) {
+           addConfParticipants[i] = participant.getSchemeSpecificPart();
+           i++;
+        }
+        return addConfParticipants;
+    }
+
+    public void performAddConferenceParticipants(List<Uri> participants) {
+        Log.v(this, "performAddConferenceParticipants");
+        if (mOriginalConnection.getCall() instanceof ImsPhoneCall) {
+            ImsPhoneCall imsPhoneCall = (ImsPhoneCall)mOriginalConnection.getCall();
+            try {
+                imsPhoneCall.getImsCall().inviteParticipants(
+                        getAddConferenceParticipants(participants));
+            } catch(ImsException e) {
+                Log.e(this, e, "failed to add conference participants");
+            }
+        }
+    }
+
     public void performAddParticipant(String participant) {
         Log.d(this, "performAddParticipant - %s", participant);
         if (getPhone() != null) {
@@ -1268,7 +1293,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                 isExternalConnection());
         newProperties = changeBitmask(newProperties, PROPERTY_HAS_CDMA_VOICE_PRIVACY,
                 mIsCdmaVoicePrivacyEnabled);
-        newProperties = changeBitmask(newProperties, PROPERTY_ASSISTED_DIALING_USED,
+        newProperties = changeBitmask(newProperties, PROPERTY_ASSISTED_DIALING,
                 mIsUsingAssistedDialing);
         newProperties = changeBitmask(newProperties, PROPERTY_IS_RTT, isRtt());
         newProperties = changeBitmask(newProperties, PROPERTY_NETWORK_IDENTIFIED_EMERGENCY_CALL,
@@ -1684,6 +1709,75 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                 || !VideoProfile.isVideo(getVideoState()));
     }
 
+    private boolean isConferenceHosted() {
+        boolean isHosted = false;
+        if (getTelephonyConnectionService() != null) {
+            for (Conference current : getTelephonyConnectionService().getAllConferences()) {
+                if (current instanceof ImsConference) {
+                    ImsConference other = (ImsConference) current;
+                    if (getState() == current.getState()) {
+                        continue;
+                    }
+                    if (other.isConferenceHost()) {
+                        isHosted = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return isHosted;
+    }
+
+    private boolean isAddParticipantCapable() {
+        // not add participant capable for non ims phones
+        if (getPhone() == null || getPhone().getPhoneType() != PhoneConstants.PHONE_TYPE_IMS) {
+            return false;
+        }
+
+        if (!getCarrierConfig()
+                .getBoolean(CarrierConfigManager.KEY_SUPPORT_ADD_CONFERENCE_PARTICIPANTS_BOOL)) {
+            return false;
+        }
+
+        boolean isCapable = !mTreatAsEmergencyCall && (mConnectionState == Call.State.ACTIVE ||
+                mConnectionState == Call.State.HOLDING);
+
+        // add participant capable if current connection is a host connection or
+        // if conference is not hosted on the device
+        isCapable = isCapable && ((mOriginalConnection != null &&
+                mOriginalConnection.isConferenceHost()) ||
+                !isConferenceHosted());
+
+        /**
+          * For individual IMS calls, if the extra for remote conference support is
+          *     - indicated, then consider the same for add participant capability
+          *     - not indicated, then the add participant capability is same as before.
+          */
+        if (isCapable && (mOriginalConnection != null) && !mIsMultiParty) {
+            isCapable = mOriginalConnectionExtras.getBoolean(
+                    ImsCallProfile.EXTRA_CONFERENCE_AVAIL, isCapable);
+        }
+        return isCapable;
+    }
+
+    /**
+     * Applies the add participant capabilities to the {@code CallCapabilities} bit-mask.
+     *
+     * @param callCapabilities The {@code CallCapabilities} bit-mask.
+     * @return The capabilities with the add participant capabilities applied.
+     */
+    private int applyAddParticipantCapabilities(int callCapabilities) {
+        int currentCapabilities = callCapabilities;
+        if (isAddParticipantCapable()) {
+            currentCapabilities = changeBitmask(currentCapabilities,
+                    Connection.CAPABILITY_ADD_PARTICIPANT, true);
+        } else {
+            currentCapabilities = changeBitmask(currentCapabilities,
+                    Connection.CAPABILITY_ADD_PARTICIPANT, false);
+        }
+        return currentCapabilities;
+    }
+
     @VisibleForTesting
     public PersistableBundle getCarrierConfig() {
         Phone phone = getPhone();
@@ -1717,8 +1811,8 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         if (phone == null) {
             return true;
         }
-        return phone.getContext().getResources().getBoolean(
-                com.android.internal.R.bool.config_device_respects_hold_carrier_config);
+        return TelephonyResourceUtils.getTelephonyResources(phone.getContext()).getBoolean(
+            com.android.telephony.resources.R.bool.config_device_respects_hold_carrier_config);
     }
 
     /**
@@ -1947,9 +2041,9 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                     // Ensure extras are propagated to Telecom.
                     putTelephonyExtras(mOriginalConnectionExtras);
                     // If extras contain Conference support information,
-                    // then ensure capabilities are updated and propagated to Telecom.
+                    // then ensure capabilities are updated.
                     if (mOriginalConnectionExtras.containsKey(
-                            CONF_SUPPORT_IND_EXTRA_KEY)) {
+                            ImsCallProfile.EXTRA_CONFERENCE_AVAIL)) {
                         updateConnectionCapabilities();
                     }
                 } else {
@@ -2263,43 +2357,6 @@ abstract class TelephonyConnection extends Connection implements Holdable,
         }
 
         return currentCapabilities;
-    }
-
-    /**
-     * Applies the add participant capabilities to the {@code CallCapabilities} bit-mask.
-     *
-     * @param callCapabilities The {@code CallCapabilities} bit-mask.
-     * @return The capabilities with the add participant capabilities applied.
-     */
-    private int applyAddParticipantCapabilities(int callCapabilities) {
-        int currentCapabilities = callCapabilities;
-        if (isAddParticipantCapable()) {
-            currentCapabilities = changeBitmask(currentCapabilities,
-                    Connection.CAPABILITY_ADD_PARTICIPANT, true);
-        } else {
-            currentCapabilities = changeBitmask(currentCapabilities,
-                    Connection.CAPABILITY_ADD_PARTICIPANT, false);
-        }
-
-        return currentCapabilities;
-    }
-
-    private boolean isAddParticipantCapable() {
-        boolean isCapable = getPhone() != null &&
-               (getPhone().getPhoneType() == PhoneConstants.PHONE_TYPE_IMS) &&
-               !mIsEmergencyNumber && (mConnectionState == Call.State.ACTIVE
-               || mConnectionState == Call.State.HOLDING);
-         /**
-         * For individual IMS calls, if the extra for remote conference support is
-         *     - indicated, then consider the same for add participant capability
-         *     - not indicated, then the add participant capability is same as before.
-         */
-        if (isCapable && (mOriginalConnection != null) && !mIsMultiParty) {
-            isCapable = mOriginalConnectionExtras.getBoolean(
-                    CONF_SUPPORT_IND_EXTRA_KEY, true);
-        }
-        Log.i(this, "isAddParticipantCapable: isCapable = " + isCapable);
-        return isCapable;
     }
 
     /**
