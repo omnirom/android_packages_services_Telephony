@@ -1398,6 +1398,7 @@ abstract class TelephonyConnection extends Connection implements Holdable,
             mWasImsConnection = true;
         } else {
             extrasToRemove.add(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY);
+            extrasToRemove.add(QtiImsExtUtils.EXTRA_TIR_OVERWRITE_ALLOWED);
         }
 
         mIsMultiParty = mOriginalConnection.isMultiparty();
