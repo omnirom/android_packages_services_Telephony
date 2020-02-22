@@ -143,11 +143,6 @@ public class CallForwardType extends PreferenceActivity {
         mFeatureConnector = new FeatureConnector(mPhone.getContext(), mPhone.getPhoneId(),
                 new FeatureConnector.Listener<ImsManager>() {
                     @Override
-                    public boolean isSupported() {
-                        return true;
-                    }
-
-                    @Override
                     public ImsManager getFeatureManager() {
                         return ImsManager.getInstance(mPhone.getContext(), mPhone.getPhoneId());
                     }
@@ -163,7 +158,7 @@ public class CallForwardType extends PreferenceActivity {
                         Log.d(LOG_TAG, "ImsManager: connection unavailable.");
                         removeListeners();
                     }
-                });
+                }, LOG_TAG);
 
         /*Voice Button*/
         mVoicePreference = (Preference) findPreference(BUTTON_CF_KEY_VOICE);

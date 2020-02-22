@@ -41,5 +41,4 @@
     <string name="phone_info_label" product="tablet" msgid="8816614547088739126">"平板电脑信息"</string>
     <string name="phone_info_label" product="default" msgid="3123311719257053162">"手机信息"</string>
     <string name="band_mode_title" msgid="681256838654706936">"设置无线装置频道模式"</string>
-    <string name="call_forward_option">"呼叫转移选项"</string>
 </resources>
