@@ -315,13 +315,13 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                     // the interface of Phone.setCallForwardingOption has error:
                     // should be action, reason...
                     mPhone.setCallForwardingOption(action,
-                        reason,
-                        number,
-                        mServiceClass,
-                        time,
-                        mHandler.obtainMessage(MyHandler.MESSAGE_SET_CF,
-                                action,
-                                MyHandler.MESSAGE_SET_CF));
+                            reason,
+                            number,
+                            mServiceClass,
+                            time,
+                            mHandler.obtainMessage(MyHandler.MESSAGE_SET_CF,
+                                    action,
+                                    MyHandler.MESSAGE_SET_CF));
                 } else {
                     if (action == CommandsInterface.CF_ACTION_REGISTRATION) {
                         mCfInfo.put(CarrierXmlParser.TAG_ENTRY_NUMBER, number);
@@ -635,9 +635,8 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                     mTcpListener.onError(CallForwardEditPreference.this, RESPONSE_ERROR);
                 }
                 CallForwardInfo cfInfoArray[] = (CallForwardInfo[]) ar.result;
-                if (cfInfoArray.length == 0) {
+                if (cfInfoArray == null || cfInfoArray.length == 0) {
                     Log.d(LOG_TAG, "handleGetCFResponse: cfInfoArray.length==0");
-                    setEnabled(false);
                     mTcpListener.onError(CallForwardEditPreference.this, RESPONSE_ERROR);
                 } else {
                     for (int i = 0, length = cfInfoArray.length; i < length; i++) {
@@ -647,6 +646,11 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                             // corresponding class
                             CallForwardInfo info = cfInfoArray[i];
                             handleCallForwardResult(info);
+
+                            if (ar.userObj instanceof Throwable) {
+                                Log.d(LOG_TAG, "Skipped duplicated error dialog");
+                                continue;
+                            }
 
                             // Show an alert if we got a success response but
                             // with unexpected values.
