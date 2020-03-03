@@ -92,7 +92,7 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     }
 
     private IExtTelephony mExtTelephony = IExtTelephony.Stub.
-            asInterface(ServiceManager.getService("extphone"));
+            asInterface(ServiceManager.getService("qti.radio.extphone"));
 
     /**
      * Shows the network depersonalization dialog, but only if it is not already visible.

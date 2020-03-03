@@ -1315,7 +1315,7 @@ public class TelecomAccountRegistry {
 
                         if (mTelephonyManager.getPhoneCount() > 1) {
                             IExtTelephony mExtTelephony = IExtTelephony.Stub
-                                    .asInterface(ServiceManager.getService("extphone"));
+                                    .asInterface(ServiceManager.getService("qti.radio.extphone"));
                             try {
                                 //get current provision state of the SIM.
                                 provisionStatus =

@@ -953,7 +953,7 @@ public class NotificationMgr {
         final int INVALID_STATE = -1;
         int provisionStatus = INVALID_STATE;
         IExtTelephony mExtTelephony = IExtTelephony.Stub
-                .asInterface(ServiceManager.getService("extphone"));
+                .asInterface(ServiceManager.getService("qti.radio.extphone"));
         int slotId = SubscriptionController.getInstance().getSlotIndex(subId);
         try {
             //get current provision state of the SIM.
