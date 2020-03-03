@@ -1188,11 +1188,26 @@ public class TelephonyConnectionService extends ConnectionService {
         Call call = phone.getRingingCall();
         if (!call.getState().isRinging()) {
             Log.i(this, "onCreateIncomingConnection, no ringing call");
-            return Connection.createFailedConnection(
+            Connection connection = Connection.createFailedConnection(
                     mDisconnectCauseFactory.toTelecomDisconnectCause(
                             android.telephony.DisconnectCause.INCOMING_MISSED,
                             "Found no ringing call",
                             phone.getPhoneId()));
+            Bundle extras = request.getExtras();
+
+            long time = extras.getLong(TelecomManager.EXTRA_CALL_CREATED_EPOCH_TIME_MILLIS);
+            if (time != 0) {
+                Log.i(this, "onCreateIncomingConnection. Set connect time info.");
+                connection.setConnectTimeMillis(time);
+            }
+
+            Uri address = extras.getParcelable(TelecomManager.EXTRA_INCOMING_CALL_ADDRESS);
+            if (address != null) {
+                Log.i(this, "onCreateIncomingConnection. Set caller id info.");
+                connection.setAddress(address, TelecomManager.PRESENTATION_ALLOWED);
+            }
+
+            return connection;
         }
 
         com.android.internal.telephony.Connection originalConnection =
@@ -1828,7 +1843,7 @@ public class TelephonyConnectionService extends ConnectionService {
             if (!isAdhocConference) {
                 // Listen to Telephony specific callbacks from the connection
                 returnConnection.addTelephonyConnectionListener(mTelephonyConnectionListener);
-            } 
+            }
             returnConnection.setVideoPauseSupported(
                     TelecomAccountRegistry.getInstance(this).isVideoPauseSupported(
                             phoneAccountHandle));
@@ -2187,30 +2202,24 @@ public class TelephonyConnectionService extends ConnectionService {
                             return 1;
                         }
                         // sort by number of RadioAccessFamily Capabilities.
-                        int compare = Integer.bitCount(o1.capabilities) -
-                                Integer.bitCount(o2.capabilities);
+                        int compare = RadioAccessFamily.compare(o1.capabilities, o2.capabilities);
                         if (compare == 0) {
-                            // Sort by highest RAF Capability if the number is the same.
-                            compare = RadioAccessFamily.getHighestRafCapability(o1.capabilities) -
-                                    RadioAccessFamily.getHighestRafCapability(o2.capabilities);
-                            if (compare == 0) {
-                                if (firstOccupiedSlot != null) {
-                                    // If the RAF capability is the same, choose based on whether or
-                                    // not any of the slots are occupied with a SIM card (if both
-                                    // are, always choose the first).
-                                    if (o1.slotId == firstOccupiedSlot.getPhoneId()) {
-                                        return 1;
-                                    } else if (o2.slotId == firstOccupiedSlot.getPhoneId()) {
-                                        return -1;
-                                    }
-                                } else {
-                                    // No slots have SIMs detected in them, so weight the default
-                                    // Phone Id greater than the others.
-                                    if (o1.slotId == defaultPhoneId) {
-                                        return 1;
-                                    } else if (o2.slotId == defaultPhoneId) {
-                                        return -1;
-                                    }
+                            if (firstOccupiedSlot != null) {
+                                // If the RAF capability is the same, choose based on whether or
+                                // not any of the slots are occupied with a SIM card (if both
+                                // are, always choose the first).
+                                if (o1.slotId == firstOccupiedSlot.getPhoneId()) {
+                                    return 1;
+                                } else if (o2.slotId == firstOccupiedSlot.getPhoneId()) {
+                                    return -1;
+                                }
+                            } else {
+                                // No slots have SIMs detected in them, so weight the default
+                                // Phone Id greater than the others.
+                                if (o1.slotId == defaultPhoneId) {
+                                    return 1;
+                                } else if (o2.slotId == defaultPhoneId) {
+                                    return -1;
                                 }
                             }
                         }
