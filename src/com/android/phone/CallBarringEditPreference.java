@@ -35,20 +35,13 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.android.ims.ImsException;
 import com.android.internal.telephony.CommandsInterface;
 import com.android.internal.telephony.CommandException;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneFactory;
-import com.android.internal.telephony.imsphone.ImsPhone;
 import com.android.phone.settings.fdn.EditPinPreference;
 
 import java.lang.ref.WeakReference;
-
-import org.codeaurora.ims.QtiImsException;
-import org.codeaurora.ims.QtiImsExtConnector;
-import org.codeaurora.ims.QtiImsExtListenerBaseImpl;
-import org.codeaurora.ims.QtiImsExtManager;
 
 /**
  * This preference represents the status of call barring options, enabling/disabling
@@ -68,9 +61,6 @@ public class CallBarringEditPreference extends EditPinPreference {
     private final MyHandler mHandler = new MyHandler(this);
     private Phone mPhone;
     private TimeConsumingPreferenceListener mTcpListener;
-
-    private QtiImsExtConnector mQtiImsExtConnector;
-    private QtiImsExtManager mQtiImsExtManager;
 
     private static final int PW_LENGTH = 4;
 
@@ -114,8 +104,6 @@ public class CallBarringEditPreference extends EditPinPreference {
             Log.d(LOG_TAG, "init: phone id = " + phone.getPhoneId());
         }
         mPhone = phone;
-        createQtiImsExtConnector(mPhone.getContext());
-        mQtiImsExtConnector.connect();
 
         mTcpListener = listener;
         if (!skipReading) {
@@ -214,20 +202,9 @@ public class CallBarringEditPreference extends EditPinPreference {
                 Log.d(LOG_TAG, "onDialogClosed: password=" + password);
             }
             // Send set call barring message to RIL layer.
-            ImsPhone imsPhone = mPhone != null ? (ImsPhone) mPhone.getImsPhone() : null;
-            if (mQtiImsExtManager != null && imsPhone != null && imsPhone.isUtEnabled()) {
-                try {
-                    mQtiImsExtManager.setCallBarring(mPhone.getPhoneId(), !mIsActivated, mFacility,
-                            null, password, CommandsInterface.SERVICE_CLASS_VOICE,
-                            imsInterfaceListener);
-                } catch (QtiImsException e) {
-                    Log.e(LOG_TAG, "setCallBarring failed. Exception : " + e);
-                }
-            } else {
-                mPhone.setCallBarring(mFacility, !mIsActivated, password,
-                        mHandler.obtainMessage(MyHandler.MESSAGE_SET_CALL_BARRING),
-                        CommandsInterface.SERVICE_CLASS_VOICE);
-            }
+            mPhone.setCallBarring(mFacility, !mIsActivated, password,
+                    mHandler.obtainMessage(MyHandler.MESSAGE_SET_CALL_BARRING),
+                    CommandsInterface.SERVICE_CLASS_VOICE);
             if (mTcpListener != null) {
                 mTcpListener.onStarted(this, false);
             }
@@ -330,7 +307,7 @@ public class CallBarringEditPreference extends EditPinPreference {
         }
 
         // Handle the response message for CB settings.
-        public void handleSetCallBarringResponse(Message msg) {
+        private void handleSetCallBarringResponse(Message msg) {
             final CallBarringEditPreference pref = mCallBarringEditPreference.get();
             if (pref == null) {
                 return;
@@ -354,38 +331,4 @@ public class CallBarringEditPreference extends EditPinPreference {
                     CommandsInterface.SERVICE_CLASS_VOICE);
         }
     }
-
-    private void createQtiImsExtConnector(Context context) {
-        try {
-            mQtiImsExtConnector = new QtiImsExtConnector(context,
-                    new QtiImsExtConnector.IListener() {
-                        @Override
-                        public void onConnectionAvailable(QtiImsExtManager qtiImsExtManager) {
-                            Log.i(LOG_TAG, "QtiImsExtConnector onConnectionAvailable");
-                            mQtiImsExtManager = qtiImsExtManager;
-                        }
-                        @Override
-                        public void onConnectionUnavailable() {
-                            mQtiImsExtManager = null;
-                        }
-                    });
-        } catch (QtiImsException e) {
-            Log.e(LOG_TAG, "Unable to create QtiImsExtConnector");
-        }
-    }
-
-    private QtiImsExtListenerBaseImpl imsInterfaceListener = new QtiImsExtListenerBaseImpl() {
-        @Override
-        public void onSetCallBarring() {
-            Message msg = mHandler.obtainMessage(MyHandler.MESSAGE_SET_CALL_BARRING,
-                    new AsyncResult(null, null, null));
-            mHandler.handleSetCallBarringResponse(msg);
-        }
-        @Override
-        public void onUTReqFailed(int phoneId, int errCode, String errString) {
-            Message msg = mHandler.obtainMessage(MyHandler.MESSAGE_SET_CALL_BARRING,
-                    new AsyncResult(null, null, new ImsException(errString, errCode)));
-            mHandler.handleSetCallBarringResponse(msg);
-        }
-    };
 }
