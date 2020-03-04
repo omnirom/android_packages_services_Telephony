@@ -1923,4 +1923,10 @@
     <string name="labelCommonMore_with_label">Call settings (<xliff:g id="subscriptionlabel" example="T-Mobile">%s</xliff:g>)</string>
     <string name="sum_common_call_settings">Additional call settings</string>
     <string name="ut_unavailable_to_set_video_cf_toast">UT is unavailable to set call forwarding for video, please close this page and exit.</string>
+    <!-- Instruction text to notify user that emergency calls may not be possible when voice is enabled over wifi. [CHAR LIMIT=NONE] -->
+    <string name="limited_service_alert_dialog_description"><b>Emergency calls via WiFi Calling</b>\nEmergency calls are not possible via WiFi Calling.
+\n\nThe device switches automatically to a cellular network (2G/3G) to place an emergency call.
+\n\nEmergency calls are only possible in areas with cellular coverage.</string>
+    <!-- Option to hide the popup dialog if it is not necessary for the user. [CHAR LIMIT=40] -->
+    <string name="do_not_show_again">Do not show again</string>
 </resources>
