@@ -120,6 +120,7 @@ import android.util.Pair;
 
 import com.android.ims.ImsManager;
 import com.android.ims.internal.IImsServiceFeatureCallback;
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.CallForwardInfo;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.CallStateException;
@@ -1617,7 +1618,8 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /** Private constructor; @see init() */
-    private PhoneInterfaceManager(PhoneGlobals app) {
+    @VisibleForTesting
+    /* package */ PhoneInterfaceManager(PhoneGlobals app) {
         mApp = app;
         mCM = PhoneGlobals.getInstance().mCM;
         mImsResolver = PhoneGlobals.getInstance().getImsResolver();
@@ -7467,6 +7469,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public List<UiccCardInfo> getUiccCardsInfo(String callingPackage) {
+        try {
+            PackageManager pm = mApp.getPackageManager();
+            if (Binder.getCallingUid() != pm.getPackageUid(callingPackage, 0)) {
+                throw new SecurityException("Calling package " + callingPackage + " does not match "
+                        + "calling UID");
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+            throw new SecurityException("Invalid calling package. e=" + e);
+        }
         boolean hasReadPermission = false;
         try {
             enforceReadPrivilegedPermission("getUiccCardsInfo");
@@ -8243,6 +8254,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public boolean isMvnoMatched(int subId, int mvnoType, @NonNull String mvnoMatchData) {
+        enforceReadPrivilegedPermission("isMvnoMatched");
         IccRecords iccRecords = UiccController.getInstance().getIccRecords(
                 SubscriptionManager.getPhoneId(subId), UiccController.APP_FAM_3GPP);
         if (iccRecords == null) {
