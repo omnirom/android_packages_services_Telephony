@@ -90,11 +90,6 @@ public class CdmaConference extends TelephonyConferenceBase implements Holdable 
     }
 
     @Override
-    public void onAddParticipant(String participant) {
-        Log.e(this, new Exception(), "Add participant not supported for CDMA conference call.");
-    }
-
-    @Override
     public void onHold() {
         Log.e(this, new Exception(), "Hold not supported for CDMA conference call.");
     }
