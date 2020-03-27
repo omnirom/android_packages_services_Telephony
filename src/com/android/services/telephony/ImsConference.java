@@ -16,8 +16,6 @@
 
 package com.android.services.telephony;
 
-import static com.android.internal.telephony.TelephonyIntents.EXTRAS_IS_CONFERENCE_URI;
-
 import android.content.Context;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
@@ -157,8 +155,6 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
                 @Override
                 public void onExtrasChanged(Connection c, Bundle extras) {
                     Log.v(this, "onExtrasChanged: c=" + c + " Extras=" + extras);
-                    mIsConferenceUri = extras.getBoolean(
-                            EXTRAS_IS_CONFERENCE_URI, false);
                     putExtras(extras);
                 }
 
@@ -230,7 +226,6 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
      */
     private TelephonyConnection mConferenceHost;
 
-    private boolean mIsConferenceUri = false;
     /**
      * The PhoneAccountHandle of the conference host.
      */
@@ -330,8 +325,7 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
         setConferenceHost(conferenceHost);
 
         int capabilities = Connection.CAPABILITY_MUTE |
-                Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN |
-                Connection.CAPABILITY_ADD_PARTICIPANT;
+                Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN;
         if (canHoldImsCalls()) {
             capabilities |= Connection.CAPABILITY_SUPPORT_HOLD | Connection.CAPABILITY_HOLD;
             mIsHoldable = true;
@@ -567,25 +561,6 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
             return;
         }
         mConferenceHost.performReject(android.telecom.Call.REJECT_REASON_DECLINED);
-    }
-
-    /**
-     * Invoked when the conference adds a participant to the conference call.
-     *
-     * @param participant The participant to be added with conference call.
-     */
-    @Override
-    public void onAddParticipant(String participant) {
-        try {
-            Phone phone = (mConferenceHost != null) ? mConferenceHost.getPhone() : null;
-            Log.d(this, "onAddParticipant mConferenceHost = " + mConferenceHost
-                    + " Phone = " + phone);
-            if (phone != null) {
-                phone.addParticipant(participant);
-            }
-        } catch (CallStateException e) {
-            Log.e(this, e, "Exception thrown trying to add a participant into conference");
-        }
     }
 
     /**
@@ -876,7 +851,6 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
                     if (!mConferenceParticipantConnections.containsKey(userEntity)) {
                         // Some carriers will also include the conference host in the CEP.  We will
                         // filter that out here.
-                        // Also make sure the parent connection is not null.
                         boolean disableFilter = false;
                         Phone phone = parent.getPhone();
                         if (phone != null) {
@@ -888,7 +862,7 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
                             }
                         }
                         if ((!isParticipantHost(mConferenceHostAddress, participant.getHandle())
-                               || disableFilter) && (parent.getOriginalConnection() != null)) {
+                               || disableFilter)) {
                             Log.i(this, "Create participant connection, participant = %s", participant);
                             createConferenceParticipantConnection(parent, participant);
                             newParticipants.add(participant);
@@ -968,9 +942,6 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
                 } else if (mIsEmulatingSinglePartyCall && !isSinglePartyConference) {
                     // Number of participants increased, so stop emulating a single party call.
                     stopEmulatingSinglePartyCall();
-                } else if (mIsConferenceUri && newParticipantCount == 1) {
-                    // conference uri call can right away start with a single participant
-                    startEmulatingSinglePartyCall();
                 }
             }
 
