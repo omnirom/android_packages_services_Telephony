@@ -60,7 +60,6 @@ import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.text.TextUtils;
 
 import com.android.ims.ImsManager;
-import com.android.internal.telephony.LocaleTracker;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
@@ -1331,7 +1330,7 @@ public class TelecomAccountRegistry {
             }
         };
         Uri contactDiscUri = Uri.withAppendedPath(Telephony.SimInfo.CONTENT_URI,
-                Telephony.SimInfo.IMS_RCS_UCE_ENABLED);
+                Telephony.SimInfo.COLUMN_IMS_RCS_UCE_ENABLED);
         mContext.getContentResolver().registerContentObserver(
                 contactDiscUri, true /*notifyForDescendants*/, contactDiscoveryObserver);
     }
