@@ -1658,7 +1658,10 @@ public class TelephonyConnectionService extends ConnectionService {
 
     private void placeOutgoingConnection(
             TelephonyConnection connection, Phone phone, int videoState, Bundle extras) {
-        String number = connection.getAddress().getSchemeSpecificPart();
+
+        String number = (connection.getAddress() != null)
+                ? connection.getAddress().getSchemeSpecificPart()
+                : "";
 
         updatePhoneAccount(connection, phone);
 
