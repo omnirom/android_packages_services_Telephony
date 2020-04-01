@@ -120,7 +120,6 @@ import android.util.Pair;
 
 import com.android.ims.ImsManager;
 import com.android.ims.internal.IImsServiceFeatureCallback;
-import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.CallForwardInfo;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.CallStateException;
@@ -1650,8 +1649,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /** Private constructor; @see init() */
-    @VisibleForTesting
-    /* package */ PhoneInterfaceManager(PhoneGlobals app) {
+    private PhoneInterfaceManager(PhoneGlobals app) {
         mApp = app;
         mCM = PhoneGlobals.getInstance().mCM;
         mImsResolver = PhoneGlobals.getInstance().getImsResolver();
@@ -3065,14 +3063,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void sendVisualVoicemailSmsForSubscriber(String callingPackage, int subId,
-            String number, int port, String text, PendingIntent sentIntent) {
+    public void sendVisualVoicemailSmsForSubscriber(String callingPackage,
+            String callingAttributionTag, int subId, String number, int port, String text,
+            PendingIntent sentIntent) {
         mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
         enforceVisualVoicemailPackage(callingPackage, subId);
         enforceSendSmsPermission();
         SmsController smsController = PhoneFactory.getSmsController();
-        smsController.sendVisualVoicemailSmsForSubscriber(callingPackage, subId, number, port, text,
-                sentIntent);
+        smsController.sendVisualVoicemailSmsForSubscriber(callingPackage, callingAttributionTag,
+                subId, number, port, text, sentIntent);
     }
 
     /**
@@ -7473,15 +7472,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public List<UiccCardInfo> getUiccCardsInfo(String callingPackage) {
-        try {
-            PackageManager pm = mApp.getPackageManager();
-            if (Binder.getCallingUid() != pm.getPackageUid(callingPackage, 0)) {
-                throw new SecurityException("Calling package " + callingPackage + " does not match "
-                        + "calling UID");
-            }
-        } catch (PackageManager.NameNotFoundException e) {
-            throw new SecurityException("Invalid calling package. e=" + e);
-        }
+        // Verify that tha callingPackage belongs to the calling UID
+        mApp.getSystemService(AppOpsManager.class)
+                .checkPackage(Binder.getCallingUid(), callingPackage);
+
         boolean hasReadPermission = false;
         try {
             enforceReadPrivilegedPermission("getUiccCardsInfo");
@@ -8286,13 +8280,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void enqueueSmsPickResult(String callingPackage, IIntegerConsumer pendingSubIdResult) {
+    public void enqueueSmsPickResult(String callingPackage, String callingAttributionTag,
+            IIntegerConsumer pendingSubIdResult) {
         if (callingPackage == null) {
             callingPackage = getCurrentPackageName();
         }
         SmsPermissions permissions = new SmsPermissions(getDefaultPhone(), mApp,
                 (AppOpsManager) mApp.getSystemService(Context.APP_OPS_SERVICE));
-        if (!permissions.checkCallingCanSendSms(callingPackage, "Sending message")) {
+        if (!permissions.checkCallingCanSendSms(callingPackage, callingAttributionTag,
+                "Sending message")) {
             throw new SecurityException("Requires SEND_SMS permission to perform this operation");
         }
         PickSmsSubscriptionActivity.addPendingResult(pendingSubIdResult);
