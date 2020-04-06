@@ -39,6 +39,7 @@ import android.os.ServiceManager;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.provider.Settings;
+import android.provider.Telephony;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -51,6 +52,7 @@ import android.telephony.SubscriptionManager.OnSubscriptionsChangedListener;
 import android.telephony.TelephonyManager;
 import android.telephony.ims.ImsException;
 import android.telephony.ims.ImsMmTelManager;
+import android.telephony.ims.ImsRcsManager;
 import android.telephony.ims.ImsReasonInfo;
 import android.telephony.ims.RegistrationManager;
 import android.telephony.ims.feature.MmTelFeature;
@@ -58,6 +60,7 @@ import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.text.TextUtils;
 
 import com.android.ims.ImsManager;
+import com.android.internal.telephony.LocaleTracker;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.PhoneFactory;
@@ -73,6 +76,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import org.codeaurora.internal.IExtTelephony;
 
@@ -557,16 +561,31 @@ public class TelecomAccountRegistry {
         }
 
         /**
-         * Determines from carrier configuration whether RCS presence indication for video calls is
-         * supported.
+         * Determines from carrier configuration and user setting whether RCS presence indication
+         * for video calls is supported.
          *
          * @return {@code true} if RCS presence indication for video calls is supported.
          */
         private boolean isCarrierVideoPresenceSupported() {
             PersistableBundle b =
                     PhoneGlobals.getInstance().getCarrierConfigForSubId(mPhone.getSubId());
-            return b != null &&
-                    b.getBoolean(CarrierConfigManager.KEY_USE_RCS_PRESENCE_BOOL);
+            boolean carrierConfigEnabled = b != null
+                    && b.getBoolean(CarrierConfigManager.KEY_USE_RCS_PRESENCE_BOOL);
+            return carrierConfigEnabled && isUserContactDiscoverySettingEnabled();
+        }
+
+        /**
+         * @return true if the user has enabled contact discovery for the subscription associated
+         * with this account entry, false otherwise.
+         */
+        private boolean isUserContactDiscoverySettingEnabled() {
+            try {
+                ImsRcsManager manager = mImsManager.getImsRcsManager(mPhone.getSubId());
+                return manager.getUceAdapter().isUceSettingEnabled();
+            } catch (Exception e) {
+                Log.w(LOG_TAG, "isUserContactDiscoverySettingEnabled caught exception: " + e);
+                return false;
+            }
         }
 
         /**
@@ -768,6 +787,25 @@ public class TelecomAccountRegistry {
             }
         }
 
+        public void updateVideoPresenceCapability() {
+            synchronized (mAccountsLock) {
+                if (!mAccounts.contains(this)) {
+                    // Account has already been torn down, don't try to register it again.
+                    // This handles the case where teardown has already happened, and we got a Ims
+                    // registration update that lost the race for the mAccountsLock.  In such a
+                    // scenario by the time we get here, the original phone account could have been
+                    // torn down.
+                    return;
+                }
+                boolean isVideoPresenceSupported = isCarrierVideoPresenceSupported();
+                if (mIsVideoPresenceSupported != isVideoPresenceSupported) {
+                    Log.i(this, "updateVideoPresenceCapability for subId=" + mPhone.getSubId()
+                            + ", new value= " + isVideoPresenceSupported);
+                    mAccount = registerPstnPhoneAccount(mIsEmergency, mIsDummy);
+                }
+            }
+        }
+
         public void updateRttCapability() {
             boolean isRttEnabled = isRttCurrentlySupported();
             if (isRttEnabled != mIsRttCapable) {
@@ -790,14 +828,51 @@ public class TelecomAccountRegistry {
          * device.
          */
         private boolean isRttCurrentlySupported() {
+            // First check the emergency case -- if it's supported and turned on,
+            // we want to present RTT as available on the emergency-only phone account
+            if (mIsEmergency) {
+                // First check whether the device supports it
+                boolean devicesSupportsRtt =
+                        mContext.getResources().getBoolean(R.bool.config_support_rtt);
+                boolean deviceSupportsEmergencyRtt = mContext.getResources().getBoolean(
+                        R.bool.config_support_simless_emergency_rtt);
+                if (!(deviceSupportsEmergencyRtt && devicesSupportsRtt)) {
+                    Log.i(this, "isRttCurrentlySupported -- emergency acct and no device support");
+                    return false;
+                }
+                // Next check whether we're in or near a country that supports it
+                String country =
+                        mPhone.getServiceStateTracker().getLocaleTracker()
+                                .getCurrentCountry().toLowerCase();
+                String[] supportedCountries = mContext.getResources().getStringArray(
+                        R.array.config_simless_emergency_rtt_supported_countries);
+                if (supportedCountries == null || Arrays.stream(supportedCountries).noneMatch(
+                        Predicate.isEqual(country))) {
+                    Log.i(this, "isRttCurrentlySupported -- emergency acct and"
+                            + " not supported in this country: " + country);
+                    return false;
+                }
+                
+                return true;
+            }
+
             boolean hasVoiceAvailability = isImsVoiceAvailable();
 
             boolean isRttSupported = PhoneGlobals.getInstance().phoneMgr
                     .isRttEnabled(mPhone.getSubId());
 
             boolean isRoaming = mTelephonyManager.isNetworkRoaming(mPhone.getSubId());
+            boolean isOnWfc = mPhone.getImsRegistrationTech()
+                    == ImsRegistrationImplBase.REGISTRATION_TECH_IWLAN;
 
-            return hasVoiceAvailability && isRttSupported && !isRoaming;
+            boolean shouldDisableBecauseRoamingOffWfc = isRoaming && !isOnWfc;
+            Log.i(this, "isRttCurrentlySupported -- regular acct,"
+                    + " hasVoiceAvailability: " + hasVoiceAvailability + "\n"
+                    + " isRttSupported: " + isRttSupported + "\n"
+                    + " isRoaming: " + isRoaming + "\n"
+                    + " isOnWfc: " + isOnWfc + "\n");
+
+            return hasVoiceAvailability && isRttSupported && !shouldDisableBecauseRoamingOffWfc;
         }
 
         /**
@@ -963,6 +1038,7 @@ public class TelecomAccountRegistry {
     private static TelecomAccountRegistry sInstance;
     private final Context mContext;
     private final TelecomManager mTelecomManager;
+    private final android.telephony.ims.ImsManager mImsManager;
     private final TelephonyManager mTelephonyManager;
     private final SubscriptionManager mSubscriptionManager;
     private List<AccountEntry> mAccounts = new LinkedList<AccountEntry>();
@@ -978,6 +1054,7 @@ public class TelecomAccountRegistry {
     TelecomAccountRegistry(Context context) {
         mContext = context;
         mTelecomManager = context.getSystemService(TelecomManager.class);
+        mImsManager = context.getSystemService(android.telephony.ims.ImsManager.class);
         mTelephonyManager = TelephonyManager.from(context);
         mSubscriptionManager = SubscriptionManager.from(context);
     }
@@ -1212,9 +1289,14 @@ public class TelecomAccountRegistry {
 
         //We also need to listen for locale changes
         //(e.g. system language changed -> SIM card name changed)
-        mContext.registerReceiver(mLocaleChangeReceiver,
-                new IntentFilter(Intent.ACTION_LOCALE_CHANGED));
+        IntentFilter localeChangeFilter = new IntentFilter(Intent.ACTION_LOCALE_CHANGED);
+        localeChangeFilter.addAction(TelephonyManager.ACTION_NETWORK_COUNTRY_CHANGED);
+        mContext.registerReceiver(mLocaleChangeReceiver, localeChangeFilter);
 
+        registerContentObservers();
+    }
+
+    private void registerContentObservers() {
         // Listen to the RTT system setting so that we update it when the user flips it.
         ContentObserver rttUiSettingObserver = new ContentObserver(
                 new Handler(Looper.getMainLooper())) {
@@ -1235,6 +1317,23 @@ public class TelecomAccountRegistry {
             mContext.getContentResolver().registerContentObserver(
                     rttSettingUri, false, rttUiSettingObserver);
         }
+
+        // Listen to the changes to the user's Contacts Discovery Setting.
+        ContentObserver contactDiscoveryObserver = new ContentObserver(
+                new Handler(Looper.getMainLooper())) {
+            @Override
+            public void onChange(boolean selfChange) {
+                synchronized (mAccountsLock) {
+                    for (AccountEntry account : mAccounts) {
+                        account.updateVideoPresenceCapability();
+                    }
+                }
+            }
+        };
+        Uri contactDiscUri = Uri.withAppendedPath(Telephony.SimInfo.CONTENT_URI,
+                Telephony.SimInfo.IMS_RCS_UCE_ENABLED);
+        mContext.getContentResolver().registerContentObserver(
+                contactDiscUri, true /*notifyForDescendants*/, contactDiscoveryObserver);
     }
 
     private static String convertRttPhoneId(int phoneId) {

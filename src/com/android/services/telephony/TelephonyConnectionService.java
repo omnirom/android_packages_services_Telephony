@@ -426,6 +426,14 @@ public class TelephonyConnectionService extends ConnectionService {
     }
 
     /**
+     * Overrides radioOnHelper for testing.
+     */
+    @VisibleForTesting
+    public void setRadioOnHelper(RadioOnHelper radioOnHelper) {
+        mRadioOnHelper = radioOnHelper;
+    }
+
+    /**
      * Overrides PhoneSwitcher dependencies for testing.
      */
     @VisibleForTesting
@@ -784,13 +792,16 @@ public class TelephonyConnectionService extends ConnectionService {
         boolean needToTurnOnRadio = (isEmergencyNumber && (!isRadioOn() || isAirplaneModeOn))
                 || isRadioPowerDownOnBluetooth();
 
+        // Get the right phone object from the account data passed in.
+        final Phone phone = getPhoneForAccount(request.getAccountHandle(), isEmergencyNumber,
+                /* Note: when not an emergency, handle can be null for unknown callers */
+                handle == null ? null : handle.getSchemeSpecificPart());
+
         if (needToTurnOnRadio) {
             final Uri resultHandle = handle;
-            // By default, Connection based on the default Phone, since we need to return to Telecom
-            // now.
-            final int originalPhoneType = mPhoneFactoryProxy.getDefaultPhone().getPhoneType();
+            final int originalPhoneType = phone.getPhoneType();
             final Connection resultConnection = getTelephonyConnection(request, numberToDial,
-                    isEmergencyNumber, resultHandle, PhoneFactory.getDefaultPhone());
+                    isEmergencyNumber, resultHandle, phone);
             if (mRadioOnHelper == null) {
                 mRadioOnHelper = new RadioOnHelper(this);
             }
@@ -798,7 +809,7 @@ public class TelephonyConnectionService extends ConnectionService {
                 @Override
                 public void onComplete(RadioOnStateListener listener, boolean isRadioReady) {
                     handleOnComplete(isRadioReady, isEmergencyNumber, resultConnection, request,
-                            numberToDial, resultHandle, originalPhoneType);
+                            numberToDial, resultHandle, originalPhoneType, phone);
                 }
 
                 @Override
@@ -827,7 +838,7 @@ public class TelephonyConnectionService extends ConnectionService {
                                 || serviceState == ServiceState.STATE_IN_SERVICE;
                     }
                 }
-            });
+            }, isEmergencyNumber && !isTestEmergencyNumber, phone);
             // Return the still unconnected GsmConnection and wait for the Radios to boot before
             // connecting it to the underlying Phone.
             return resultConnection;
@@ -843,10 +854,6 @@ public class TelephonyConnectionService extends ConnectionService {
                                 "Add call restricted due to ongoing video call"));
             }
 
-            // Get the right phone object from the account data passed in.
-            final Phone phone = getPhoneForAccount(request.getAccountHandle(), isEmergencyNumber,
-                    /* Note: when not an emergency, handle can be null for unknown callers */
-                    handle == null ? null : handle.getSchemeSpecificPart());
             if (!isEmergencyNumber) {
                 final Connection resultConnection = getTelephonyConnection(request, numberToDial,
                         false, handle, phone);
@@ -923,18 +930,21 @@ public class TelephonyConnectionService extends ConnectionService {
      */
     private void handleOnComplete(boolean isRadioReady, boolean isEmergencyNumber,
             Connection originalConnection, ConnectionRequest request, String numberToDial,
-            Uri handle, int originalPhoneType) {
+            Uri handle, int originalPhoneType, Phone phone) {
         // Make sure the Call has not already been canceled by the user.
         if (originalConnection.getState() == Connection.STATE_DISCONNECTED) {
             Log.i(this, "Call disconnected before the outgoing call was placed. Skipping call "
                     + "placement.");
+            if (isEmergencyNumber) {
+                // If call is already canceled by the user, notify modem to exit emergency call
+                // mode by sending radio on with forEmergencyCall=false.
+                for (Phone curPhone : mPhoneFactoryProxy.getPhones()) {
+                    curPhone.setRadioPower(true, false, false, true);
+                }
+            }
             return;
         }
-        // Get the right phone object since the radio has been turned on successfully.
         if (isRadioReady) {
-            final Phone phone = getPhoneForAccount(request.getAccountHandle(), isEmergencyNumber,
-                    /* Note: when not an emergency, handle can be null for unknown callers */
-                    handle == null ? null : handle.getSchemeSpecificPart());
             if (!isEmergencyNumber) {
                 adjustAndPlaceOutgoingConnection(phone, originalConnection, request, numberToDial,
                         handle, originalPhoneType, false);
@@ -1188,11 +1198,26 @@ public class TelephonyConnectionService extends ConnectionService {
         Call call = phone.getRingingCall();
         if (!call.getState().isRinging()) {
             Log.i(this, "onCreateIncomingConnection, no ringing call");
-            return Connection.createFailedConnection(
+            Connection connection = Connection.createFailedConnection(
                     mDisconnectCauseFactory.toTelecomDisconnectCause(
                             android.telephony.DisconnectCause.INCOMING_MISSED,
                             "Found no ringing call",
                             phone.getPhoneId()));
+            Bundle extras = request.getExtras();
+
+            long time = extras.getLong(TelecomManager.EXTRA_CALL_CREATED_EPOCH_TIME_MILLIS);
+            if (time != 0) {
+                Log.i(this, "onCreateIncomingConnection. Set connect time info.");
+                connection.setConnectTimeMillis(time);
+            }
+
+            Uri address = extras.getParcelable(TelecomManager.EXTRA_INCOMING_CALL_ADDRESS);
+            if (address != null) {
+                Log.i(this, "onCreateIncomingConnection. Set caller id info.");
+                connection.setAddress(address, TelecomManager.PRESENTATION_ALLOWED);
+            }
+
+            return connection;
         }
 
         com.android.internal.telephony.Connection originalConnection =
@@ -1828,7 +1853,7 @@ public class TelephonyConnectionService extends ConnectionService {
             if (!isAdhocConference) {
                 // Listen to Telephony specific callbacks from the connection
                 returnConnection.addTelephonyConnectionListener(mTelephonyConnectionListener);
-            } 
+            }
             returnConnection.setVideoPauseSupported(
                     TelecomAccountRegistry.getInstance(this).isVideoPauseSupported(
                             phoneAccountHandle));
@@ -2187,30 +2212,24 @@ public class TelephonyConnectionService extends ConnectionService {
                             return 1;
                         }
                         // sort by number of RadioAccessFamily Capabilities.
-                        int compare = Integer.bitCount(o1.capabilities) -
-                                Integer.bitCount(o2.capabilities);
+                        int compare = RadioAccessFamily.compare(o1.capabilities, o2.capabilities);
                         if (compare == 0) {
-                            // Sort by highest RAF Capability if the number is the same.
-                            compare = RadioAccessFamily.getHighestRafCapability(o1.capabilities) -
-                                    RadioAccessFamily.getHighestRafCapability(o2.capabilities);
-                            if (compare == 0) {
-                                if (firstOccupiedSlot != null) {
-                                    // If the RAF capability is the same, choose based on whether or
-                                    // not any of the slots are occupied with a SIM card (if both
-                                    // are, always choose the first).
-                                    if (o1.slotId == firstOccupiedSlot.getPhoneId()) {
-                                        return 1;
-                                    } else if (o2.slotId == firstOccupiedSlot.getPhoneId()) {
-                                        return -1;
-                                    }
-                                } else {
-                                    // No slots have SIMs detected in them, so weight the default
-                                    // Phone Id greater than the others.
-                                    if (o1.slotId == defaultPhoneId) {
-                                        return 1;
-                                    } else if (o2.slotId == defaultPhoneId) {
-                                        return -1;
-                                    }
+                            if (firstOccupiedSlot != null) {
+                                // If the RAF capability is the same, choose based on whether or
+                                // not any of the slots are occupied with a SIM card (if both
+                                // are, always choose the first).
+                                if (o1.slotId == firstOccupiedSlot.getPhoneId()) {
+                                    return 1;
+                                } else if (o2.slotId == firstOccupiedSlot.getPhoneId()) {
+                                    return -1;
+                                }
+                            } else {
+                                // No slots have SIMs detected in them, so weight the default
+                                // Phone Id greater than the others.
+                                if (o1.slotId == defaultPhoneId) {
+                                    return 1;
+                                } else if (o2.slotId == defaultPhoneId) {
+                                    return -1;
                                 }
                             }
                         }

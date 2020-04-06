@@ -19,11 +19,13 @@ package com.android.phone.settings;
 import android.content.Context;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
 import android.provider.Settings;
+import android.telephony.AccessNetworkConstants;
 import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneStateListener;
 import android.telephony.SubscriptionManager;
@@ -38,6 +40,11 @@ import com.android.internal.telephony.SubscriptionController;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.R;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 public class AccessibilitySettingsFragment extends PreferenceFragment {
     private static final String LOG_TAG = AccessibilitySettingsFragment.class.getSimpleName();
     private static final boolean DBG = (PhoneGlobals.DBG_LEVEL >= 2);
@@ -46,6 +53,8 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
     private static final String BUTTON_HAC_KEY = "button_hac_key";
     private static final String BUTTON_RTT_KEY = "button_rtt_key";
     private static final String RTT_INFO_PREF = "button_rtt_more_information_key";
+
+    private static final int WFC_QUERY_TIMEOUT_MILLIS = 20;
 
     private final PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
         /**
@@ -64,12 +73,9 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
                 // support multi sim configuration.
                 TelephonyManager telephonyManager =
                         (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
-                final boolean isVolteTtySupported = getVolteTtySupported();
-                final boolean isVolteCurrentlyEnabled =
-                        ImsManager.isVolteEnabledByPlatform(mContext);
-                pref.setEnabled((isVolteTtySupported && isVolteCurrentlyEnabled &&
-                        !isVideoCallOrConferenceInProgress()) ||
-                        (telephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE));
+                final boolean isVolteTtySupported = isVolteTtySupportedInAnySlot();
+                pref.setEnabled((isVolteTtySupported && !isVideoCallOrConferenceInProgress())
+                        || (telephonyManager.getCallState() == TelephonyManager.CALL_STATE_IDLE));
             }
         }
     };
@@ -112,10 +118,13 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
         }
 
         if (shouldShowRttSetting()) {
-            // TODO: this is going to be a on/off switch for now. Ask UX about how to integrate
-            // this settings with TTY
-            if (TelephonyManager.getDefault().isNetworkRoaming(
-                    SubscriptionManager.getDefaultVoiceSubscriptionId())) {
+            TelephonyManager tm =
+                    (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+            boolean isRoaming = tm.isNetworkRoaming(
+                    SubscriptionManager.getDefaultVoiceSubscriptionId());
+
+            boolean shouldDisableBecauseRoamingOffWfc = isRoaming && !isOnWfc();
+            if (shouldDisableBecauseRoamingOffWfc) {
                 mButtonRtt.setSummary(TextUtils.concat(getText(R.string.rtt_mode_summary), "\n",
                         getText(R.string.no_rtt_when_roaming)));
             }
@@ -183,11 +192,38 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
         return false;
     }
 
-    private boolean getVolteTtySupported() {
+    private boolean isVolteTtySupportedInAnySlot() {
+        final Phone[] phones = PhoneFactory.getPhones();
+        if (phones == null) {
+            if (DBG) Log.d(LOG_TAG, "isVolteTtySupportedInAnySlot: No phones found.");
+            return false;
+        }
+
         CarrierConfigManager configManager =
                 (CarrierConfigManager) mContext.getSystemService(Context.CARRIER_CONFIG_SERVICE);
-        return configManager.getConfig().getBoolean(
-                CarrierConfigManager.KEY_CARRIER_VOLTE_TTY_SUPPORTED_BOOL);
+        for (Phone phone : phones) {
+            // Check if this phone supports VoLTE.
+            ImsManager imsManager = ImsManager.getInstance(mContext, phone.getPhoneId());
+            boolean volteEnabled = false;
+            if (imsManager != null) {
+                volteEnabled = imsManager.isVolteEnabledByPlatform();
+            }
+
+            // Check if this phone suports VoLTE TTY.
+            boolean volteTtySupported = false;
+            PersistableBundle carrierConfig = configManager.getConfigForSubId(phone.getSubId());
+            if (carrierConfig != null) {
+                volteTtySupported = carrierConfig.getBoolean(
+                        CarrierConfigManager.KEY_CARRIER_VOLTE_TTY_SUPPORTED_BOOL);
+            }
+
+            if (volteEnabled && volteTtySupported) {
+                // VoLTE TTY is supported on this phone that also suports VoLTE.
+                return true;
+            }
+        }
+        // VoLTE TTY was not supported on any phone that also supports VoLTE.
+        return false;
     }
 
     private boolean isVideoCallOrConferenceInProgress() {
@@ -203,6 +239,21 @@ public class AccessibilitySettingsFragment extends PreferenceFragment {
             }
         }
         return false;
+    }
+
+    private boolean isOnWfc() {
+        LinkedBlockingQueue<Integer> result = new LinkedBlockingQueue<>(1);
+        Executor executor = Executors.newSingleThreadExecutor();
+        mContext.getSystemService(android.telephony.ims.ImsManager.class)
+                .getImsMmTelManager(SubscriptionManager.getDefaultSubscriptionId())
+                .getRegistrationTransportType(executor, result::offer);
+        try {
+            Integer transportType = result.poll(WFC_QUERY_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+            return transportType != null
+                    && transportType == AccessNetworkConstants.TRANSPORT_TYPE_WLAN;
+        } catch (InterruptedException e) {
+            return false;
+        }
     }
 
     private boolean shouldShowRttSetting() {
