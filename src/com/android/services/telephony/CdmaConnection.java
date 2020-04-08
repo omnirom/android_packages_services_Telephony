@@ -288,7 +288,8 @@ final class CdmaConnection extends TelephonyConnection {
     }
 
     private boolean isEmergency() {
-        return PhoneUtils.isLocalEmergencyNumber(getAddress().getSchemeSpecificPart());
+        return getAddress() != null && PhoneUtils.isLocalEmergencyNumber(
+                getAddress().getSchemeSpecificPart());
     }
 
     /**
