@@ -31,7 +31,6 @@ import android.os.PersistableBundle;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
-import android.preference.SwitchPreference;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.CarrierConfigManager;
@@ -58,7 +57,7 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
 
     public static final int CALL_WAITING = 7;
     private static final String BUTTON_VP_KEY = "button_voice_privacy_key";
-    private SwitchPreference mButtonVoicePrivacy;
+    private CdmaVoicePrivacySwitchPreference mButtonVoicePrivacy;
     public static final String CALL_FORWARD_INTENT = "org.codeaurora.settings.CDMA_CALL_FORWARDING";
     public static final String CALL_WAITING_INTENT = "org.codeaurora.settings.CDMA_CALL_WAITING";
 
@@ -211,8 +210,9 @@ public class CdmaCallOptions extends TimeConsumingPreferenceActivity
                 getActionBar(), getResources(),
                 mCommon ? R.string.labelCommonMore_with_label : R.string.labelCdmaMore_with_label);
 
-        mButtonVoicePrivacy = (SwitchPreference) findPreference(BUTTON_VP_KEY);
+        mButtonVoicePrivacy = (CdmaVoicePrivacySwitchPreference) findPreference(BUTTON_VP_KEY);
         mPhone = subInfoHelper.getPhone();
+        mButtonVoicePrivacy.setPhone(mPhone);
         Log.d(LOG_TAG, "sub id = " + subInfoHelper.getSubId() + " phone id = " +
                 mPhone.getPhoneId());
 
