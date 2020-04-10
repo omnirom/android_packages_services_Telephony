@@ -460,12 +460,18 @@ public class ImsConferenceController {
                     CarrierConfigManager.KEY_ALLOW_HOLD_IN_IMS_CALL_BOOL);
             boolean shouldLocalDisconnectOnEmptyConference = bundle.getBoolean(
                     CarrierConfigManager.KEY_LOCAL_DISCONNECT_EMPTY_IMS_CONFERENCE_BOOL);
+            boolean isMultiAnchorConferenceSupported = bundle.getBoolean(
+                    CarrierConfigManager.KEY_CARRIER_SUPPORTS_MULTIANCHOR_CONFERENCE);
+            boolean filterOutConferenceHost = !cfgManager.getConfigForSubId(phone.getSubId())
+                    .getBoolean("disable_filter_out_conference_host");
 
             config.setIsMaximumConferenceSizeEnforced(isMaximumConferenceSizeEnforced)
                     .setMaximumConferenceSize(maximumConferenceSize)
                     .setIsHoldAllowed(isHoldAllowed)
                     .setShouldLocalDisconnectEmptyConference(
-                            shouldLocalDisconnectOnEmptyConference);
+                            shouldLocalDisconnectOnEmptyConference)
+                    .setIsMultiAnchorConferenceSupported(isMultiAnchorConferenceSupported)
+                    .setFilterOutConferenceHost(filterOutConferenceHost);
         }
         return config.build();
     }
