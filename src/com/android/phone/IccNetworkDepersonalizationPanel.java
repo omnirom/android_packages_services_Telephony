@@ -59,7 +59,8 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
      * Tracks whether there is an instance of the network depersonalization dialog showing or not.
      * Ensures only a single instance of the dialog is visible.
      */
-    private static boolean sShowingDialog = false;
+    private static boolean [] sShowingDialog =
+            new boolean[TelephonyManager.getDefault().getSimCount()];
 
     //debug constants
     private static final boolean DBG = false;
@@ -98,20 +99,20 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
      * Shows the network depersonalization dialog, but only if it is not already visible.
      */
     public static void showDialog(Phone phone, int subType) {
-        if (sShowingDialog) {
+        int phoneId = phone == null ? 0: phone.getPhoneId();
+        if (sShowingDialog[phoneId]) {
             Log.i(TAG, "[IccNetworkDepersonalizationPanel] - showDialog; skipped already shown.");
             return;
         }
         Log.i(TAG, "[IccNetworkDepersonalizationPanel] - showDialog; showing dialog.");
-        sShowingDialog = true;
-        int phoneId = phone == null ? 0: phone.getPhoneId();
+        sShowingDialog[phoneId] = true;
         sNdpPanel[phoneId] = new IccNetworkDepersonalizationPanel(PhoneGlobals.getInstance(),
                 phone, subType);
         sNdpPanel[phoneId].show();
     }
 
     public static void dialogDismiss(int phoneId) {
-        if (sNdpPanel[phoneId] != null && sShowingDialog) {
+        if (sNdpPanel[phoneId] != null && sShowingDialog[phoneId]) {
             sNdpPanel[phoneId].dismiss();
         }
     }
@@ -140,20 +141,20 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
                     if (DBG) log("network depersonalization request failure.");
                     displayStatus(statusType.ERROR.name());
                     postDelayed(new Runnable() {
-                                    public void run() {
-                                        hideAlert();
-                                        mPinEntry.getText().clear();
-                                        mPinEntry.requestFocus();
-                                    }
-                                }, 3000);
+                        public void run() {
+                            hideAlert();
+                            mPinEntry.getText().clear();
+                            mPinEntry.requestFocus();
+                        }
+                    }, 3000);
                 } else {
                     if (DBG) log("network depersonalization success.");
                     displayStatus(statusType.SUCCESS.name());
                     postDelayed(new Runnable() {
-                                    public void run() {
-                                        dismiss();
-                                    }
-                                }, 3000);
+                        public void run() {
+                            dismiss();
+                        }
+                    }, 3000);
                 }
             }
         }
@@ -233,7 +234,8 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     public void onStop() {
         super.onStop();
         Log.i(TAG, "[IccNetworkDepersonalizationPanel] - showDialog; hiding dialog.");
-        sShowingDialog = false;
+        int phoneId = mPhone == null ? 0 : mPhone.getPhoneId();
+        sShowingDialog[phoneId] = false;
     }
 
     //Mirrors IccPinUnlockPanel.onKeyDown().
@@ -276,23 +278,20 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
         log("displayStatus mPersoSubState: " +mPersoSubState.name() +"type: " +type);
 
         label = getContext().getResources().getIdentifier(mPersoSubState.name()
-                +"_"+type,"string", "com.android.phone");
-
+                + "_" + type, "string", "android");
         if (label == 0) {
             log ("Unable to get the PersoSubType string");
             return;
         }
 
-        if (mPersoSubState == PersoSubState.PERSOSUBSTATE_UNKNOWN
-               || mPersoSubState == PersoSubState.PERSOSUBSTATE_IN_PROGRESS
-               || mPersoSubState == PersoSubState.PERSOSUBSTATE_READY)  {
+        if(!PersoSubState.isPersoLocked(mPersoSubState)) {
             log ("Unsupported Perso Subtype :" + mPersoSubState.name());
             return;
         }
 
         if (type == statusType.ENTRY.name()) {
-             String displayText = getContext().getString(label);
-             mPersoSubtypeText.setText(displayText);
+            String displayText = getContext().getString(label);
+            mPersoSubtypeText.setText(displayText);
         } else {
             mStatusText.setText(label);
             mEntryPanel.setVisibility(View.GONE);
@@ -306,11 +305,11 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     }
 
     View.OnClickListener mDismissListener = new View.OnClickListener() {
-            public void onClick(View v) {
-                if (DBG) log("mDismissListener: skipping depersonalization...");
-                dismiss();
-            }
-        };
+        public void onClick(View v) {
+            if (DBG) log("mDismissListener: skipping depersonalization...");
+            dismiss();
+        }
+    };
 
     private void log(String msg) {
         Log.d(TAG, "[IccNetworkDepersonalizationPanel] " + msg);
