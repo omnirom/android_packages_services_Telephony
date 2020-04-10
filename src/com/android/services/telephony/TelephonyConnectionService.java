@@ -71,6 +71,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
@@ -247,12 +248,20 @@ public class TelephonyConnectionService extends ConnectionService {
 
         @Override
         public boolean isCurrentEmergencyNumber(String number) {
-            return mTelephonyManager.isEmergencyNumber(number);
+            try {
+                return mTelephonyManager.isEmergencyNumber(number);
+            } catch (IllegalStateException ise) {
+                return false;
+            }
         }
 
         @Override
         public Map<Integer, List<EmergencyNumber>> getCurrentEmergencyNumberList() {
-            return mTelephonyManager.getEmergencyNumberList();
+            try {
+                return mTelephonyManager.getEmergencyNumberList();
+            } catch (IllegalStateException ise) {
+                return new HashMap<>();
+            }
         }
     }
 
