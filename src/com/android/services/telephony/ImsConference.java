@@ -1205,6 +1205,7 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
             setConnectionStartElapsedRealtimeMillis(
                     entry.getConnectionStartElapsedRealtimeMillis());
             setConnectionTime(entry.getConnectTimeMillis());
+            setCallDirection(entry.getCallDirection());
             mLoneParticipantIdentity = new Pair<>(entry.getUserEntity(), entry.getEndpoint());
 
             // Remove the participant from Telecom.  It'll get picked up in a future CEP update
@@ -1409,7 +1410,7 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
             if (mConferenceHost.getPhone().getPhoneType() == PhoneConstants.PHONE_TYPE_GSM) {
                 Log.i(this,"handleOriginalConnectionChange : SRVCC to GSM");
                 GsmConnection c = new GsmConnection(originalConnection, getTelecomCallId(),
-                        mConferenceHost.isOutgoingCall());
+                        mConferenceHost.getCallDirection());
                 // This is a newly created conference connection as a result of SRVCC
                 c.setConferenceSupported(true);
                 c.setTelephonyConnectionProperties(
