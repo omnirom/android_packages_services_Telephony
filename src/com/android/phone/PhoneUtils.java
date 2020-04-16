@@ -785,7 +785,7 @@ public class PhoneUtils {
     }
 
     private static IExtTelephony getIExtTelephony() {
-        return IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+        return IExtTelephony.Stub.asInterface(ServiceManager.getService("qti.radio.extphone"));
     }
 
     public static boolean isLocalEmergencyNumber(String address) {
