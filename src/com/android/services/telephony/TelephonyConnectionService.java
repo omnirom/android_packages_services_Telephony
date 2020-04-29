@@ -16,10 +16,6 @@
 
 package com.android.services.telephony;
 
-import static com.android.internal.telephony.TelephonyIntents.EXTRA_DIAL_CONFERENCE_URI;
-import static com.android.internal.telephony.TelephonyIntents.EXTRA_SKIP_SCHEMA_PARSING;
-import static com.android.internal.telephony.TelephonyIntents.ADD_PARTICIPANT_KEY;
-
 import android.annotation.NonNull;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -75,6 +71,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
@@ -251,12 +248,20 @@ public class TelephonyConnectionService extends ConnectionService {
 
         @Override
         public boolean isCurrentEmergencyNumber(String number) {
-            return mTelephonyManager.isEmergencyNumber(number);
+            try {
+                return mTelephonyManager.isEmergencyNumber(number);
+            } catch (IllegalStateException ise) {
+                return false;
+            }
         }
 
         @Override
         public Map<Integer, List<EmergencyNumber>> getCurrentEmergencyNumberList() {
-            return mTelephonyManager.getEmergencyNumberList();
+            try {
+                return mTelephonyManager.getEmergencyNumberList();
+            } catch (IllegalStateException ise) {
+                return new HashMap<>();
+            }
         }
     }
 
@@ -587,9 +592,11 @@ public class TelephonyConnectionService extends ConnectionService {
         }
 
         TelephonyConnection connection = (TelephonyConnection)conn;
+
         ImsConference conference = new ImsConference(TelecomAccountRegistry.getInstance(this),
                 mTelephonyConnectionServiceProxy, connection,
-                phoneAccountHandle, () -> true);
+                phoneAccountHandle, () -> true,
+                ImsConferenceController.getCarrierConfig(connection.getPhone()));
         mImsConferenceController.addConference(conference);
         conference.setVideoState(connection,
                 connection.getVideoState());
@@ -677,13 +684,10 @@ public class TelephonyConnectionService extends ConnectionService {
         Log.i(this, "onCreateOutgoingConnection, request: " + request);
 
         Bundle bundle = request.getExtras();
-        boolean isSkipSchemaOrConfUri = (bundle != null) && (bundle.getBoolean(
-                EXTRA_SKIP_SCHEMA_PARSING, false) ||
-                bundle.getBoolean(EXTRA_DIAL_CONFERENCE_URI, false));
         Uri handle = request.getAddress();
         boolean isAdhocConference = request.isAdhocConferenceCall();
 
-        if (!isAdhocConference && !isSkipSchemaOrConfUri && handle == null) {
+        if (!isAdhocConference && handle == null) {
             Log.d(this, "onCreateOutgoingConnection, handle is null");
             return Connection.createFailedConnection(
                     mDisconnectCauseFactory.toTelecomDisconnectCause(
@@ -691,7 +695,6 @@ public class TelephonyConnectionService extends ConnectionService {
                             "No phone number supplied"));
         }
 
-        if (handle == null) handle = Uri.EMPTY;
         String scheme = handle.getScheme();
         String number;
         if (PhoneAccount.SCHEME_VOICEMAIL.equals(scheme)) {
@@ -719,7 +722,7 @@ public class TelephonyConnectionService extends ConnectionService {
             // Convert voicemail: to tel:
             handle = Uri.fromParts(PhoneAccount.SCHEME_TEL, number, null);
         } else {
-            if (!isSkipSchemaOrConfUri && !PhoneAccount.SCHEME_TEL.equals(scheme)) {
+            if (!PhoneAccount.SCHEME_TEL.equals(scheme)) {
                 Log.d(this, "onCreateOutgoingConnection, Handle %s is not type tel", scheme);
                 return Connection.createFailedConnection(
                         mDisconnectCauseFactory.toTelecomDisconnectCause(
@@ -728,7 +731,7 @@ public class TelephonyConnectionService extends ConnectionService {
             }
 
             number = handle.getSchemeSpecificPart();
-            if (!isSkipSchemaOrConfUri && TextUtils.isEmpty(number)) {
+            if (TextUtils.isEmpty(number)) {
                 Log.d(this, "onCreateOutgoingConnection, unable to parse number");
                 return Connection.createFailedConnection(
                         mDisconnectCauseFactory.toTelecomDisconnectCause(
@@ -987,7 +990,7 @@ public class TelephonyConnectionService extends ConnectionService {
             // one and causing UI Jank.
             boolean noActiveSimCard = SubscriptionController.getInstance()
                     .getActiveSubInfoCount(phone.getContext().getOpPackageName(),
-                            phone.getContext().getFeatureId()) == 0;
+                            phone.getContext().getAttributionTag()) == 0;
             // If there's no active sim card and the device is in emergency mode, use E account.
             addExistingConnection(mPhoneUtilsProxy.makePstnPhoneAccountHandleWithPrefix(
                     phone, "", isEmergencyNumber && noActiveSimCard), repConnection);
@@ -1569,14 +1572,6 @@ public class TelephonyConnectionService extends ConnectionService {
         return false;
     }
 
-    @Override
-    public void onAddParticipant(Connection connection, String participant) {
-        if (connection instanceof TelephonyConnection) {
-            ((TelephonyConnection) connection).performAddParticipant(participant);
-        }
-
-    }
-
     private boolean isRadioOn() {
         boolean result = false;
         for (Phone phone : mPhoneFactoryProxy.getPhones()) {
@@ -1674,66 +1669,61 @@ public class TelephonyConnectionService extends ConnectionService {
 
     private void placeOutgoingConnection(
             TelephonyConnection connection, Phone phone, int videoState, Bundle extras) {
-        String number = connection.getAddress().getSchemeSpecificPart();
-        boolean isAddParticipant = (extras != null) && extras
-                .getBoolean(ADD_PARTICIPANT_KEY, false);
-        Log.d(this, "placeOutgoingConnection isAddParticipant = " + isAddParticipant);
+
+        String number = (connection.getAddress() != null)
+                ? connection.getAddress().getSchemeSpecificPart()
+                : "";
 
         updatePhoneAccount(connection, phone);
 
         com.android.internal.telephony.Connection originalConnection = null;
         try {
             if (phone != null) {
-                if (isAddParticipant) {
-                    phone.addParticipant(number);
-                    return;
-                } else {
-                    EmergencyNumber emergencyNumber =
-                            phone.getEmergencyNumberTracker().getEmergencyNumber(number);
-                    if (emergencyNumber != null) {
-                        phone.notifyOutgoingEmergencyCall(emergencyNumber);
-                        if (!getAllConnections().isEmpty()) {
-                            if (!shouldHoldForEmergencyCall(phone)) {
-                                // If we do not support holding ongoing calls for an outgoing
-                                // emergency call, disconnect the ongoing calls.
-                                for (Connection c : getAllConnections()) {
-                                    if (!c.equals(connection)
-                                            && c.getState() != Connection.STATE_DISCONNECTED
-                                            && c instanceof TelephonyConnection) {
-                                        ((TelephonyConnection) c).hangup(
-                                                android.telephony.DisconnectCause
-                                                        .OUTGOING_EMERGENCY_CALL_PLACED);
-                                    }
+                EmergencyNumber emergencyNumber =
+                        phone.getEmergencyNumberTracker().getEmergencyNumber(number);
+                if (emergencyNumber != null) {
+                    phone.notifyOutgoingEmergencyCall(emergencyNumber);
+                    if (!getAllConnections().isEmpty()) {
+                        if (!shouldHoldForEmergencyCall(phone)) {
+                            // If we do not support holding ongoing calls for an outgoing
+                            // emergency call, disconnect the ongoing calls.
+                            for (Connection c : getAllConnections()) {
+                                if (!c.equals(connection)
+                                        && c.getState() != Connection.STATE_DISCONNECTED
+                                        && c instanceof TelephonyConnection) {
+                                    ((TelephonyConnection) c).hangup(
+                                            android.telephony.DisconnectCause
+                                                    .OUTGOING_EMERGENCY_CALL_PLACED);
                                 }
-                                for (Conference c : getAllConferences()) {
-                                    if (c.getState() != Connection.STATE_DISCONNECTED
-                                            && c instanceof Conference) {
-                                        ((Conference) c).onDisconnect();
-                                    }
+                            }
+                            for (Conference c : getAllConferences()) {
+                                if (c.getState() != Connection.STATE_DISCONNECTED
+                                        && c instanceof Conference) {
+                                    ((Conference) c).onDisconnect();
                                 }
-                            } else if (!isVideoCallHoldAllowed(phone)) {
-                                // If we do not support holding ongoing video call for an outgoing
-                                // emergency call, disconnect the ongoing video call.
-                                for (Connection c : getAllConnections()) {
-                                    if (!c.equals(connection)
-                                            && c.getState() == Connection.STATE_ACTIVE
-                                            && VideoProfile.isVideo(c.getVideoState())
-                                            && c instanceof TelephonyConnection) {
-                                        ((TelephonyConnection) c).hangup(
-                                                android.telephony.DisconnectCause
-                                                        .OUTGOING_EMERGENCY_CALL_PLACED);
-                                        break;
-                                    }
+                            }
+                        } else if (!isVideoCallHoldAllowed(phone)) {
+                            // If we do not support holding ongoing video call for an outgoing
+                            // emergency call, disconnect the ongoing video call.
+                            for (Connection c : getAllConnections()) {
+                                if (!c.equals(connection)
+                                        && c.getState() == Connection.STATE_ACTIVE
+                                        && VideoProfile.isVideo(c.getVideoState())
+                                        && c instanceof TelephonyConnection) {
+                                    ((TelephonyConnection) c).hangup(
+                                            android.telephony.DisconnectCause
+                                                    .OUTGOING_EMERGENCY_CALL_PLACED);
+                                    break;
                                 }
                             }
                         }
                     }
-                    originalConnection = phone.dial(number, new ImsPhone.ImsDialArgs.Builder()
-                            .setVideoState(videoState)
-                            .setIntentExtras(extras)
-                            .setRttTextStream(connection.getRttTextStream())
-                            .build());
                 }
+                originalConnection = phone.dial(number, new ImsPhone.ImsDialArgs.Builder()
+                        .setVideoState(videoState)
+                        .setIntentExtras(extras)
+                        .setRttTextStream(connection.getRttTextStream())
+                        .build());
             }
         } catch (CallStateException e) {
             Log.e(this, e, "placeOutgoingConnection, phone.dial exception: " + e);

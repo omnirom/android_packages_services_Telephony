@@ -492,7 +492,7 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
             mStatus = status;
             mNumber = number;
 
-            handleGetCFTimerResponse();
+            mHandler.sendMessage(mHandler.obtainMessage(mHandler.MESSAGE_GET_CFUT));
         }
 
         @Override
@@ -548,6 +548,7 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         static final int MESSAGE_SET_CF = 1;
         static final int MESSAGE_GET_CF_USSD = 2;
         static final int MESSAGE_SET_CF_USSD = 3;
+        static final int MESSAGE_GET_CFUT = 4;
 
         TelephonyManager.UssdResponseCallback mUssdCallback =
                 new TelephonyManager.UssdResponseCallback() {
@@ -590,6 +591,7 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
 
         @Override
         public void handleMessage(Message msg) {
+            Log.i(LOG_TAG, "handleMessage : " + msg.what);
             switch (msg.what) {
                 case MESSAGE_GET_CF:
                     handleGetCFResponse(msg);
@@ -602,6 +604,9 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                     break;
                 case MESSAGE_SET_CF_USSD:
                     prepareUssdCommand(msg, CarrierXmlParser.SsEntry.SSAction.UNKNOWN);
+                    break;
+                case MESSAGE_GET_CFUT:
+                    handleGetCFTimerResponse();
                     break;
             }
         }

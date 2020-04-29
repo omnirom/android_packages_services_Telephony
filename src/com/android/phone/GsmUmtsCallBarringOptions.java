@@ -431,13 +431,13 @@ public class GsmUmtsCallBarringOptions extends TimeConsumingPreferenceActivity
 
         boolean useDisableaAll = true;
         boolean disableOutCallBarringOverIms = false;
+        boolean disableChangePasswordOverIms = false;
 
         ImsPhone imsPhone = mPhone != null ? (ImsPhone) mPhone.getImsPhone() : null;
         if (imsPhone != null && imsPhone.isUtEnabled()) {
             useDisableaAll = false;
-            if (isDisableOutCallBarringOverIms()) {
-                disableOutCallBarringOverIms = true;
-            }
+            disableOutCallBarringOverIms = isDisableOutCallBarringOverIms();
+            disableChangePasswordOverIms = isDisableChangePasswordOverIms();
         }
 
         // Find out if the sim card is ready.
@@ -466,7 +466,7 @@ public class GsmUmtsCallBarringOptions extends TimeConsumingPreferenceActivity
 
         // Change password option is unavailable when sim card is not ready or when the password is
         // not used.
-        if (isSimReady) {
+        if (isSimReady && !disableChangePasswordOverIms) {
             mButtonChangePW.setEnabled(true);
         } else {
             mButtonChangePW.setEnabled(false);
@@ -617,9 +617,16 @@ public class GsmUmtsCallBarringOptions extends TimeConsumingPreferenceActivity
                  Context.CARRIER_CONFIG_SERVICE);
         PersistableBundle pb = configManager.getConfigForSubId(mPhone.getSubId());
 
-        return pb != null ? pb.getBoolean("config_enable_callbarring_over_ims") : false;
+        return pb != null ? pb.getBoolean("config_disable_outgoing_callbarring_over_ims") : false;
     }
 
+    private boolean isDisableChangePasswordOverIms() {
+        CarrierConfigManager configManager = (CarrierConfigManager)getSystemService(
+                 Context.CARRIER_CONFIG_SERVICE);
+        PersistableBundle pb = configManager.getConfigForSubId(mPhone.getSubId());
+
+        return pb != null ? pb.getBoolean("config_disable_change_password_over_ims") : false;
+    }
     /**
      * Receiver for intent broadcasts the Phone app cares about.
      */

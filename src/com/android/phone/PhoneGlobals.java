@@ -208,6 +208,16 @@ public class PhoneGlobals extends ContextWrapper {
 
     private final SettingsObserver mSettingsObserver;
 
+    private static class EventSimStateChangedBag {
+        final int mPhoneId;
+        final String mIccStatus;
+
+        EventSimStateChangedBag(int phoneId, String iccStatus) {
+            mPhoneId = phoneId;
+            mIccStatus = iccStatus;
+        }
+    }
+
     Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -265,8 +275,9 @@ public class PhoneGlobals extends ContextWrapper {
                     // Marks the event where the SIM goes into ready state.
                     // Right now, this is only used for the PUK-unlocking
                     // process.
-                    if (msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_READY)
-                            || msg.obj.equals(IccCardConstants.INTENT_VALUE_ICC_LOADED)) {
+                    EventSimStateChangedBag bag = (EventSimStateChangedBag)msg.obj;
+                    if (bag.mIccStatus == IccCardConstants.INTENT_VALUE_ICC_READY
+                            || bag.mIccStatus == IccCardConstants.INTENT_VALUE_ICC_LOADED) {
                         // when the right event is triggered and there
                         // are UI objects in the foreground, we close
                         // them to display the lock panel.
@@ -278,6 +289,8 @@ public class PhoneGlobals extends ContextWrapper {
                             mPUKEntryProgressDialog.dismiss();
                             mPUKEntryProgressDialog = null;
                         }
+                        Log.i(LOG_TAG, "Dismissing depersonal panel");
+                        IccNetworkDepersonalizationPanel.dialogDismiss(bag.mPhoneId);
                     }
                     break;
 
@@ -302,12 +315,16 @@ public class PhoneGlobals extends ContextWrapper {
                 case EVENT_DATA_CONNECTION_ATTACHED:
                     int subId = (Integer)((AsyncResult)msg.obj).userObj;
                     Phone phone = getPhone(subId);
-                    DataConnectionReasons reasons = new DataConnectionReasons();
-                    boolean dataAllowed = phone.isDataAllowed(ApnSetting.TYPE_DEFAULT, reasons);
-                    if (!dataAllowed && dataIsNowRoaming(subId)
-                            && subId == mDefaultDataSubId) {
-                        if (VDBG) Log.v(LOG_TAG, "EVENT_DATA_CONNECTION_ATTACHED");
-                        updateDataRoamingStatus();
+                    if (phone != null) {
+                        DataConnectionReasons reasons = new DataConnectionReasons();
+                        boolean dataAllowed = phone.isDataAllowed(ApnSetting.TYPE_DEFAULT, reasons);
+                        if (!dataAllowed && dataIsNowRoaming(subId)
+                                && subId == mDefaultDataSubId) {
+                            if (VDBG) Log.v(LOG_TAG, "EVENT_DATA_CONNECTION_ATTACHED");
+                                updateDataRoamingStatus();
+                        }
+                    } else {
+                        Log.w(LOG_TAG, "phone object is null subId: " + subId);
                     }
                     break;
             }
@@ -499,7 +516,8 @@ public class PhoneGlobals extends ContextWrapper {
     }
 
     public PersistableBundle getCarrierConfigForSubId(int subId) {
-        return configLoader.getConfigForSubIdWithFeature(subId, getOpPackageName(), getFeatureId());
+        return configLoader.getConfigForSubIdWithFeature(subId, getOpPackageName(),
+                getAttributionTag());
     }
 
     private void registerSettingsObserver() {
@@ -675,16 +693,9 @@ public class PhoneGlobals extends ContextWrapper {
                     PhoneUtils.unregisterIccStatus(mHandler, phoneId);
                     PhoneUtils.registerIccStatus(mHandler, EVENT_SIM_NETWORK_LOCKED, phoneId);
                 }
-                if (mPUKEntryActivity != null) {
-                    // if an attempt to un-PUK-lock the device was made, while we're
-                    // receiving this state change notification, notify the handler.
-                    // NOTE: This is ONLY triggered if an attempt to un-PUK-lock has
-                    // been attempted.
-                    mHandler.sendMessage(mHandler.obtainMessage(EVENT_SIM_STATE_CHANGED,
-                            intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE)));
-                }
+                String iccStatus = intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE);
                 mHandler.sendMessage(mHandler.obtainMessage(EVENT_SIM_STATE_CHANGED_CHECKREADY,
-                        intent.getStringExtra(IccCardConstants.INTENT_KEY_ICC_STATE)));
+                        iccStatus));
                 Phone phone = PhoneFactory.getPhone(phoneId);
                 if (phone != null) {
                     if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(simStatus)) {

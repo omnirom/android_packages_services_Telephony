@@ -120,7 +120,6 @@ import android.util.Pair;
 
 import com.android.ims.ImsManager;
 import com.android.ims.internal.IImsServiceFeatureCallback;
-import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.CallForwardInfo;
 import com.android.internal.telephony.CallManager;
 import com.android.internal.telephony.CallStateException;
@@ -1650,8 +1649,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     /** Private constructor; @see init() */
-    @VisibleForTesting
-    /* package */ PhoneInterfaceManager(PhoneGlobals app) {
+    private PhoneInterfaceManager(PhoneGlobals app) {
         mApp = app;
         mCM = PhoneGlobals.getInstance().mCM;
         mImsResolver = PhoneGlobals.getInstance().getImsResolver();
@@ -2320,7 +2318,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             // is on IWLAN.
             if (TelephonyManager.NETWORK_TYPE_IWLAN
                     == getVoiceNetworkTypeForSubscriber(subId, mApp.getPackageName(),
-                    mApp.getFeatureId())) {
+                    mApp.getAttributionTag())) {
                 return "";
             }
             Phone phone = PhoneFactory.getPhone(phoneId);
@@ -3065,14 +3063,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void sendVisualVoicemailSmsForSubscriber(String callingPackage, int subId,
-            String number, int port, String text, PendingIntent sentIntent) {
+    public void sendVisualVoicemailSmsForSubscriber(String callingPackage,
+            String callingAttributionTag, int subId, String number, int port, String text,
+            PendingIntent sentIntent) {
         mAppOps.checkPackage(Binder.getCallingUid(), callingPackage);
         enforceVisualVoicemailPackage(callingPackage, subId);
         enforceSendSmsPermission();
         SmsController smsController = PhoneFactory.getSmsController();
-        smsController.sendVisualVoicemailSmsForSubscriber(callingPackage, subId, number, port, text,
-                sentIntent);
+        smsController.sendVisualVoicemailSmsForSubscriber(callingPackage, callingAttributionTag,
+                subId, number, port, text, sentIntent);
     }
 
     /**
@@ -3456,6 +3455,9 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             Phone phone = getPhone(subId);
             if (phone == null) return false;
             return phone.isImsCapabilityAvailable(capability, regTech);
+        } catch (com.android.ims.ImsException e) {
+            Log.w(LOG_TAG, "IMS isAvailable - service unavailable: " + e.getMessage());
+            return false;
         } finally {
             Binder.restoreCallingIdentity(token);
         }
@@ -5507,7 +5509,6 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     /**
      * Set the preferred network type.
-     * Used for device configuration by some CDMA operators.
      *
      * @param networkType the preferred network type, defined in RILConstants.java.
      * @return true on success; false on any failure.
@@ -5521,7 +5522,11 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         try {
             Settings.Global.putInt(mApp.getContentResolver(),
                     Settings.Global.PREFERRED_NETWORK_MODE + subId, networkType);
-            return setPreferredNetworkTypesInternal(subId);
+
+            Boolean success = (Boolean) sendRequest(
+                    CMD_SET_PREFERRED_NETWORK_TYPE, networkType, subId);
+            if (DBG) log("setPreferredNetworkType: " + (success ? "ok" : "fail"));
+            return success;
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -5559,38 +5564,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     public boolean setAllowedNetworkTypes(int subId, long allowedNetworkTypes) {
         TelephonyPermissions.enforceCallingOrSelfModifyPermissionOrCarrierPrivilege(
                 mApp, subId, "setAllowedNetworkTypes");
-        final long identity = Binder.clearCallingIdentity();
-        try {
-            SubscriptionManager.setSubscriptionProperty(subId,
-                    SubscriptionManager.ALLOWED_NETWORK_TYPES,
-                    String.valueOf(allowedNetworkTypes));
-            return setPreferredNetworkTypesInternal(subId);
-        } finally {
-            Binder.restoreCallingIdentity(identity);
-        }
-    }
 
-    private boolean setPreferredNetworkTypesInternal(int subId) {
-        long networkTypeBitMask = RadioAccessFamily.getRafFromNetworkType(
-                Settings.Global.getInt(mApp.getContentResolver(),
-                        Settings.Global.PREFERRED_NETWORK_MODE + subId,
-                        RILConstants.PREFERRED_NETWORK_MODE));
-        long allowedNetworkTypes = SubscriptionManager.getLongSubscriptionProperty(
-                subId, SubscriptionManager.ALLOWED_NETWORK_TYPES, -1, mApp);
-        int networkMode = RadioAccessFamily.getNetworkTypeFromRaf(
-                (int) (networkTypeBitMask & allowedNetworkTypes));
+        SubscriptionManager.setSubscriptionProperty(subId,
+                SubscriptionManager.ALLOWED_NETWORK_TYPES,
+                String.valueOf(allowedNetworkTypes));
 
-        if (DBG) {
-            log("setPreferredNetworkTypesInternal: subId " + subId
-                    + " networkTypes " + networkTypeBitMask
-                    + " allowedNetworkTypes " + allowedNetworkTypes
-                    + " networkMode " + networkMode);
-        }
-
-        Boolean success = (Boolean) sendRequest(
-                CMD_SET_PREFERRED_NETWORK_TYPE, networkMode, subId);
-        if (DBG) log("setPreferredNetworkTypesInternal: " + (success ? "ok" : "fail"));
-        return success;
+        int preferredNetworkMode = Settings.Global.getInt(mApp.getContentResolver(),
+                Settings.Global.PREFERRED_NETWORK_MODE + subId,
+                RILConstants.PREFERRED_NETWORK_MODE);
+        return setPreferredNetworkType(subId, preferredNetworkMode);
     }
 
     /**
@@ -5753,14 +5735,13 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
     }
 
-    private int getCarrierPrivilegeStatusFromCarrierConfigRules(int privilegeFromSim,
+    private int getCarrierPrivilegeStatusFromCarrierConfigRules(int privilegeFromSim, int uid,
             Phone phone) {
         //load access rules from carrier configs, and check those as well: b/139133814
         SubscriptionController subController = SubscriptionController.getInstance();
         if (privilegeFromSim == TelephonyManager.CARRIER_PRIVILEGE_STATUS_HAS_ACCESS
                 || subController == null) return privilegeFromSim;
 
-        int uid = Binder.getCallingUid();
         PackageManager pkgMgr = phone.getContext().getPackageManager();
         String[] packages = pkgMgr.getPackagesForUid(uid);
 
@@ -5814,7 +5795,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
         return getCarrierPrivilegeStatusFromCarrierConfigRules(
             card.getCarrierPrivilegeStatusForCurrentTransaction(
-                phone.getContext().getPackageManager()), phone);
+                phone.getContext().getPackageManager()), Binder.getCallingUid(), phone);
     }
 
     @Override
@@ -5833,7 +5814,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         }
         return getCarrierPrivilegeStatusFromCarrierConfigRules(
                 profile.getCarrierPrivilegeStatusForUid(
-                        phone.getContext().getPackageManager(), uid), phone);
+                        phone.getContext().getPackageManager(), uid), uid, phone);
     }
 
     @Override
@@ -6166,7 +6147,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             final List<String> mergedSubscriberIds = new ArrayList<>();
             final List<SubscriptionInfo> groupInfos = SubscriptionController.getInstance()
                     .getSubscriptionsInGroup(groupUuid, mApp.getOpPackageName(),
-                            mApp.getFeatureId());
+                            mApp.getAttributionTag());
             for (SubscriptionInfo subInfo : groupInfos) {
                 subscriberId = telephonyManager.getSubscriberId(subInfo.getSubscriptionId());
                 if (subscriberId != null) {
@@ -6629,7 +6610,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
         final long identity = Binder.clearCallingIdentity();
         try {
             final SubscriptionInfo info = mSubscriptionController.getActiveSubscriptionInfo(subId,
-                    phone.getContext().getOpPackageName(), phone.getContext().getFeatureId());
+                    phone.getContext().getOpPackageName(), phone.getContext().getAttributionTag());
             if (info == null) {
                 log("getSimLocaleForSubscriber, inactive subId: " + subId);
                 return null;
@@ -6668,7 +6649,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     private List<SubscriptionInfo> getAllSubscriptionInfoList() {
         return mSubscriptionController.getAllSubInfoList(mApp.getOpPackageName(),
-                mApp.getFeatureId());
+                mApp.getAttributionTag());
     }
 
     /**
@@ -6676,7 +6657,7 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
      */
     private List<SubscriptionInfo> getActiveSubscriptionInfoListPrivileged() {
         return mSubscriptionController.getActiveSubscriptionInfoList(mApp.getOpPackageName(),
-                mApp.getFeatureId());
+                mApp.getAttributionTag());
     }
 
     private final ModemActivityInfo mLastModemActivityInfo =
@@ -7470,15 +7451,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
 
     @Override
     public List<UiccCardInfo> getUiccCardsInfo(String callingPackage) {
-        try {
-            PackageManager pm = mApp.getPackageManager();
-            if (Binder.getCallingUid() != pm.getPackageUid(callingPackage, 0)) {
-                throw new SecurityException("Calling package " + callingPackage + " does not match "
-                        + "calling UID");
-            }
-        } catch (PackageManager.NameNotFoundException e) {
-            throw new SecurityException("Invalid calling package. e=" + e);
-        }
+        // Verify that tha callingPackage belongs to the calling UID
+        mApp.getSystemService(AppOpsManager.class)
+                .checkPackage(Binder.getCallingUid(), callingPackage);
+
         boolean hasReadPermission = false;
         try {
             enforceReadPrivilegedPermission("getUiccCardsInfo");
@@ -8283,13 +8259,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
     }
 
     @Override
-    public void enqueueSmsPickResult(String callingPackage, IIntegerConsumer pendingSubIdResult) {
+    public void enqueueSmsPickResult(String callingPackage, String callingAttributionTag,
+            IIntegerConsumer pendingSubIdResult) {
         if (callingPackage == null) {
             callingPackage = getCurrentPackageName();
         }
         SmsPermissions permissions = new SmsPermissions(getDefaultPhone(), mApp,
                 (AppOpsManager) mApp.getSystemService(Context.APP_OPS_SERVICE));
-        if (!permissions.checkCallingCanSendSms(callingPackage, "Sending message")) {
+        if (!permissions.checkCallingCanSendSms(callingPackage, callingAttributionTag,
+                "Sending message")) {
             throw new SecurityException("Requires SEND_SMS permission to perform this operation");
         }
         PickSmsSubscriptionActivity.addPendingResult(pendingSubIdResult);

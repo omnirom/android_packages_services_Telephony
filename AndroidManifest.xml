@@ -99,6 +99,7 @@
     <protected-broadcast android:name= "android.telephony.action.SUBSCRIPTION_SPECIFIC_CARRIER_IDENTITY_CHANGED" />
     <protected-broadcast android:name= "android.telephony.action.NETWORK_COUNTRY_CHANGED" />
     <protected-broadcast android:name= "android.telephony.action.PRIMARY_SUBSCRIPTION_LIST_CHANGED" />
+    <protected-broadcast android:name= "android.telephony.action.MULTI_SIM_CONFIG_CHANGED" />
 
     <!-- For Vendor Debugging in Telephony -->
     <protected-broadcast android:name="android.telephony.action.ANOMALY_REPORTED" />
@@ -219,6 +220,7 @@
          ACTION_SIM_SLOT_STATUS_CHANGED broadcast to start activities
          from the background.  -->
     <uses-permission android:name="android.permission.START_ACTIVITIES_FROM_BACKGROUND" />
+    <uses-permission android:name="android.permission.NETWORK_STATS_PROVIDER" />
 
     <uses-permission android:name="com.qti.permission.BIND_QTI_IMS_SERVICE" />
 

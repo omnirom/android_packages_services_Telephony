@@ -16,13 +16,10 @@
 
 package com.android.services.telephony;
 
-import static com.android.internal.telephony.TelephonyIntents.EXTRAS_IS_CONFERENCE_URI;
-
 import android.content.Context;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.telecom.Connection;
 import android.telecom.Connection.VideoProvider;
 import android.telecom.DisconnectCause;
@@ -30,7 +27,6 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
-import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
@@ -43,7 +39,6 @@ import com.android.internal.telephony.Call;
 import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneConstants;
-import com.android.phone.PhoneGlobals;
 import com.android.phone.PhoneUtils;
 import com.android.phone.R;
 import com.android.telephony.Rlog;
@@ -81,6 +76,176 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
      */
     public interface FeatureFlagProxy {
         boolean isUsingSinglePartyCallEmulation();
+    }
+
+    /**
+     * Abstracts out carrier configuration items specific to the conference.
+     */
+    public static class CarrierConfiguration {
+        /**
+         * Builds and instance of {@link CarrierConfiguration}.
+         */
+        public static class Builder {
+            private boolean mIsMaximumConferenceSizeEnforced = false;
+            private int mMaximumConferenceSize = 5;
+            private boolean mShouldLocalDisconnectEmptyConference = false;
+            private boolean mIsHoldAllowed = false;
+            private boolean mIsMultiAnchorConferenceSupported = false;
+            private boolean mFilterOutConferenceHost = true;
+
+            /**
+             * Sets whether the maximum size of the conference is enforced.
+             * @param isMaximumConferenceSizeEnforced {@code true} if conference size enforced.
+             * @return builder instance.
+             */
+            public Builder setIsMaximumConferenceSizeEnforced(
+                    boolean isMaximumConferenceSizeEnforced) {
+                mIsMaximumConferenceSizeEnforced = isMaximumConferenceSizeEnforced;
+                return this;
+            }
+
+            /**
+             * Sets the maximum size of an IMS conference.
+             * @param maximumConferenceSize Max conference size.
+             * @return builder instance.
+             */
+            public Builder setMaximumConferenceSize(int maximumConferenceSize) {
+                mMaximumConferenceSize = maximumConferenceSize;
+                return this;
+            }
+
+            /**
+             * Sets whether an empty conference should be locally disconnected.
+             * @param shouldLocalDisconnectEmptyConference {@code true} if conference should be
+             * locally disconnected if empty.
+             * @return builder instance.
+             */
+            public Builder setShouldLocalDisconnectEmptyConference(
+                    boolean shouldLocalDisconnectEmptyConference) {
+                mShouldLocalDisconnectEmptyConference = shouldLocalDisconnectEmptyConference;
+                return this;
+            }
+
+            /**
+             * Sets whether holding the conference is allowed.
+             * @param isHoldAllowed {@code true} if holding is allowed.
+             * @return builder instance.
+             */
+            public Builder setIsHoldAllowed(boolean isHoldAllowed) {
+                mIsHoldAllowed = isHoldAllowed;
+                return this;
+            }
+
+            /**
+             * Sets if the carrier associated with the conference supports multianchor.
+             * @param isMultiAnchorConferenceSupported {@code true} if the carrier associated with
+             * the conference supports multianchor.
+             * @return builder instance.
+             */
+            public Builder setIsMultiAnchorConferenceSupported(
+                    boolean isMultiAnchorConferenceSupported) {
+                mIsMultiAnchorConferenceSupported = isMultiAnchorConferenceSupported;
+                return this;
+            }
+
+            /**
+             * Sets whether the conference host should be filtered out.
+             * @param filterOutConferenceHost {@code true} if the conference host should be filtered
+             * out.
+             * @return builder instance.
+             */
+            public Builder setFilterOutConferenceHost(boolean filterOutConferenceHost) {
+                mFilterOutConferenceHost = filterOutConferenceHost;
+                return this;
+            }
+
+            /**
+             * Build instance of {@link CarrierConfiguration}.
+             * @return carrier config instance.
+             */
+            public ImsConference.CarrierConfiguration build() {
+                return new ImsConference.CarrierConfiguration(mIsMaximumConferenceSizeEnforced,
+                        mMaximumConferenceSize, mShouldLocalDisconnectEmptyConference,
+                        mIsHoldAllowed, mIsMultiAnchorConferenceSupported,
+                        mFilterOutConferenceHost);
+            }
+        }
+
+        private CarrierConfiguration(boolean isMaximumConferenceSizeEnforced,
+                int maximumConferenceSize, boolean shouldLocalDisconnectEmptyConference,
+                boolean isHoldAllowed, boolean isMultiAnchorConferenceSupported,
+                boolean filterOutConferenceHost) {
+            mIsMaximumConferenceSizeEnforced = isMaximumConferenceSizeEnforced;
+            mMaximumConferenceSize = maximumConferenceSize;
+            mShouldLocalDisconnectEmptyConference = shouldLocalDisconnectEmptyConference;
+            mIsHoldAllowed = isHoldAllowed;
+            mIsMultiAnchorConferenceSupported = isMultiAnchorConferenceSupported;
+            mFilterOutConferenceHost = filterOutConferenceHost;
+        }
+
+        private boolean mIsMaximumConferenceSizeEnforced;
+
+        private int mMaximumConferenceSize;
+
+        private boolean mShouldLocalDisconnectEmptyConference;
+
+        private boolean mIsHoldAllowed;
+
+        private boolean mIsMultiAnchorConferenceSupported;
+
+        private boolean mFilterOutConferenceHost;
+
+        /**
+         * Determines whether the {@link ImsConference} should enforce a size limit based on
+         * {@link #getMaximumConferenceSize()}.
+         * {@code true} if maximum size limit should be enforced, {@code false} otherwise.
+         */
+        public boolean isMaximumConferenceSizeEnforced() {
+            return mIsMaximumConferenceSizeEnforced;
+        }
+
+        /**
+         * Determines the maximum number of participants (not including the host) in a conference
+         * which is enforced when {@link #isMaximumConferenceSizeEnforced()} is {@code true}.
+         */
+        public int getMaximumConferenceSize() {
+            return mMaximumConferenceSize;
+        }
+
+        /**
+         * Determines whether this {@link ImsConference} should locally disconnect itself when the
+         * number of participants in the conference drops to zero.
+         * {@code true} if empty conference should be locally disconnected, {@code false}
+         * otherwise.
+         */
+        public boolean shouldLocalDisconnectEmptyConference() {
+            return mShouldLocalDisconnectEmptyConference;
+        }
+
+        /**
+         * Determines whether holding the conference is permitted or not.
+         * {@code true} if hold is permitted, {@code false} otherwise.
+         */
+        public boolean isHoldAllowed() {
+            return mIsHoldAllowed;
+        }
+
+        /**
+         * @return {@code true} if the carrier associated with the conference supports multianchor
+         * conference, {@code false} otherwise.
+         */
+        public boolean isMultiAnchorConferenceSupported() {
+            return mIsMultiAnchorConferenceSupported;
+        }
+
+        /**
+         * Determines whether the conference host should be filtered out.
+         * @return {@code true} if the conference host should be filtered out, {@code false}
+         * otherwise.
+         */
+        public boolean shouldFilterOutConferenceHost() {
+            return mFilterOutConferenceHost;
+        }
     }
 
     /**
@@ -157,8 +322,6 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
                 @Override
                 public void onExtrasChanged(Connection c, Bundle extras) {
                     Log.v(this, "onExtrasChanged: c=" + c + " Extras=" + extras);
-                    mIsConferenceUri = extras.getBoolean(
-                            EXTRAS_IS_CONFERENCE_URI, false);
                     putExtras(extras);
                 }
 
@@ -230,7 +393,6 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
      */
     private TelephonyConnection mConferenceHost;
 
-    private boolean mIsConferenceUri = false;
     /**
      * The PhoneAccountHandle of the conference host.
      */
@@ -268,6 +430,7 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
     private boolean mIsHoldable;
     private boolean mCouldManageConference;
     private FeatureFlagProxy mFeatureFlagProxy;
+    private final CarrierConfiguration mCarrierConfig;
     private boolean mIsEmulatingSinglePartyCall = false;
     private boolean mIsUsingSimCallManager = false;
 
@@ -309,12 +472,13 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
     public ImsConference(TelecomAccountRegistry telecomAccountRegistry,
             TelephonyConnectionServiceProxy telephonyConnectionService,
             TelephonyConnection conferenceHost, PhoneAccountHandle phoneAccountHandle,
-            FeatureFlagProxy featureFlagProxy) {
+            FeatureFlagProxy featureFlagProxy, CarrierConfiguration carrierConfig) {
 
         super(phoneAccountHandle);
 
         mTelecomAccountRegistry = telecomAccountRegistry;
         mFeatureFlagProxy = featureFlagProxy;
+        mCarrierConfig = carrierConfig;
 
         // Specify the connection time of the conference to be the connection time of the original
         // connection.
@@ -330,9 +494,8 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
         setConferenceHost(conferenceHost);
 
         int capabilities = Connection.CAPABILITY_MUTE |
-                Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN |
-                Connection.CAPABILITY_ADD_PARTICIPANT;
-        if (canHoldImsCalls()) {
+                Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN;
+        if (mCarrierConfig.isHoldAllowed()) {
             capabilities |= Connection.CAPABILITY_SUPPORT_HOLD | Connection.CAPABILITY_HOLD;
             mIsHoldable = true;
         }
@@ -500,6 +663,8 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
             } catch (CallStateException e) {
                 Log.e(this, e, "Exception thrown trying to hangup conference");
             }
+        } else {
+            Log.w(this, "onDisconnect - null call");
         }
     }
 
@@ -567,25 +732,6 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
             return;
         }
         mConferenceHost.performReject(android.telecom.Call.REJECT_REASON_DECLINED);
-    }
-
-    /**
-     * Invoked when the conference adds a participant to the conference call.
-     *
-     * @param participant The participant to be added with conference call.
-     */
-    @Override
-    public void onAddParticipant(String participant) {
-        try {
-            Phone phone = (mConferenceHost != null) ? mConferenceHost.getPhone() : null;
-            Log.d(this, "onAddParticipant mConferenceHost = " + mConferenceHost
-                    + " Phone = " + phone);
-            if (phone != null) {
-                phone.addParticipant(participant);
-            }
-        } catch (CallStateException e) {
-            Log.e(this, e, "Exception thrown trying to add a participant into conference");
-        }
     }
 
     /**
@@ -876,19 +1022,8 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
                     if (!mConferenceParticipantConnections.containsKey(userEntity)) {
                         // Some carriers will also include the conference host in the CEP.  We will
                         // filter that out here.
-                        // Also make sure the parent connection is not null.
-                        boolean disableFilter = false;
-                        Phone phone = parent.getPhone();
-                        if (phone != null) {
-                            CarrierConfigManager cfgManager = (CarrierConfigManager)
-                                    phone.getContext().getSystemService(Context.CARRIER_CONFIG_SERVICE);
-                            if (cfgManager != null) {
-                                disableFilter = cfgManager.getConfigForSubId(phone.getSubId())
-                                        .getBoolean("disable_filter_out_conference_host");
-                            }
-                        }
                         if ((!isParticipantHost(mConferenceHostAddress, participant.getHandle())
-                               || disableFilter) && (parent.getOriginalConnection() != null)) {
+                               || !mCarrierConfig.shouldFilterOutConferenceHost())) {
                             Log.i(this, "Create participant connection, participant = %s", participant);
                             createConferenceParticipantConnection(parent, participant);
                             newParticipants.add(participant);
@@ -968,9 +1103,6 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
                 } else if (mIsEmulatingSinglePartyCall && !isSinglePartyConference) {
                     // Number of participants increased, so stop emulating a single party call.
                     stopEmulatingSinglePartyCall();
-                } else if (mIsConferenceUri && newParticipantCount == 1) {
-                    // conference uri call can right away start with a single participant
-                    startEmulatingSinglePartyCall();
                 }
             }
 
@@ -978,6 +1110,14 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
             // of the manage conference capability is updated.
             if (newParticipantsAdded || oldParticipantsRemoved) {
                 updateManageConference();
+            }
+
+            // If the conference is empty and we're supposed to do a local disconnect, do so now.
+            if (mCarrierConfig.shouldLocalDisconnectEmptyConference()
+                    && oldParticipantCount > 0 && newParticipantCount == 0) {
+                Log.i(this, "handleConferenceParticipantsUpdate: empty conference; "
+                        + "local disconnect.");
+                onDisconnect();
             }
         }
     }
@@ -1401,60 +1541,12 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
         return sb.toString();
     }
 
-    private boolean canHoldImsCalls() {
-        PersistableBundle b = getCarrierConfig();
-        // Return true if the CarrierConfig is unavailable
-        return b == null || b.getBoolean(CarrierConfigManager.KEY_ALLOW_HOLD_IN_IMS_CALL_BOOL);
-    }
-
-    private PersistableBundle getCarrierConfig() {
-        if (mConferenceHost == null) {
-            return null;
-        }
-
-        Phone phone = mConferenceHost.getPhone();
-        if (phone == null) {
-            return null;
-        }
-        return PhoneGlobals.getInstance().getCarrierConfigForSubId(phone.getSubId());
-    }
-
-    /**
-     * @return {@code true} if the carrier associated with the conference requires that the maximum
-     *      size of the conference is enforced, {@code false} otherwise.
-     */
-    public boolean isMaximumConferenceSizeEnforced() {
-        PersistableBundle b = getCarrierConfig();
-        // Return false if the CarrierConfig is unavailable
-        return b != null && b.getBoolean(
-                CarrierConfigManager.KEY_IS_IMS_CONFERENCE_SIZE_ENFORCED_BOOL);
-    }
-
     /**
      * @return {@code true} if the carrier associated with the conference supports multianchor
      * conference, {@code false} otherwise.
      */
     public boolean isMultiAnchorConferenceSupported() {
-        PersistableBundle b = getCarrierConfig();
-        // Return false if the CarrierConfig is unavailable
-        return b != null && b.getBoolean(
-                CarrierConfigManager.KEY_CARRIER_SUPPORTS_MULTIANCHOR_CONFERENCE);
-    }
-
-    /**
-     * @return The maximum size of a conference call where
-     * {@link #isMaximumConferenceSizeEnforced()} is true.
-     */
-    public int getMaximumConferenceSize() {
-        PersistableBundle b = getCarrierConfig();
-
-        // If there is no carrier config its really a problem, but we'll still define a sane limit
-        // of 5 so that we can still make a conference.
-        if (b == null) {
-            Log.w(this, "getMaximumConferenceSize - failed to get conference size");
-            return 5;
-        }
-        return b.getInt(CarrierConfigManager.KEY_IMS_CONFERENCE_SIZE_LIMIT_INT);
+        return mCarrierConfig.isMultiAnchorConferenceSupported();
     }
 
     /**
@@ -1469,8 +1561,8 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
      *      participants in the conference has reached the limit, {@code false} otherwise.
      */
     public boolean isFullConference() {
-        return isMaximumConferenceSizeEnforced()
-                && getNumberOfParticipants() >= getMaximumConferenceSize();
+        return mCarrierConfig.isMaximumConferenceSizeEnforced()
+                && getNumberOfParticipants() >= mCarrierConfig.getMaximumConferenceSize();
     }
 
     /**
