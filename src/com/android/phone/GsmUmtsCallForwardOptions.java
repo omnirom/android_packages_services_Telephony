@@ -16,6 +16,7 @@ import android.os.PersistableBundle;
 import android.os.SystemProperties;
 import android.preference.Preference;
 import android.preference.PreferenceScreen;
+import android.provider.Settings;
 import android.telephony.CarrierConfigManager;
 import android.telephony.ims.feature.ImsFeature;
 import android.telephony.SubscriptionManager;
@@ -373,7 +374,8 @@ public class GsmUmtsCallForwardOptions extends TimeConsumingPreferenceActivity
             builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    Intent newIntent = new Intent("com.qualcomm.qti.simsettings.SIM_SETTINGS");
+                    Intent newIntent = new Intent(Settings.ACTION_NETWORK_OPERATOR_SETTINGS);
+                    newIntent.putExtra(Settings.EXTRA_SUB_ID,mPhone.getSubId());
                     newIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(newIntent);
                 }
