@@ -50,7 +50,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       android:id="@+id/do_not_show"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:buttonTint="?android:attr/colorPrimary"
+      android:buttonTint="?android:attr/textColorPrimary"
       android:focusable="true"
       android:clickable="true"
       android:text="@string/do_not_show_again"
