@@ -16,6 +16,7 @@ import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
+import android.provider.Settings;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -68,6 +69,9 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
     private static final String LEGACY_ACTION_CONFIGURE_PHONE_ACCOUNT =
             "android.telecom.action.CONNECTION_SERVICE_CONFIGURE";
 
+    private static final String BUTTON_VIBRATING_KEY =
+            "button_vibrating_for_outgoing_call_accepted_key";
+
     /**
      * Value to start ordering of phone accounts relative to other preferences. By setting this
      * value on the phone account listings, we ensure that anything that is ordered before
@@ -91,6 +95,7 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
     private Preference mSmartDivertPref;
 
     private PreferenceCategory mMakeAndReceiveCallsCategory;
+    private SwitchPreference mButtonVibratingForMoCallAccepted;
     private boolean mMakeAndReceiveCallsCategoryPresent;
 
     private ListPreference mUseSipCalling;
@@ -173,6 +178,8 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
 
         mMakeAndReceiveCallsCategory = (PreferenceCategory) getPreferenceScreen().findPreference(
                 MAKE_AND_RECEIVE_CALLS_CATEGORY_KEY);
+        mButtonVibratingForMoCallAccepted = (SwitchPreference)
+                mMakeAndReceiveCallsCategory.findPreference(BUTTON_VIBRATING_KEY);
         mMakeAndReceiveCallsCategoryPresent = false;
 
         updateAccounts();
@@ -244,6 +251,11 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
                     handleSipReceiveCallsOption(isEnabled);
                 }
             }).start();
+            return true;
+        } else if (pref == mButtonVibratingForMoCallAccepted) {
+            Settings.Global.putInt(getActivity().getContentResolver(),
+                    android.provider.Settings.Global.VIBRATING_FOR_OUTGOING_CALL_ACCEPTED,
+                    mButtonVibratingForMoCallAccepted.isChecked() ? 0 : 1);
             return true;
         }
         return false;
@@ -564,6 +576,17 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         } else {
             mMakeAndReceiveCallsCategory.removePreference(
                     getPreferenceScreen().findPreference(SMART_FORWARDING_CONFIGURATION_PREF_KEY));
+        }
+
+        SwitchPreference vibratingButton = (SwitchPreference)
+                mMakeAndReceiveCallsCategory.findPreference(BUTTON_VIBRATING_KEY);
+        if (vibratingButton != null) {
+            mMakeAndReceiveCallsCategoryPresent = true;
+            final int vibrating = Settings.Global.getInt(
+                    getActivity().getContentResolver(),
+                    Settings.Global.VIBRATING_FOR_OUTGOING_CALL_ACCEPTED, 1);
+            vibratingButton.setChecked(vibrating != 0);
+            vibratingButton.setOnPreferenceChangeListener(this);
         }
 
         if (!mMakeAndReceiveCallsCategoryPresent) {
