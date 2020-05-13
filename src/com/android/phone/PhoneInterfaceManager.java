@@ -2314,29 +2314,15 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 phoneId = SubscriptionManager.DEFAULT_PHONE_INDEX;
             }
             final int subId = mSubscriptionController.getSubIdUsingPhoneId(phoneId);
-            // Todo: fix this when we can get the actual cellular network info when the device
-            // is on IWLAN.
-            if (TelephonyManager.NETWORK_TYPE_IWLAN
-                    == getVoiceNetworkTypeForSubscriber(subId, mApp.getPackageName(),
-                    mApp.getAttributionTag())) {
-                return "";
-            }
             Phone phone = PhoneFactory.getPhone(phoneId);
-            if (phone != null) {
-                ServiceStateTracker sst = phone.getServiceStateTracker();
-                EmergencyNumberTracker emergencyNumberTracker = phone.getEmergencyNumberTracker();
-                if (sst != null) {
-                    LocaleTracker lt = sst.getLocaleTracker();
-                    if (lt != null) {
-                        if (!TextUtils.isEmpty(lt.getCurrentCountry())) {
-                            return lt.getCurrentCountry();
-                        } else if (emergencyNumberTracker != null) {
-                            return emergencyNumberTracker.getEmergencyCountryIso();
-                        }
-                    }
-                }
-            }
-            return "";
+            if (phone == null) return "";
+            ServiceStateTracker sst = phone.getServiceStateTracker();
+            if (sst == null) return "";
+            LocaleTracker lt = sst.getLocaleTracker();
+            if (lt == null) return "";
+            if (!TextUtils.isEmpty(lt.getCurrentCountry())) return lt.getCurrentCountry();
+            EmergencyNumberTracker ent = phone.getEmergencyNumberTracker();
+            return (ent == null) ? "" : ent.getEmergencyCountryIso();
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
@@ -8524,5 +8510,10 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
             mMainThreadHandler.sendEmptyMessageDelayed(MSG_NOTIFY_USER_ACTIVITY,
                     USER_ACTIVITY_NOTIFICATION_DELAY);
         }
+    }
+
+    @Override
+    public boolean canConnectTo5GInDsdsMode() {
+        return mApp.getResources().getBoolean(R.bool.config_5g_connection_in_dsds_mode);
     }
 }

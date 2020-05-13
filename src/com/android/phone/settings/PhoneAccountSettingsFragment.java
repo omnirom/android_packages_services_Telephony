@@ -115,7 +115,7 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         mSubscriptionManager = SubscriptionManager.from(getActivity());
 
         IExtTelephony extTelephony =
-                IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+                IExtTelephony.Stub.asInterface(ServiceManager.getService("qti.radio.extphone"));
 
         try {
             if (extTelephony != null) {
