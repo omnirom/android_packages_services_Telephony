@@ -245,7 +245,8 @@ public class ImsConferenceController {
                 Log.d(this, "recalc - %s %s", conference.getState(), conference);
             }
 
-            if (!conference.isConferenceHost()) {
+            if (!conference.isConferenceHost() &&
+                    (!conference.isMultiAnchorConferenceSupported())) {
                 if (Log.VERBOSE) {
                     Log.v(this, "skipping conference (not hosted on this device): %s", conference);
                 }

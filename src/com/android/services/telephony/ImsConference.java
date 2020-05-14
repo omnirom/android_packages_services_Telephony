@@ -1354,6 +1354,17 @@ public class ImsConference extends Conference implements Holdable {
     }
 
     /**
+     * @return {@code true} if the carrier associated with the conference supports multianchor
+     * conference, {@code false} otherwise.
+     */
+    public boolean isMultiAnchorConferenceSupported() {
+        PersistableBundle b = getCarrierConfig();
+        // Return false if the CarrierConfig is unavailable
+        return b != null && b.getBoolean(
+                CarrierConfigManager.KEY_CARRIER_SUPPORTS_MULTIANCHOR_CONFERENCE);
+    }
+
+    /**
      * @return The maximum size of a conference call where
      * {@link #isMaximumConferenceSizeEnforced()} is true.
      */
