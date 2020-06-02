@@ -101,7 +101,7 @@
     <protected-broadcast android:name= "android.telephony.action.SUBSCRIPTION_SPECIFIC_CARRIER_IDENTITY_CHANGED" />
     <protected-broadcast android:name= "android.telephony.action.NETWORK_COUNTRY_CHANGED" />
     <protected-broadcast android:name= "android.telephony.action.PRIMARY_SUBSCRIPTION_LIST_CHANGED" />
-    <protected-broadcast android:name="android.intent.action.VOWIFI_ENABLED" />
+    <protected-broadcast android:name= "org.codeaurora.telephony.VOWIFI_ENABLED" />
 
     <!-- For Vendor Debugging in Telephony -->
     <protected-broadcast android:name="android.telephony.action.ANOMALY_REPORTED" />
@@ -523,7 +523,7 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <intent-filter android:priority="1000">
-                <action android:name = "android.intent.action.VOWIFI_ENABLED" />
+                <action android:name = "org.codeaurora.telephony.VOWIFI_ENABLED" />
             </intent-filter>
         </activity>
 
