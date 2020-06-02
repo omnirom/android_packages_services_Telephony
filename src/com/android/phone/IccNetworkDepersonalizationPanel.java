@@ -69,6 +69,8 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     //events
     private static final int EVENT_ICC_NTWRK_DEPERSONALIZATION_RESULT = 100;
 
+    //this enum value should match with error value being propagated from vendor
+    private int ERROR = 1;
     private Phone mPhone;
     private int mPersoSubtype;
     private static IccNetworkDepersonalizationPanel [] sNdpPanel =
@@ -137,8 +139,30 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     private Handler mHandler = new Handler() {
         public void handleMessage(Message msg) {
             if (msg.what == EVENT_ICC_NTWRK_DEPERSONALIZATION_RESULT) {
-                AsyncResult res = (AsyncResult) msg.obj;
-                    if (res.exception != null) {
+                if (mPhone.getHalVersion().greaterOrEqual(RIL.RADIO_HAL_VERSION_1_5)) {
+                    AsyncResult res = (AsyncResult) msg.obj;
+                        if (res.exception != null) {
+                            if (DBG) log("network depersonalization request failure.");
+                            displayStatus(statusType.ERROR.name());
+                            postDelayed(new Runnable() {
+                                public void run() {
+                                    hideAlert();
+                                    mPinEntry.getText().clear();
+                                    mPinEntry.requestFocus();
+                                }
+                            }, 3000);
+                        } else {
+                            if (DBG) log("network depersonalization success.");
+                            displayStatus(statusType.SUCCESS.name());
+                            postDelayed(new Runnable() {
+                                public void run() {
+                                    dismiss();
+                                }
+                            }, 3000);
+                        }
+                } else {
+                    //DepersoResult received ERROR/SUCCESS from vendor side
+                    if (msg.arg1 == ERROR) {
                         if (DBG) log("network depersonalization request failure.");
                         displayStatus(statusType.ERROR.name());
                         postDelayed(new Runnable() {
@@ -159,6 +183,7 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
                     }
                 }
             }
+        }
     };
 
     private final IDepersoResCallback mCallback = new IDepersoResCallback.Stub() {
@@ -262,7 +287,7 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
 
             try {
                 // If 1.5 or above HAL Version, then functionality uses IRadio.hal
-                // else follow legacy procedure 
+                // else follow legacy procedure
                 if(mPhone.getHalVersion().greaterOrEqual(RIL.RADIO_HAL_VERSION_1_5)) {
                     mPhone.getIccCard().supplySimDepersonalization(mPersoSubState,pin,
                            Message.obtain(mHandler, EVENT_ICC_NTWRK_DEPERSONALIZATION_RESULT));
