@@ -41,7 +41,6 @@ import android.widget.TextView;
 
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.RIL;
-import com.android.internal.telephony.uicc.IccCardApplicationStatus;
 import com.android.internal.telephony.uicc.IccCardApplicationStatus.PersoSubState;
 
 import org.codeaurora.internal.IExtTelephony;
@@ -61,7 +60,7 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
      * Ensures only a single instance of the dialog is visible.
      */
     private static boolean [] sShowingDialog =
-            new boolean[TelephonyManager.getDefault().getSimCount()];
+            new boolean[TelephonyManager.getDefault().getSupportedModemCount()];
 
     //debug constants
     private static final boolean DBG = false;
@@ -74,7 +73,8 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     private Phone mPhone;
     private int mPersoSubtype;
     private static IccNetworkDepersonalizationPanel [] sNdpPanel =
-            new IccNetworkDepersonalizationPanel[TelephonyManager.getDefault().getSimCount()];
+            new IccNetworkDepersonalizationPanel[
+                    TelephonyManager.getDefault().getSupportedModemCount()];
 
     //UI elements
     private EditText     mPinEntry;
@@ -102,6 +102,10 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
      */
     public static void showDialog(Phone phone, int subType) {
         int phoneId = phone == null ? 0: phone.getPhoneId();
+        if (phoneId >= sShowingDialog.length) {
+            Log.e(TAG, "[IccNetworkDepersonalizationPanel] showDialog; invalid phoneId" + phoneId);
+            return;
+        }
         if (sShowingDialog[phoneId]) {
             Log.i(TAG, "[IccNetworkDepersonalizationPanel] - showDialog; skipped already shown.");
             return;
@@ -114,6 +118,10 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     }
 
     public static void dialogDismiss(int phoneId) {
+        if (phoneId >= sShowingDialog.length) {
+            Log.e(TAG, "[IccNetworkDepersonalizationPanel] - dismiss; invalid phoneId " + phoneId);
+            return;
+        }
         if (sNdpPanel[phoneId] != null && sShowingDialog[phoneId]) {
             sNdpPanel[phoneId].dismiss();
         }
@@ -261,6 +269,10 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
         super.onStop();
         Log.i(TAG, "[IccNetworkDepersonalizationPanel] - showDialog; hiding dialog.");
         int phoneId = mPhone == null ? 0 : mPhone.getPhoneId();
+        if (phoneId >= sShowingDialog.length) {
+            Log.e(TAG, "[IccNetworkDepersonalizationPanel] - onStop; invalid phoneId " + phoneId);
+            return;
+        }
         sShowingDialog[phoneId] = false;
     }
 
