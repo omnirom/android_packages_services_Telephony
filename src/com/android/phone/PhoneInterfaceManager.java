@@ -115,6 +115,7 @@ import android.telephony.ims.stub.ImsConfigImplBase;
 import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.text.TextUtils;
 import android.util.ArraySet;
+import android.util.EventLog;
 import android.util.Log;
 import android.util.Pair;
 
@@ -2500,12 +2501,21 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                                 .setCallingPid(Binder.getCallingPid())
                                 .setCallingUid(Binder.getCallingUid())
                                 .setMethod("requestCellInfoUpdate")
-                                .setMinSdkVersionForFine(Build.VERSION_CODES.Q)
+                                .setMinSdkVersionForCoarse(Build.VERSION_CODES.BASE)
+                                .setMinSdkVersionForFine(Build.VERSION_CODES.BASE)
                                 .build());
         switch (locationResult) {
             case DENIED_HARD:
+                if (getTargetSdk(callingPackage) < Build.VERSION_CODES.Q) {
+                    // Safetynet logging for b/154934934
+                    EventLog.writeEvent(0x534e4554, "154934934", Binder.getCallingUid());
+                }
                 throw new SecurityException("Not allowed to access cell info");
             case DENIED_SOFT:
+                if (getTargetSdk(callingPackage) < Build.VERSION_CODES.Q) {
+                    // Safetynet logging for b/154934934
+                    EventLog.writeEvent(0x534e4554, "154934934", Binder.getCallingUid());
+                }
                 try {
                     cb.onCellInfo(new ArrayList<CellInfo>());
                 } catch (RemoteException re) {
@@ -5009,6 +5019,22 @@ public class PhoneInterfaceManager extends ITelephony.Stub {
                 return null;
             }
             return mImsResolver.getRcsFeatureAndListen(slotId, callback);
+        } finally {
+            Binder.restoreCallingIdentity(identity);
+        }
+    }
+
+    /**
+     * Unregister a previously registered IImsServiceFeatureCallback associated with an ImsFeature.
+     */
+    public void unregisterImsFeatureCallback(int slotId, int featureType,
+            IImsServiceFeatureCallback callback) {
+        enforceModifyPermission();
+
+        final long identity = Binder.clearCallingIdentity();
+        try {
+            if (mImsResolver == null) return;
+            mImsResolver.unregisterImsFeatureCallback(slotId, featureType, callback);
         } finally {
             Binder.restoreCallingIdentity(identity);
         }
