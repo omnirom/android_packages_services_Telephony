@@ -499,29 +499,35 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         public void onUTReqFailed(int phoneId, int errCode, String errString) {
             if (DBG) Log.d(LOG_TAG, "onUTReqFailed phoneId=" + phoneId + " errCode= "
                     +errCode + "errString ="+ errString);
-            if (mAllowSetCallFwding) {
-                mTcpListener.onFinished(CallForwardEditPreference.this, false);
-                mAllowSetCallFwding = false;
-            } else {
-                mTcpListener.onFinished(CallForwardEditPreference.this, true);
-            }
-            int error = RESPONSE_ERROR;
-            if (errCode == ImsReasonInfo.CODE_FDN_BLOCKED) {
-                 error = FDN_CHECK_FAILURE;
-            } else if (errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_DIAL) {
-                error = STK_CC_SS_TO_DIAL_ERROR;
-            } else if (errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_DIAL_VIDEO) {
-                error = STK_CC_SS_TO_DIAL_VIDEO_ERROR;
-            } else if(errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_USSD) {
-                error = STK_CC_SS_TO_USSD_ERROR;
-            } else if (errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_SS) {
-                error = STK_CC_SS_TO_SS_ERROR;
-            } else if (errCode == ImsReasonInfo.CODE_RADIO_OFF) {
-                error = RADIO_OFF_ERROR;
-            }
-            mTcpListener.onError(CallForwardEditPreference.this, error);
+            Message msg = mHandler.obtainMessage(mHandler.MESSAGE_GET_UT_FAILED);
+            msg.arg1 = errCode;
+            msg.sendToTarget();
         }
     };
+
+    private void handleUtReqFailed(int errCode) {
+        if (mAllowSetCallFwding) {
+            mTcpListener.onFinished(CallForwardEditPreference.this, false);
+            mAllowSetCallFwding = false;
+        } else {
+            mTcpListener.onFinished(CallForwardEditPreference.this, true);
+        }
+        int error = RESPONSE_ERROR;
+        if (errCode == ImsReasonInfo.CODE_FDN_BLOCKED) {
+            error = FDN_CHECK_FAILURE;
+        } else if (errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_DIAL) {
+            error = STK_CC_SS_TO_DIAL_ERROR;
+        } else if (errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_DIAL_VIDEO) {
+            error = STK_CC_SS_TO_DIAL_VIDEO_ERROR;
+        } else if(errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_USSD) {
+            error = STK_CC_SS_TO_USSD_ERROR;
+        } else if (errCode == ImsReasonInfo.CODE_UT_SS_MODIFIED_TO_SS) {
+            error = STK_CC_SS_TO_SS_ERROR;
+        } else if (errCode == ImsReasonInfo.CODE_RADIO_OFF) {
+            error = RADIO_OFF_ERROR;
+        }
+        mTcpListener.onError(CallForwardEditPreference.this, error);
+    }
 
     private void handleGetCFTimerResponse() {
         if (mAllowSetCallFwding) {
@@ -549,6 +555,7 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
         static final int MESSAGE_GET_CF_USSD = 2;
         static final int MESSAGE_SET_CF_USSD = 3;
         static final int MESSAGE_GET_CFUT = 4;
+        static final int MESSAGE_GET_UT_FAILED = 5;
 
         TelephonyManager.UssdResponseCallback mUssdCallback =
                 new TelephonyManager.UssdResponseCallback() {
@@ -607,6 +614,9 @@ public class CallForwardEditPreference extends EditPhoneNumberPreference {
                     break;
                 case MESSAGE_GET_CFUT:
                     handleGetCFTimerResponse();
+                    break;
+                case MESSAGE_GET_UT_FAILED:
+                    handleUtReqFailed(msg.arg1);
                     break;
             }
         }
