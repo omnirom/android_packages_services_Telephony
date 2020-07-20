@@ -25,6 +25,8 @@ import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.telephony.CarrierConfigManager;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.Editable;
 import android.text.Spannable;
@@ -75,6 +77,7 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     private static IccNetworkDepersonalizationPanel [] sNdpPanel =
             new IccNetworkDepersonalizationPanel[
                     TelephonyManager.getDefault().getSupportedModemCount()];
+    private SubscriptionInfo sir;
 
     //UI elements
     private EditText     mPinEntry;
@@ -82,6 +85,7 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
     private LinearLayout mStatusPanel;
     private TextView     mPersoSubtypeText;
     private PersoSubState mPersoSubState;
+    private TextView     mPhoneIdText;
     private TextView     mStatusText;
 
     private Button       mUnlockButton;
@@ -208,6 +212,9 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
         super(context);
         mPhone = PhoneGlobals.getPhone();
         mPersoSubtype = PersoSubState.PERSOSUBSTATE_SIM_NETWORK.ordinal();
+        sir = SubscriptionManager.from(context)
+                .getActiveSubscriptionInfoForSimSlotIndex(mPhone.getPhoneId());
+
     }
 
     //constructor
@@ -216,6 +223,8 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
         super(context);
         mPhone = phone == null ? PhoneGlobals.getPhone() : phone;
         mPersoSubtype = subtype;
+        sir = SubscriptionManager.from(context)
+                .getActiveSubscriptionInfoForSimSlotIndex(mPhone.getPhoneId());
     }
 
     @Override
@@ -235,6 +244,7 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
 
         mEntryPanel = (LinearLayout) findViewById(R.id.entry_panel);
         mPersoSubtypeText = (TextView) findViewById(R.id.perso_subtype_text);
+        mPhoneIdText = (TextView) findViewById(R.id.perso_phoneid_text);
         displayStatus(statusType.ENTRY.name());
 
         mUnlockButton = (Button) findViewById(R.id.ndp_unlock);
@@ -333,6 +343,14 @@ public class IccNetworkDepersonalizationPanel extends IccPanel {
             log ("Unsupported Perso Subtype :" + mPersoSubState.name());
             return;
         }
+
+       CharSequence displayName = sir.getDisplayName();
+       log("Operator displayName is: " + displayName + "phoneId: " + mPhone.getPhoneId());
+
+        // Displaying Operator displayName  on UI
+        String phoneIdText = getContext().getString(R.string.label_phoneid)
+                + ": " + displayName;
+        mPhoneIdText.setText(phoneIdText);
 
         if (type == statusType.ENTRY.name()) {
             String displayText = getContext().getString(label);

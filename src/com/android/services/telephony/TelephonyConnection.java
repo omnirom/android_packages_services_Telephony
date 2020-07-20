@@ -2119,6 +2119,12 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
                     // Ensure extras are propagated to Telecom.
                     putTelephonyExtras(mOriginalConnectionExtras);
+                    // If extras contain Conference support information,
+                    // then ensure capabilities are updated and propagated to Telecom.
+                    if (mOriginalConnectionExtras.containsKey(
+                            ImsCallProfile.EXTRA_CONFERENCE_AVAIL)) {
+                        updateConnectionCapabilities();
+                    }
                 } else {
                     Log.d(this, "Extras update not required");
                 }
