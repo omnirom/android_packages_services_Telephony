@@ -33,6 +33,7 @@ import java.util.List;
 public class TelephonyConference extends TelephonyConferenceBase implements Holdable {
 
     private boolean mIsHoldable;
+    private boolean mIsDisconnecting;
 
     public TelephonyConference(PhoneAccountHandle phoneAccount) {
         super(phoneAccount);
@@ -66,9 +67,14 @@ public class TelephonyConference extends TelephonyConferenceBase implements Hold
     private boolean disconnectCall(Connection connection) {
         Call call = getMultipartyCallForConnection(connection, "onDisconnect");
         if (call != null) {
+            if (mIsDisconnecting) {
+                Log.i(this, "disconnectCall already called once");
+                return false;
+            }
             Log.d(this, "Found multiparty call to hangup for conference.");
             try {
                 call.hangup();
+                mIsDisconnecting = true;
                 return true;
             } catch (CallStateException e) {
                 Log.e(this, e, "Exception thrown trying to hangup conference");
