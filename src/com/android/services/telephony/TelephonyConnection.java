@@ -1927,6 +1927,10 @@ abstract class TelephonyConnection extends Connection implements Holdable,
 
     protected void hangup(int telephonyDisconnectCode) {
         if (mOriginalConnection != null) {
+            if (mHangupDisconnectCause != DisconnectCause.NOT_VALID) {
+                Log.i(this, "hangup already called once");
+                return;
+            }
             mHangupDisconnectCause = telephonyDisconnectCode;
             try {
                 // Hanging up a ringing call requires that we invoke call.hangup() as opposed to
