@@ -60,6 +60,7 @@ import android.telephony.ims.feature.MmTelFeature;
 import android.telephony.ims.stub.ImsRegistrationImplBase;
 import android.text.TextUtils;
 
+import com.android.ims.FeatureConnector;
 import com.android.ims.ImsManager;
 import com.android.internal.telephony.ExponentialBackoff;
 import com.android.internal.telephony.Phone;
@@ -147,6 +148,7 @@ public class TelecomAccountRegistry {
         private boolean mIsManageImsConferenceCallSupported;
         private boolean mIsUsingSimCallManager;
         private boolean mIsShowPreciseFailedCause;
+        private final FeatureConnector<ImsManager> mImsManagerConnector;
 
         AccountEntry(Phone phone, boolean isEmergency, boolean isDummy) {
             mPhone = phone;
@@ -159,6 +161,21 @@ public class TelecomAccountRegistry {
             mIncomingCallNotifier = new PstnIncomingCallNotifier((Phone) mPhone);
             mPhoneCapabilitiesNotifier = new PstnPhoneCapabilitiesNotifier((Phone) mPhone,
                     this);
+            mImsManagerConnector = new FeatureConnector<>(mPhone.getContext(), mPhone.getPhoneId(),
+                    new FeatureConnector.Listener<ImsManager>() {
+                        @Override
+                        public ImsManager getFeatureManager() {
+                            return ImsManager.getInstance(mPhone.getContext(), mPhone.getPhoneId());
+                        }
+                        @Override
+                        public void connectionReady(ImsManager manager){
+                            registerImsRegistrationCallback();
+                        }
+                        @Override
+                        public void connectionUnavailable() {
+                            unregisterImsRegistrationCallback();
+                        }
+                    }, "TelecomAccountRegistry");
 
             if (mIsDummy || isEmergency) {
                 // For dummy and emergency entries, there is no sub ID that can be assigned, so do
@@ -203,21 +220,16 @@ public class TelecomAccountRegistry {
                     updateAdhocConfCapability(false);
                 }
             };
-            registerImsRegistrationCallback();
+            mImsManagerConnector.connect();
         }
 
         void teardown() {
             mIncomingCallNotifier.teardown();
             mPhoneCapabilitiesNotifier.teardown();
-            if (mMmTelManager != null) {
-                if (mMmtelCapabilityCallback != null) {
-                    mMmTelManager.unregisterMmTelCapabilityCallback(mMmtelCapabilityCallback);
-                }
-
-                if (mImsRegistrationCallback != null) {
-                    mMmTelManager.unregisterImsRegistrationCallback(mImsRegistrationCallback);
-                }
+            if (mMmTelManager != null && mMmtelCapabilityCallback != null) {
+                mMmTelManager.unregisterMmTelCapabilityCallback(mMmtelCapabilityCallback);
             }
+            mImsManagerConnector.disconnect();
         }
 
         private void registerMmTelCapabilityCallback() {
@@ -249,6 +261,7 @@ public class TelecomAccountRegistry {
             try {
                 mMmTelManager.registerImsRegistrationCallback(mContext.getMainExecutor(),
                         mImsRegistrationCallback);
+                Log.v(this, "registerImsRegistrationCallback: registration success");
             } catch (ImsException e) {
                 Log.w(this, "registerImsRegistrationCallback: registration failed, no ImsService"
                         + " available. Exception: " + e.getMessage());
@@ -258,6 +271,13 @@ public class TelecomAccountRegistry {
                         + " subscription, Exception" + e.getMessage());
                 return;
             }
+        }
+
+        private void unregisterImsRegistrationCallback() {
+            if (mMmTelManager == null || mImsRegistrationCallback == null) {
+                return;
+            }
+            mMmTelManager.unregisterImsRegistrationCallback(mImsRegistrationCallback);
         }
 
         /**
