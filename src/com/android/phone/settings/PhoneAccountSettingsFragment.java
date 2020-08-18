@@ -477,6 +477,7 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
                 }
             } else {
                 getPreferenceScreen().removePreference(mAccountList);
+                mMakeAndReceiveCallsCategory.removePreference(mDefaultOutgoingAccount);
             }
         }
     }
