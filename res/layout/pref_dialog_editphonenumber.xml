@@ -23,7 +23,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="?android:attr/dialogPreferredPadding">
+        android:padding="5dip">
         <TextView android:id="@+id/message"
             style="?android:attr/textAppearanceMedium"
             android:layout_width="match_parent"
@@ -99,8 +99,8 @@
             <Spinner
                 style="@style/cfut_value"
                 android:visibility="gone"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:id="@+id/time_start_formate"
                 android:prompt="@string/time_start_minute"
                 android:entries="@array/time_formate_items"/>
@@ -151,8 +151,8 @@
             <Spinner
                 style="@style/cfut_value"
                 android:visibility="gone"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:id="@+id/time_end_formate"
                 android:prompt="@string/time_end_minute"
                 android:entries="@array/time_formate_items"/>
