@@ -1176,9 +1176,18 @@ public class TelephonyConnectionService extends ConnectionService {
         final boolean isTtyModeEnabled = mDeviceState.isTtyModeEnabled(this);
         if (VideoProfile.isVideo(request.getVideoState()) && isTtyModeEnabled
                 && !isEmergencyNumber) {
-            return Connection.createFailedConnection(mDisconnectCauseFactory.toTelecomDisconnectCause(
-                    android.telephony.DisconnectCause.VIDEO_CALL_NOT_ALLOWED_WHILE_TTY_ENABLED,
-                    null, phone.getPhoneId()));
+            boolean vtTtySupported = false;
+            CarrierConfigManager cfgManager = (CarrierConfigManager)
+                    phone.getContext().getSystemService(Context.CARRIER_CONFIG_SERVICE);
+            if (cfgManager != null) {
+                vtTtySupported = cfgManager.getConfigForSubId(phone.getSubId())
+                        .getBoolean(CarrierConfigManager.KEY_CARRIER_VT_TTY_SUPPORT_BOOL);
+            }
+            if (!vtTtySupported) {
+                return Connection.createFailedConnection(mDisconnectCauseFactory.
+                        toTelecomDisconnectCause(android.telephony.DisconnectCause.
+                        VIDEO_CALL_NOT_ALLOWED_WHILE_TTY_ENABLED,null, phone.getPhoneId()));
+            }
         }
 
         // Check for additional limits on CDMA phones.
