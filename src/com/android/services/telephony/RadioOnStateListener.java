@@ -314,6 +314,7 @@ public class RadioOnStateListener {
     }
 
     private void registerForRadioOff() {
+        unregisterForServiceStateChanged();
         mPhone.mCi.registerForOffOrNotAvailable(mHandler, MSG_RADIO_OFF_OR_NOT_AVAILABLE, null);
     }
 

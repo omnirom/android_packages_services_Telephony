@@ -623,24 +623,12 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         Intent intent = new Intent(CarrierConfigManager.ACTION_CARRIER_CONFIG_CHANGED);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY_BEFORE_BOOT |
                 Intent.FLAG_RECEIVER_FOREGROUND);
+        // Include subId extra only if SIM records are loaded
         if (addSubIdExtra) {
-            int simApplicationState = TelephonyManager.SIM_STATE_UNKNOWN;
-            int[] subIds = SubscriptionManager.getSubId(phoneId);
-            if (!ArrayUtils.isEmpty(subIds)) {
-                TelephonyManager telMgr = TelephonyManager.from(mContext)
-                        .createForSubscriptionId(subIds[0]);
-                simApplicationState = telMgr.getSimApplicationState();
-            }
-            logd("Broadcast CARRIER_CONFIG_CHANGED for phone " + phoneId
-                    + " simApplicationState " + simApplicationState);
-            // Include subId/carrier id extra only if SIM records are loaded
-            if (simApplicationState != TelephonyManager.SIM_STATE_UNKNOWN
-                    && simApplicationState != TelephonyManager.SIM_STATE_NOT_READY) {
-                SubscriptionManager.putPhoneIdAndSubIdExtra(intent, phoneId);
-                intent.putExtra(TelephonyManager.EXTRA_SPECIFIC_CARRIER_ID,
-                        getSpecificCarrierIdForPhoneId(phoneId));
-                intent.putExtra(TelephonyManager.EXTRA_CARRIER_ID, getCarrierIdForPhoneId(phoneId));
-            }
+            SubscriptionManager.putPhoneIdAndSubIdExtra(intent, phoneId);
+            intent.putExtra(TelephonyManager.EXTRA_SPECIFIC_CARRIER_ID,
+                    getSpecificCarrierIdForPhoneId(phoneId));
+            intent.putExtra(TelephonyManager.EXTRA_CARRIER_ID, getCarrierIdForPhoneId(phoneId));
         }
         intent.putExtra(CarrierConfigManager.EXTRA_SLOT_INDEX, phoneId);
         intent.putExtra(CarrierConfigManager.EXTRA_REBROADCAST_ON_UNLOCK,
@@ -681,6 +669,7 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         String imsi = "";
         String gid1 = "";
         String gid2 = "";
+        String iccid = "";
         String spn = TelephonyManager.from(mContext).getSimOperatorNameForPhone(phoneId);
         String simOperator = TelephonyManager.from(mContext).getSimOperatorNumericForPhone(phoneId);
         int carrierId = TelephonyManager.UNKNOWN_CARRIER_ID;
@@ -695,10 +684,11 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
             imsi = phone.getSubscriberId();
             gid1 = phone.getGroupIdLevel1();
             gid2 = phone.getGroupIdLevel2();
+            iccid = phone.getIccSerialNumber();
             carrierId = phone.getCarrierId();
             specificCarrierId = phone.getSpecificCarrierId();
         }
-        return new CarrierIdentifier(mcc, mnc, spn, imsi, gid1, gid2, carrierId, specificCarrierId);
+        return new CarrierIdentifier(mcc, mnc, spn, imsi, gid1, gid2, iccid, carrierId, specificCarrierId);
     }
 
     /** Returns the package name of a priveleged carrier app, or null if there is none. */

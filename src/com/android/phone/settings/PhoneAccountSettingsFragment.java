@@ -8,12 +8,15 @@ import android.content.pm.ResolveInfo;
 import android.graphics.drawable.Icon;
 import android.net.sip.SipManager;
 import android.os.Bundle;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.UserManager;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.SwitchPreference;
+import android.provider.Settings;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -32,6 +35,8 @@ import com.android.services.telephony.sip.SipAccountRegistry;
 import com.android.services.telephony.sip.SipPreferences;
 import com.android.services.telephony.sip.SipUtil;
 
+import org.codeaurora.internal.IExtTelephony;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -48,6 +53,8 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
 
     private static final String ALL_CALLING_ACCOUNTS_KEY = "phone_accounts_all_calling_accounts";
 
+    private static final String BUTTON_SMART_DIVERT_KEY = "button_smart_divert";
+
     private static final String SIP_SETTINGS_CATEGORY_PREF_KEY =
             "phone_accounts_sip_settings_category_key";
     private static final String USE_SIP_PREF_KEY = "use_sip_calling_options_key";
@@ -62,6 +69,9 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
     private static final String LEGACY_ACTION_CONFIGURE_PHONE_ACCOUNT =
             "android.telecom.action.CONNECTION_SERVICE_CONFIGURE";
 
+    private static final String BUTTON_VIBRATING_KEY =
+            "button_vibrating_for_outgoing_call_accepted_key";
+
     /**
      * Value to start ordering of phone accounts relative to other preferences. By setting this
      * value on the phone account listings, we ensure that anything that is ordered before
@@ -72,6 +82,8 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
 
     private static final String LOG_TAG = PhoneAccountSettingsFragment.class.getSimpleName();
 
+    private boolean isXdivertAvailable = false;
+
     private TelecomManager mTelecomManager;
     private TelephonyManager mTelephonyManager;
     private SubscriptionManager mSubscriptionManager;
@@ -80,8 +92,10 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
 
     private AccountSelectionPreference mDefaultOutgoingAccount;
     private Preference mAllCallingAccounts;
+    private Preference mSmartDivertPref;
 
     private PreferenceCategory mMakeAndReceiveCallsCategory;
+    private SwitchPreference mButtonVibratingForMoCallAccepted;
     private boolean mMakeAndReceiveCallsCategoryPresent;
 
     private ListPreference mUseSipCalling;
@@ -104,6 +118,20 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         mTelecomManager = getActivity().getSystemService(TelecomManager.class);
         mTelephonyManager = TelephonyManager.from(getActivity());
         mSubscriptionManager = SubscriptionManager.from(getActivity());
+
+        IExtTelephony extTelephony =
+                IExtTelephony.Stub.asInterface(ServiceManager.getService("qti.radio.extphone"));
+
+        try {
+            if (extTelephony != null) {
+                isXdivertAvailable = extTelephony.isVendorApkAvailable("com.qti.xdivert");
+            } else {
+                Log.d(LOG_TAG, "xdivert not available");
+            }
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
     }
 
     @Override
@@ -146,9 +174,12 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         mDefaultOutgoingAccount = (AccountSelectionPreference)
                 getPreferenceScreen().findPreference(DEFAULT_OUTGOING_ACCOUNT_KEY);
         mAllCallingAccounts = getPreferenceScreen().findPreference(ALL_CALLING_ACCOUNTS_KEY);
+        mSmartDivertPref = getPreferenceScreen().findPreference(BUTTON_SMART_DIVERT_KEY);
 
         mMakeAndReceiveCallsCategory = (PreferenceCategory) getPreferenceScreen().findPreference(
                 MAKE_AND_RECEIVE_CALLS_CATEGORY_KEY);
+        mButtonVibratingForMoCallAccepted = (SwitchPreference)
+                mMakeAndReceiveCallsCategory.findPreference(BUTTON_VIBRATING_KEY);
         mMakeAndReceiveCallsCategoryPresent = false;
 
         updateAccounts();
@@ -220,6 +251,11 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
                     handleSipReceiveCallsOption(isEnabled);
                 }
             }).start();
+            return true;
+        } else if (pref == mButtonVibratingForMoCallAccepted) {
+            Settings.Global.putInt(getActivity().getContentResolver(),
+                    android.provider.Settings.Global.VIBRATING_FOR_OUTGOING_CALL_ACCEPTED,
+                    mButtonVibratingForMoCallAccepted.isChecked() ? 0 : 1);
             return true;
         }
         return false;
@@ -433,8 +469,15 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
                 } else {
                     mAccountList.removePreference(mAllCallingAccounts);
                 }
+                if (isXdivertAvailable) {
+                    if (mSmartDivertPref != null) {
+                        Log.d(LOG_TAG, "Add smart divert preference");
+                        mAccountList.addPreference(mSmartDivertPref);
+                    }
+                }
             } else {
                 getPreferenceScreen().removePreference(mAccountList);
+                mMakeAndReceiveCallsCategory.removePreference(mDefaultOutgoingAccount);
             }
         }
     }
@@ -534,6 +577,17 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         } else {
             mMakeAndReceiveCallsCategory.removePreference(
                     getPreferenceScreen().findPreference(SMART_FORWARDING_CONFIGURATION_PREF_KEY));
+        }
+
+        SwitchPreference vibratingButton = (SwitchPreference)
+                mMakeAndReceiveCallsCategory.findPreference(BUTTON_VIBRATING_KEY);
+        if (vibratingButton != null) {
+            mMakeAndReceiveCallsCategoryPresent = true;
+            final int vibrating = Settings.Global.getInt(
+                    getActivity().getContentResolver(),
+                    Settings.Global.VIBRATING_FOR_OUTGOING_CALL_ACCEPTED, 1);
+            vibratingButton.setChecked(vibrating != 0);
+            vibratingButton.setOnPreferenceChangeListener(this);
         }
 
         if (!mMakeAndReceiveCallsCategoryPresent) {

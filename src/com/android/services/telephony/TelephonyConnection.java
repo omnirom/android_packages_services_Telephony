@@ -28,6 +28,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PersistableBundle;
+import android.widget.Toast;
 import android.telecom.CallAudioState;
 import android.telecom.Conference;
 import android.telecom.Connection;
@@ -40,6 +41,8 @@ import android.telecom.VideoProfile;
 import android.telephony.CarrierConfigManager;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
 import android.telephony.ServiceState;
 import android.telephony.ServiceState.RilRadioTechnology;
 import android.telephony.SubscriptionManager;
@@ -48,6 +51,7 @@ import android.telephony.ims.ImsCallProfile;
 import android.telephony.ims.ImsStreamMediaProfile;
 import android.text.TextUtils;
 import android.util.Pair;
+import android.widget.Toast;
 
 import com.android.ims.ImsCall;
 import com.android.ims.ImsException;
@@ -72,6 +76,9 @@ import com.android.phone.PhoneUtils;
 import com.android.phone.R;
 import com.android.telephony.Rlog;
 
+import org.codeaurora.ims.QtiCallConstants;
+import org.codeaurora.ims.utils.QtiImsExtUtils;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -85,7 +92,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Base class for CDMA and GSM connections.
  */
-abstract class TelephonyConnection extends Connection implements Holdable {
+abstract class TelephonyConnection extends Connection implements Holdable,
+          TelephonyConnectionService.ConnectionRemovedListener {
     private static final String LOG_TAG = "TelephonyConnection";
 
     private static final int MSG_PRECISE_CALL_STATE_CHANGED = 1;
@@ -116,9 +124,14 @@ abstract class TelephonyConnection extends Connection implements Holdable {
     private static final int MSG_ON_CONNECTION_EVENT = 19;
     private static final int MSG_REDIAL_CONNECTION_CHANGED = 20;
     private static final int MSG_REJECT = 21;
+    private static final int MSG_CONNECTION_REMOVED = 22;
 
     private List<Uri> mParticipants;
     private boolean mIsAdhocConferenceCall;
+
+    private boolean mIsEmergencyNumber = false;
+
+    private SuppServiceNotification mSsNotification = null;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -152,6 +165,24 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                             Log.d(TelephonyConnection.this,
                                     "SettingOriginalConnection " + mOriginalConnection.toString()
                                             + " with " + connection.toString());
+                            boolean isShowToast = false;
+                            Phone phone = getPhone();
+                            if (phone != null) {
+                                CarrierConfigManager cfgManager = (CarrierConfigManager) phone
+                                        .getContext().getSystemService(Context
+                                        .CARRIER_CONFIG_SERVICE);
+                                if (cfgManager != null) {
+                                    isShowToast = cfgManager.getConfigForSubId(phone.getSubId())
+                                            .getBoolean("config_show_srvcc_toast");
+                                }
+                            }
+                            if (isShowToast && !shouldTreatAsEmergencyCall()) {
+                                int srvccMessageRes = VideoProfile.isVideo(
+                                        mOriginalConnection.getVideoState()) ?
+                                        R.string.srvcc_video_message : R.string.srvcc_message;
+                                Toast.makeText(phone.getContext(),
+                                        srvccMessageRes, Toast.LENGTH_LONG).show();
+                            }
                             setOriginalConnection(connection);
                             mWasImsConnection = false;
                         }
@@ -192,8 +223,15 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                     Log.v(TelephonyConnection.this, "MSG_SUPP_SERVICE_NOTIFY on phoneId : "
                             + (phone != null ? Integer.toString(phone.getPhoneId())
                             : "null"));
-                    SuppServiceNotification mSsNotification = null;
+                    if (phone == null) {
+                        break;
+                    }
                     if (msg.obj != null && ((AsyncResult) msg.obj).result != null) {
+                        if (mOriginalConnection != null && ((SuppServiceNotification)((AsyncResult)
+                                msg.obj).result).history != null && !(mConnectionState ==
+                                Call.State.DIALING || mConnectionState == Call.State.ALERTING)) {
+                           return;
+                        }
                         mSsNotification =
                                 (SuppServiceNotification)((AsyncResult) msg.obj).result;
                         if (mOriginalConnection != null) {
@@ -280,6 +318,11 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                     int rejectReason = (int) msg.obj;
                     reject(rejectReason);
                     break;
+                case MSG_CONNECTION_REMOVED:
+                    Log.d(this, "MSG_CONNECTION_REMOVED");
+                    // Some connection has disconnected. Re fresh disable add call property.
+                    refreshDisableAddCall();
+                    break;
 
                 case MSG_SET_CALL_RADIO_TECH:
                     int vrat = (int) msg.obj;
@@ -340,11 +383,23 @@ abstract class TelephonyConnection extends Connection implements Holdable {
      * @param code the {@link SuppServiceNotification#code}.
      */
     private void sendSuppServiceNotificationEvent(int type, int code) {
+       CharSequence notificationMessage = getSuppServiceMessage(type, code);
+       if (notificationMessage == null || notificationMessage.length() == 0) {
+           return;
+       }
+
+       if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+           SubscriptionInfo sub = SubscriptionManager.from(getPhone().getContext())
+                   .getActiveSubscriptionInfoForSimSlotIndex(getPhone().getPhoneId());
+           if (sub != null && !TextUtils.isEmpty(sub.getDisplayName().toString())) {
+               notificationMessage = sub.getDisplayName().toString() + ":" + notificationMessage;
+           }
+        }
+
         Bundle extras = new Bundle();
         extras.putInt(TelephonyManager.EXTRA_NOTIFICATION_TYPE, type);
         extras.putInt(TelephonyManager.EXTRA_NOTIFICATION_CODE, code);
-        extras.putCharSequence(TelephonyManager.EXTRA_NOTIFICATION_MESSAGE,
-                getSuppServiceMessage(type, code));
+        extras.putCharSequence(TelephonyManager.EXTRA_NOTIFICATION_MESSAGE, notificationMessage);
         sendTelephonyConnectionEvent(TelephonyManager.EVENT_SUPPLEMENTARY_SERVICE_NOTIFICATION,
                 extras);
     }
@@ -1079,6 +1134,13 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         }
     }
 
+    @Override
+    public void onConnectionRemoved(TelephonyConnection conn) {
+        if (conn != this) {
+            mHandler.obtainMessage(MSG_CONNECTION_REMOVED).sendToTarget();
+        }
+    }
+
     public void performHold() {
         Log.v(this, "performHold");
         // TODO: Can dialing calls be put on hold as well since they take up the
@@ -1346,17 +1408,19 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         mOriginalConnectionExtras.clear();
         mOriginalConnection = originalConnection;
         mOriginalConnection.setTelecomCallId(getTelecomCallId());
-        getPhone().registerForPreciseCallStateChanged(
-                mHandler, MSG_PRECISE_CALL_STATE_CHANGED, null);
-        getPhone().registerForHandoverStateChanged(
-                mHandler, MSG_HANDOVER_STATE_CHANGED, null);
-        getPhone().registerForRedialConnectionChanged(
-                mHandler, MSG_REDIAL_CONNECTION_CHANGED, null);
-        getPhone().registerForRingbackTone(mHandler, MSG_RINGBACK_TONE, null);
-        getPhone().registerForSuppServiceNotification(mHandler, MSG_SUPP_SERVICE_NOTIFY, null);
-        getPhone().registerForOnHoldTone(mHandler, MSG_ON_HOLD_TONE, null);
-        getPhone().registerForInCallVoicePrivacyOn(mHandler, MSG_CDMA_VOICE_PRIVACY_ON, null);
-        getPhone().registerForInCallVoicePrivacyOff(mHandler, MSG_CDMA_VOICE_PRIVACY_OFF, null);
+        if (getPhone() != null) {
+            getPhone().registerForPreciseCallStateChanged(
+                    mHandler, MSG_PRECISE_CALL_STATE_CHANGED, null);
+            getPhone().registerForHandoverStateChanged(
+                    mHandler, MSG_HANDOVER_STATE_CHANGED, null);
+            getPhone().registerForRedialConnectionChanged(
+                    mHandler, MSG_REDIAL_CONNECTION_CHANGED, null);
+            getPhone().registerForRingbackTone(mHandler, MSG_RINGBACK_TONE, null);
+            getPhone().registerForSuppServiceNotification(mHandler, MSG_SUPP_SERVICE_NOTIFY, null);
+            getPhone().registerForOnHoldTone(mHandler, MSG_ON_HOLD_TONE, null);
+            getPhone().registerForInCallVoicePrivacyOn(mHandler, MSG_CDMA_VOICE_PRIVACY_ON, null);
+            getPhone().registerForInCallVoicePrivacyOff(mHandler, MSG_CDMA_VOICE_PRIVACY_OFF, null);
+        }
         mOriginalConnection.addPostDialListener(mPostDialListener);
         mOriginalConnection.addListener(mOriginalConnectionListener);
 
@@ -1385,13 +1449,19 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         // Propagate VERSTAT for IMS calls.
         setCallerNumberVerificationStatus(mOriginalConnection.getNumberVerificationStatus());
 
-        if (isImsConnection()) {
-            mWasImsConnection = true;
-        }
-        mIsMultiParty = mOriginalConnection.isMultiparty();
-
         Bundle extrasToPut = new Bundle();
         List<String> extrasToRemove = new ArrayList<>();
+
+        if (isImsConnection()) {
+            mWasImsConnection = true;
+        } else {
+            extrasToRemove.add(QtiImsExtUtils.QTI_IMS_PHONE_ID_EXTRA_KEY);
+            extrasToRemove.add(QtiImsExtUtils.EXTRA_TIR_OVERWRITE_ALLOWED);
+            extrasToRemove.add(QtiCallConstants.ORIENTATION_MODE_EXTRA_KEY);
+        }
+
+        mIsMultiParty = mOriginalConnection.isMultiparty();
+
         if (mOriginalConnection.isActiveCallDisconnectedOnAnswer()) {
             extrasToPut.putBoolean(Connection.EXTRA_ANSWERING_DROPS_FG_CALL, true);
         } else {
@@ -1568,13 +1638,21 @@ abstract class TelephonyConnection extends Connection implements Holdable {
         boolean wasVideoCall = false;
         boolean isVowifiEnabled = false;
         if (phone instanceof ImsPhone) {
-            ImsPhoneCall foregroundCall = ((ImsPhone) phone).getForegroundCall();
-            if (foregroundCall != null) {
-                ImsCall call = foregroundCall.getImsCall();
-                if (call != null) {
-                    isCurrentVideoCall = call.isVideoCall();
-                    wasVideoCall = call.wasVideoCall();
-                }
+            ImsPhone imsPhone = (ImsPhone) phone;
+            ImsCall call = null;
+            if (imsPhone.getForegroundCall() != null
+                    && imsPhone.getForegroundCall().getImsCall() != null) {
+                call = imsPhone.getForegroundCall().getImsCall();
+            } else if (imsPhone.getBackgroundCall() != null
+                    && imsPhone.getBackgroundCall().getImsCall() != null) {
+                call = imsPhone.getBackgroundCall().getImsCall();
+            } else if (imsPhone.getRingingCall() != null
+                    && imsPhone.getRingingCall().getImsCall() != null) {
+                call = imsPhone.getRingingCall().getImsCall();
+            }
+            if (call != null) {
+                isCurrentVideoCall = call.isVideoCall();
+                wasVideoCall = call.wasVideoCall();
             }
 
             isVowifiEnabled = ImsUtil.isWfcEnabled(phone.getContext(), phone.getPhoneId());
@@ -1849,6 +1927,10 @@ abstract class TelephonyConnection extends Connection implements Holdable {
 
     protected void hangup(int telephonyDisconnectCode) {
         if (mOriginalConnection != null) {
+            if (mHangupDisconnectCause != DisconnectCause.NOT_VALID) {
+                Log.i(this, "hangup already called once");
+                return;
+            }
             mHangupDisconnectCause = telephonyDisconnectCode;
             try {
                 // Hanging up a ringing call requires that we invoke call.hangup() as opposed to
@@ -2042,7 +2124,7 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                     // Ensure extras are propagated to Telecom.
                     putTelephonyExtras(mOriginalConnectionExtras);
                     // If extras contain Conference support information,
-                    // then ensure capabilities are updated.
+                    // then ensure capabilities are updated and propagated to Telecom.
                     if (mOriginalConnectionExtras.containsKey(
                             ImsCallProfile.EXTRA_CONFERENCE_AVAIL)) {
                         updateConnectionCapabilities();
@@ -2143,24 +2225,37 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                         fireOnOriginalConnectionRetryDial(cause
                                 == android.telephony.DisconnectCause.EMERGENCY_PERM_FAILURE);
                     } else {
-                        int preciseDisconnectCause = CallFailCause.NOT_VALID;
-                        if (mShowPreciseFailedCause) {
-                            preciseDisconnectCause =
-                                    mOriginalConnection.getPreciseDisconnectCause();
+                        if (mSsNotification != null) {
+                            setTelephonyConnectionDisconnected(
+                                    DisconnectCauseUtil.toTelecomDisconnectCause(
+                                    mOriginalConnection.getDisconnectCause(),
+                                    mOriginalConnection.getVendorDisconnectCause(),
+                                    mSsNotification.notificationType,
+                                    mSsNotification.code,
+                                    getPhone().getPhoneId()));
+                            mSsNotification = null;
+                            DisconnectCauseUtil.mNotificationCode = 0xFF;
+                            DisconnectCauseUtil.mNotificationType = 0xFF;
+                        } else {
+                            int preciseDisconnectCause = CallFailCause.NOT_VALID;
+                            if (mShowPreciseFailedCause) {
+                                preciseDisconnectCause =
+                                        mOriginalConnection.getPreciseDisconnectCause();
+                            }
+                            int disconnectCause = mOriginalConnection.getDisconnectCause();
+                            if ((mHangupDisconnectCause != DisconnectCause.NOT_VALID)
+                                    && (mHangupDisconnectCause != disconnectCause)) {
+                                Log.i(LOG_TAG, "setDisconnected: override cause: " + disconnectCause
+                                        + " -> " + mHangupDisconnectCause);
+                                disconnectCause = mHangupDisconnectCause;
+                            }
+                            setTelephonyConnectionDisconnected(
+                                    DisconnectCauseUtil.toTelecomDisconnectCause(
+                                            disconnectCause,
+                                            preciseDisconnectCause,
+                                            mOriginalConnection.getVendorDisconnectCause(),
+                                            getPhone().getPhoneId()));
                         }
-                        int disconnectCause = mOriginalConnection.getDisconnectCause();
-                        if ((mHangupDisconnectCause != DisconnectCause.NOT_VALID)
-                                && (mHangupDisconnectCause != disconnectCause)) {
-                            Log.i(LOG_TAG, "setDisconnected: override cause: " + disconnectCause
-                                    + " -> " + mHangupDisconnectCause);
-                            disconnectCause = mHangupDisconnectCause;
-                        }
-                        setTelephonyConnectionDisconnected(
-                                DisconnectCauseUtil.toTelecomDisconnectCause(
-                                        disconnectCause,
-                                        preciseDisconnectCause,
-                                        mOriginalConnection.getVendorDisconnectCause(),
-                                        getPhone().getPhoneId()));
                         close();
                     }
                     break;
@@ -2195,7 +2290,6 @@ abstract class TelephonyConnection extends Connection implements Holdable {
 
         if (mIsMultiParty != mOriginalConnection.isMultiparty()) {
             mIsMultiParty = mOriginalConnection.isMultiparty();
-
             if (mIsMultiParty) {
                 notifyConferenceStarted();
             }
@@ -2384,11 +2478,20 @@ abstract class TelephonyConnection extends Connection implements Holdable {
                 (mOriginalConnectionCapabilities & Capability.SUPPORTS_VT_REMOTE_BIDIRECTIONAL)
                         == Capability.SUPPORTS_VT_REMOTE_BIDIRECTIONAL);
 
+        PersistableBundle pb = getCarrierConfig();
+        boolean vtTtySupported = false;
+        if(pb != null) {
+            vtTtySupported = pb.getBoolean(CarrierConfigManager.KEY_CARRIER_VT_TTY_SUPPORT_BOOL);
+        }
         boolean isLocalVideoSupported = (mOriginalConnectionCapabilities
                 & Capability.SUPPORTS_VT_LOCAL_BIDIRECTIONAL)
-                == Capability.SUPPORTS_VT_LOCAL_BIDIRECTIONAL && !mIsTtyEnabled;
+                == Capability.SUPPORTS_VT_LOCAL_BIDIRECTIONAL && (vtTtySupported || !mIsTtyEnabled);
         capabilities = changeBitmask(capabilities, CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL,
                 isLocalVideoSupported);
+
+        capabilities = changeBitmask(capabilities, CAPABILITY_SUPPORTS_RTT_REMOTE,
+                (mOriginalConnectionCapabilities & Capability.SUPPORTS_RTT_REMOTE)
+                        == Capability.SUPPORTS_RTT_REMOTE);
 
         return capabilities;
     }
@@ -2611,10 +2714,20 @@ abstract class TelephonyConnection extends Connection implements Holdable {
             int labelId = isValidRingingCall()
                     ? R.string.status_hint_label_incoming_wifi_call
                     : R.string.status_hint_label_wifi_call;
+            String displaySubId = "";
+            if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+                final int phoneId = getPhone().getPhoneId();
+                SubscriptionInfo sub = SubscriptionManager.from(getPhone().getContext())
+                    .getActiveSubscriptionInfoForSimSlotIndex(phoneId);
+                if (sub != null) {
+                    displaySubId = sub.getDisplayName().toString();
+                    displaySubId  = " " + displaySubId;
+                }
+            }
 
             Context context = getPhone().getContext();
             setTelephonyStatusHints(new StatusHints(
-                    getResourceString(labelId),
+                    getResourceString(labelId) + displaySubId,
                     Icon.createWithResource(
                             context, R.drawable.ic_signal_wifi_4_bar_24dp),
                     null /* extras */));

@@ -64,6 +64,7 @@ import com.android.internal.telephony.imsphone.ImsPhone;
 import com.android.internal.telephony.imsphone.ImsPhoneConnection;
 import com.android.phone.MMIDialogActivity;
 import com.android.phone.PhoneUtils;
+import com.android.phone.PhoneGlobals;
 import com.android.phone.R;
 
 import java.lang.ref.WeakReference;
@@ -73,6 +74,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -155,6 +157,7 @@ public class TelephonyConnectionService extends ConnectionService {
     private EmergencyTonePlayer mEmergencyTonePlayer;
     private HoldTracker mHoldTracker;
     private boolean mIsTtyEnabled;
+    private AnswerAndReleaseHandler mAnswerAndReleaseHandler = null;
 
     // Contains one TelephonyConnection that has placed a call and a memory of which Phones it has
     // already tried to connect with. There should be only one TelephonyConnection trying to place a
@@ -196,6 +199,15 @@ public class TelephonyConnectionService extends ConnectionService {
         int getSimStateForSlotIdx(int slotId);
         int getPhoneId(int subId);
     }
+
+    private AnswerAndReleaseHandler.ListenerBase mAnswerAndReleaseListener =
+            new AnswerAndReleaseHandler.ListenerBase() {
+        @Override
+        public void onAnswered() {
+            mAnswerAndReleaseHandler.removeListener(this);
+            mAnswerAndReleaseHandler = null;
+        }
+    };
 
     private SubscriptionManagerProxy mSubscriptionManagerProxy = new SubscriptionManagerProxy() {
         @Override
@@ -501,6 +513,17 @@ public class TelephonyConnectionService extends ConnectionService {
         }
     };
 
+    private List<ConnectionRemovedListener> mConnectionRemovedListeners =
+            new CopyOnWriteArrayList<>();
+
+    /**
+     * A listener to be invoked whenever a TelephonyConnection is removed
+     * from connection service.
+     */
+    public interface ConnectionRemovedListener {
+        public void onConnectionRemoved(TelephonyConnection conn);
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -600,6 +623,39 @@ public class TelephonyConnectionService extends ConnectionService {
     }
 
     @Override
+    public void doAnswer(String callId, int videoState) {
+        if (mAnswerAndReleaseHandler != null) {
+            Log.i(this, "doAnswer: duplicate answer request.");
+            return;
+        }
+
+        Connection answerAndReleaseConnection = shallDisconnectOtherCalls();
+        boolean isAnswerAndReleaseConnection = answerAndReleaseConnection != null;
+        Log.i(this, "isAnswerAndReleaseConnection: " + isAnswerAndReleaseConnection);
+        if (!isAnswerAndReleaseConnection) {
+            super.doAnswer(callId, videoState);
+            return;
+        }
+
+        mAnswerAndReleaseHandler =
+                new AnswerAndReleaseHandler(answerAndReleaseConnection, videoState);
+        mAnswerAndReleaseHandler.addListener(mAnswerAndReleaseListener);
+        mAnswerAndReleaseHandler.checkAndAnswer(getAllConnections(), getAllConferences());
+    }
+
+    private Connection shallDisconnectOtherCalls() {
+        for (Connection current : getAllConnections()) {
+            if (current.getState() == Connection.STATE_RINGING &&
+                    current.getExtras() != null &&
+                    current.getExtras().getBoolean(
+                        Connection.EXTRA_ANSWERING_DROPS_FG_CALL, false)) {
+                return current;
+            }
+        }
+        return null;
+    }
+
+    @Override
     public @Nullable Conference onCreateIncomingConference(
             @Nullable PhoneAccountHandle connectionManagerPhoneAccount,
             @NonNull final ConnectionRequest request) {
@@ -671,6 +727,7 @@ public class TelephonyConnectionService extends ConnectionService {
             final ConnectionRequest request) {
         Log.i(this, "onCreateOutgoingConnection, request: " + request);
 
+        Bundle bundle = request.getExtras();
         Uri handle = request.getAddress();
         boolean isAdhocConference = request.isAdhocConferenceCall();
 
@@ -1119,9 +1176,18 @@ public class TelephonyConnectionService extends ConnectionService {
         final boolean isTtyModeEnabled = mDeviceState.isTtyModeEnabled(this);
         if (VideoProfile.isVideo(request.getVideoState()) && isTtyModeEnabled
                 && !isEmergencyNumber) {
-            return Connection.createFailedConnection(mDisconnectCauseFactory.toTelecomDisconnectCause(
-                    android.telephony.DisconnectCause.VIDEO_CALL_NOT_ALLOWED_WHILE_TTY_ENABLED,
-                    null, phone.getPhoneId()));
+            boolean vtTtySupported = false;
+            CarrierConfigManager cfgManager = (CarrierConfigManager)
+                    phone.getContext().getSystemService(Context.CARRIER_CONFIG_SERVICE);
+            if (cfgManager != null) {
+                vtTtySupported = cfgManager.getConfigForSubId(phone.getSubId())
+                        .getBoolean(CarrierConfigManager.KEY_CARRIER_VT_TTY_SUPPORT_BOOL);
+            }
+            if (!vtTtySupported) {
+                return Connection.createFailedConnection(mDisconnectCauseFactory.
+                        toTelecomDisconnectCause(android.telephony.DisconnectCause.
+                        VIDEO_CALL_NOT_ALLOWED_WHILE_TTY_ENABLED,null, phone.getPhoneId()));
+            }
         }
 
         // Check for additional limits on CDMA phones.
@@ -1175,9 +1241,17 @@ public class TelephonyConnectionService extends ConnectionService {
                     "Treat as an Emergency Call.");
             isEmergency = true;
         }
-        Phone phone = getPhoneForAccount(accountHandle, isEmergency,
-                /* Note: when not an emergency, handle can be null for unknown callers */
-                request.getAddress() == null ? null : request.getAddress().getSchemeSpecificPart());
+
+        Phone phone;
+        if (isEmergency) {
+            phone = PhoneGlobals.getInstance().getPhoneInEcm();
+        } else {
+            phone = getPhoneForAccount(accountHandle, isEmergency,
+                    /* Note: when not an emergency, handle can be null for unknown callers */
+                    request.getAddress() == null ? null :
+                            request.getAddress().getSchemeSpecificPart());
+        }
+
         if (phone == null) {
             return Connection.createFailedConnection(
                     mDisconnectCauseFactory.toTelecomDisconnectCause(
@@ -1275,6 +1349,7 @@ public class TelephonyConnectionService extends ConnectionService {
         if (connection instanceof TelephonyConnection) {
             TelephonyConnection telephonyConnection = (TelephonyConnection) connection;
             maybeSendInternationalCallEvent(telephonyConnection);
+            maybeSendPhoneAccountUpdateEvent(telephonyConnection);
         }
     }
 
@@ -1370,14 +1445,19 @@ public class TelephonyConnectionService extends ConnectionService {
         // Use the registered emergency Phone if the PhoneAccountHandle is set to Telephony's
         // Emergency PhoneAccount
         PhoneAccountHandle accountHandle = request.getAccountHandle();
-        boolean isEmergency = false;
+        Phone phone = null;
         if (accountHandle != null && PhoneUtils.EMERGENCY_ACCOUNT_HANDLE_ID.equals(
                 accountHandle.getId())) {
             Log.i(this, "Emergency PhoneAccountHandle is being used for unknown call... " +
                     "Treat as an Emergency Call.");
-            isEmergency = true;
+            for (Phone phoneSelected : mPhoneFactoryProxy.getPhones()) {
+                if (phoneSelected.getState() == PhoneConstants.State.OFFHOOK) {
+                    phone = phoneSelected;
+                    break;
+                }
+            }
         }
-        Phone phone = getPhoneForAccount(accountHandle, isEmergency,
+        if (phone == null) phone = getPhoneForAccount(accountHandle, false,
                 /* Note: when not an emergency, handle can be null for unknown callers */
                 request.getAddress() == null ? null : request.getAddress().getSchemeSpecificPart());
         if (phone == null) {
@@ -1655,6 +1735,8 @@ public class TelephonyConnectionService extends ConnectionService {
                 ? connection.getAddress().getSchemeSpecificPart()
                 : "";
 
+        updatePhoneAccount(connection, phone);
+
         com.android.internal.telephony.Connection originalConnection = null;
         try {
             if (phone != null) {
@@ -1835,6 +1917,7 @@ public class TelephonyConnectionService extends ConnectionService {
                     TelecomAccountRegistry.getInstance(this).isShowPreciseFailedCause(
                             phoneAccountHandle));
             returnConnection.setTelephonyConnectionService(this);
+            addConnectionRemovedListener(returnConnection);
         }
         return returnConnection;
     }
@@ -1869,10 +1952,20 @@ public class TelephonyConnectionService extends ConnectionService {
     private Phone getPhoneForAccount(PhoneAccountHandle accountHandle, boolean isEmergency,
                                      @Nullable String emergencyNumberAddress) {
         Phone chosenPhone = null;
+        if (isEmergency) {
+            return PhoneFactory.getPhone(PhoneUtils.getPhoneIdForECall());
+        }
         int subId = mPhoneUtilsProxy.getSubIdForPhoneAccountHandle(accountHandle);
         if (subId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
             int phoneId = mSubscriptionManagerProxy.getPhoneId(subId);
             chosenPhone = mPhoneFactoryProxy.getPhone(phoneId);
+        } else {
+            for (Phone phone : mPhoneFactoryProxy.getPhones()) {
+                Call call = phone.getRingingCall();
+                if (call.getState().isRinging()) {
+                    return phone;
+                }
+            }
         }
         // If this is an emergency call and the phone we originally planned to make this call
         // with is not in service or was invalid, try to find one that is in service, using the
@@ -2233,6 +2326,15 @@ public class TelephonyConnectionService extends ConnectionService {
         return true;
     }
 
+    @Override
+    public void removeConnection(Connection connection) {
+        super.removeConnection(connection);
+        if (connection instanceof TelephonyConnection) {
+            removeConnectionRemovedListener((TelephonyConnection)connection);
+            fireOnConnectionRemoved((TelephonyConnection)connection);
+        }
+    }
+
     TelephonyConnection.TelephonyConnectionListener getTelephonyConnectionListener() {
         return mTelephonyConnectionListener;
     }
@@ -2273,6 +2375,22 @@ public class TelephonyConnectionService extends ConnectionService {
             }
             Log.d(this, "Removing connection from IMS conference controller: " + connection);
             mImsConferenceController.remove(connection);
+        }
+    }
+
+    private void addConnectionRemovedListener(ConnectionRemovedListener l) {
+        mConnectionRemovedListeners.add(l);
+    }
+
+    private void removeConnectionRemovedListener(ConnectionRemovedListener l) {
+        if (l != null) {
+            mConnectionRemovedListeners.remove(l);
+        }
+    }
+
+    private void fireOnConnectionRemoved(TelephonyConnection conn) {
+        for (ConnectionRemovedListener l : mConnectionRemovedListeners) {
+            l.onConnectionRemoved(conn);
         }
     }
 
@@ -2333,6 +2451,14 @@ public class TelephonyConnectionService extends ConnectionService {
                         TelephonyManager.EVENT_NOTIFY_INTERNATIONAL_CALL_ON_WFC, null);
             }
         }
+    }
+
+    private void maybeSendPhoneAccountUpdateEvent(TelephonyConnection telephonyConnection) {
+        if (telephonyConnection == null || telephonyConnection.getPhone() == null) {
+            return;
+        }
+        updatePhoneAccount(telephonyConnection,
+                mPhoneFactoryProxy.getPhone(telephonyConnection.getPhone().getPhoneId()));
     }
 
     private void handleTtyModeChange(boolean isTtyEnabled) {

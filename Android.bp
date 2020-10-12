@@ -24,6 +24,8 @@ android_app {
         "ims-common",
         "libprotobuf-java-lite",
         "unsupportedappusage",
+        "telephony-ext",
+        "ims-ext-common",
     ],
 
     static_libs: [

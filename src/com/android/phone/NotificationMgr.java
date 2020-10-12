@@ -34,6 +34,8 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PersistableBundle;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
@@ -58,6 +60,7 @@ import android.widget.Toast;
 
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneFactory;
+import com.android.internal.telephony.SubscriptionController;
 import com.android.internal.telephony.TelephonyCapabilities;
 import com.android.internal.telephony.util.NotificationChannelController;
 import com.android.phone.settings.VoicemailSettingsActivity;
@@ -67,6 +70,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
+import org.codeaurora.internal.IExtTelephony;
 
 /**
  * NotificationManager-related utility code for the Phone app.
@@ -86,6 +91,8 @@ public class NotificationMgr {
 
     private static final String MWI_SHOULD_CHECK_VVM_CONFIGURATION_KEY_PREFIX =
             "mwi_should_check_vvm_configuration_state_";
+
+    private static final String EXTRA_SUB_ID = "sub_id";
 
     // notification types
     static final int MMI_NOTIFICATION = 1;
@@ -271,7 +278,7 @@ public class NotificationMgr {
         Log.i(LOG_TAG, "updateMwi(): subId " + subId + " update to " + visible);
         mMwiVisible.put(subId, visible);
 
-        if (visible) {
+        if (visible && isUiccCardProvisioned(subId)) {
             if (phone == null) {
                 Log.w(LOG_TAG, "Found null phone for: " + subId);
                 return;
@@ -381,7 +388,7 @@ public class NotificationMgr {
                         UserManager.DISALLOW_OUTGOING_CALLS, userHandle)
                         && !mUserManager.isManagedProfile(userHandle.getIdentifier())) {
                     if (!maybeSendVoicemailNotificationUsingDefaultDialer(phone, vmCount, vmNumber,
-                            pendingIntent, isSettingsIntent, userHandle, isRefresh)) {
+                            pendingIntent, isSettingsIntent, userHandle, isRefresh, subId)) {
                         notifyAsUser(
                                 Integer.toString(subId) /* tag */,
                                 VOICEMAIL_NOTIFICATION,
@@ -397,7 +404,7 @@ public class NotificationMgr {
                         UserManager.DISALLOW_OUTGOING_CALLS, userHandle)
                         && !mUserManager.isManagedProfile(userHandle.getIdentifier())) {
                     if (!maybeSendVoicemailNotificationUsingDefaultDialer(phone, 0, null, null,
-                            false, userHandle, isRefresh)) {
+                            false, userHandle, isRefresh, subId)) {
                         cancelAsUser(
                                 Integer.toString(subId) /* tag */,
                                 VOICEMAIL_NOTIFICATION,
@@ -442,7 +449,7 @@ public class NotificationMgr {
      */
     private boolean maybeSendVoicemailNotificationUsingDefaultDialer(Phone phone, Integer count,
             String number, PendingIntent pendingIntent, boolean isSettingsIntent,
-            UserHandle userHandle, boolean isRefresh) {
+            UserHandle userHandle, boolean isRefresh, int subId) {
 
         if (shouldManageNotificationThroughDefaultDialer(userHandle)) {
             Intent intent = getShowVoicemailIntentForDefaultDialer(userHandle);
@@ -451,6 +458,7 @@ public class NotificationMgr {
             intent.putExtra(TelephonyManager.EXTRA_PHONE_ACCOUNT_HANDLE,
                     PhoneUtils.makePstnPhoneAccountHandle(phone));
             intent.putExtra(TelephonyManager.EXTRA_IS_REFRESH, isRefresh);
+            intent.putExtra(EXTRA_SUB_ID, subId);
             if (count != null) {
                 intent.putExtra(TelephonyManager.EXTRA_NOTIFICATION_COUNT, count);
             }
@@ -512,7 +520,7 @@ public class NotificationMgr {
      */
     /* package */ void updateCfi(int subId, boolean visible, boolean isRefresh) {
         logi("updateCfi: subId= " + subId + ", visible=" + (visible ? "Y" : "N"));
-        if (visible) {
+        if (visible && isUiccCardProvisioned(subId)) {
             // If Unconditional Call Forwarding (forward all calls) for VOICE
             // is enabled, just show a notification.  We'll default to expanded
             // view for now, so the there is less confusion about the icon.  If
@@ -942,4 +950,24 @@ public class NotificationMgr {
     private static long getTimeStamp() {
         return SystemClock.elapsedRealtime();
     }
+
+    private boolean isUiccCardProvisioned(int subId) {
+        final int PROVISIONED = 1;
+        final int INVALID_STATE = -1;
+        int provisionStatus = INVALID_STATE;
+        IExtTelephony mExtTelephony = IExtTelephony.Stub
+                .asInterface(ServiceManager.getService("qti.radio.extphone"));
+        int slotId = SubscriptionController.getInstance().getSlotIndex(subId);
+        try {
+            //get current provision state of the SIM.
+            provisionStatus = mExtTelephony.getCurrentUiccCardProvisioningStatus(slotId);
+        } catch (RemoteException ex) {
+            provisionStatus = INVALID_STATE;
+            if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
+        } catch (NullPointerException ex) {
+            provisionStatus = INVALID_STATE;
+            if (DBG) log("Failed to get status for slotId: "+ slotId +" Exception: " + ex);
+        }
+        return provisionStatus == PROVISIONED;
+   }
 }

@@ -22,6 +22,8 @@ import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
@@ -30,6 +32,9 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
+import android.os.RemoteException;
+import android.os.ServiceManager;
+import android.os.SystemProperties;
 import android.os.PersistableBundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -64,6 +69,8 @@ import com.android.telephony.Rlog;
 import java.io.IOException;
 import java.util.List;
 
+import org.codeaurora.internal.IExtTelephony;
+
 /**
  * Misc utilities for the Phone app.
  */
@@ -96,6 +103,10 @@ public class PhoneUtils {
      * the dialog theme correctly.
      */
     private static final int THEME = com.android.internal.R.style.Theme_DeviceDefault_Dialog_Alert;
+    /** Extra key to identify the service class voice or video */
+    public static final String SERVICE_CLASS = "service_class";
+
+    private static final int PRIMARY_STACK_MODEM_ID = 0;
 
     /** USSD information used to aggregate all USSD messages */
     private static StringBuilder sUssdMsg = new StringBuilder();
@@ -644,7 +655,6 @@ public class PhoneUtils {
         return canceled;
     }
 
-
     //
     // Misc UI policy helper functions
     //
@@ -748,6 +758,11 @@ public class PhoneUtils {
         return null;
     }
 
+    public static boolean isValidPhoneAccountHandle(PhoneAccountHandle phoneAccountHandle) {
+        return phoneAccountHandle != null && !TextUtils.isEmpty(phoneAccountHandle.getId())
+                && !phoneAccountHandle.getId().equals("null");
+    }
+
     /**
      * Determine if a given phone account corresponds to an active SIM
      *
@@ -827,5 +842,102 @@ public class PhoneUtils {
         for (Phone phone : PhoneFactory.getPhones()) {
             phone.setRadioPower(enabled);
         }
+    }
+
+    private static IExtTelephony getIExtTelephony() {
+        return IExtTelephony.Stub.asInterface(ServiceManager.getService("qti.radio.extphone"));
+    }
+
+    public static boolean isLocalEmergencyNumber(String address) {
+        boolean result = false;
+        try {
+            result = getIExtTelephony().isLocalEmergencyNumber(address);
+        }catch (RemoteException ex) {
+            Log.e("TelephonyConnectionService", "Exception: " + ex);
+        } catch (NullPointerException ex) {
+            Log.e("TelephonyConnectionService", "Exception: " + ex);
+        }
+        return result;
+    }
+
+    public static boolean isPotentialLocalEmergencyNumber(String address) {
+        boolean result = false;
+        try {
+            result = getIExtTelephony().isPotentialLocalEmergencyNumber(address);
+        }catch (RemoteException ex) {
+            Log.e("TelephonyConnectionService", "Exception: " + ex);
+        } catch (NullPointerException ex) {
+            Log.e("TelephonyConnectionService", "Exception: " + ex);
+        }
+        return result;
+    }
+
+    public static boolean isEmergencyNumber(String address) {
+        boolean result = false;
+        try {
+            result = getIExtTelephony().isEmergencyNumber(address);
+        }catch (RemoteException ex) {
+            Log.e("TelephonyConnectionService", "Exception: " + ex);
+        } catch (NullPointerException ex) {
+            Log.e("TelephonyConnectionService", "Exception: " + ex);
+        }
+        return result;
+    }
+
+    public static boolean isDeviceInSingleStandBy() {
+        boolean result = false;
+        try {
+            result = getIExtTelephony().isDeviceInSingleStandby();
+        } catch (RemoteException ex) {
+            Log.e("TelephonyConnectionService", "Exception : " + ex);
+        } catch (NullPointerException ex) {
+            Log.e("TelephonyConnectionService", "Exception : " + ex);
+        }
+        return result;
+    }
+
+    public static int getPhoneIdForECall() {
+        int phoneId = 0;
+        try {
+            phoneId = getIExtTelephony().getPhoneIdForECall();
+        } catch (RemoteException ex) {
+            Log.e("TelephonyConnectionService", "Exceptions : " + ex);
+        } catch (NullPointerException ex) {
+            Log.e("TelephonyConnectionService", "Exception : " + ex);
+        }
+        return phoneId;
+    }
+
+    public static int getPrimaryStackPhoneId() {
+        String modemUuId = null;
+        int primayStackPhoneId = SubscriptionManager.INVALID_PHONE_INDEX;
+
+        for (Phone phone : PhoneFactory.getPhones()) {
+            if (phone == null) continue;
+
+            Log.d(LOG_TAG, "Logical Modem id: " + phone.getModemUuId()
+                    + " phoneId: " + phone.getPhoneId());
+            modemUuId = phone.getModemUuId();
+            if ((modemUuId == null) || (modemUuId.length() <= 0) ||
+                    modemUuId.isEmpty()) {
+                continue;
+            }
+            // Select the phone id based on modemUuid
+            // if modemUuid is 0 for any phone instance, primary stack is mapped
+            // to it so return the phone id as the primary stack phone id.
+            if (Integer.parseInt(modemUuId) == PRIMARY_STACK_MODEM_ID) {
+                primayStackPhoneId = phone.getPhoneId();
+                Log.d(LOG_TAG, "Primay Stack phone id: " + primayStackPhoneId + " selected");
+                break;
+            }
+        }
+
+        // If phone id is invalid return default phone id
+        if (primayStackPhoneId == SubscriptionManager.INVALID_PHONE_INDEX) {
+            Log.d(LOG_TAG, "Returning default phone id");
+            primayStackPhoneId = 0;
+        }
+
+        return primayStackPhoneId;
     }
 }
