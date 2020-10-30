@@ -2478,9 +2478,14 @@ abstract class TelephonyConnection extends Connection implements Holdable,
                 (mOriginalConnectionCapabilities & Capability.SUPPORTS_VT_REMOTE_BIDIRECTIONAL)
                         == Capability.SUPPORTS_VT_REMOTE_BIDIRECTIONAL);
 
+        PersistableBundle pb = getCarrierConfig();
+        boolean vtTtySupported = false;
+        if(pb != null) {
+            vtTtySupported = pb.getBoolean(CarrierConfigManager.KEY_CARRIER_VT_TTY_SUPPORT_BOOL);
+        }
         boolean isLocalVideoSupported = (mOriginalConnectionCapabilities
                 & Capability.SUPPORTS_VT_LOCAL_BIDIRECTIONAL)
-                == Capability.SUPPORTS_VT_LOCAL_BIDIRECTIONAL && !mIsTtyEnabled;
+                == Capability.SUPPORTS_VT_LOCAL_BIDIRECTIONAL && (vtTtySupported || !mIsTtyEnabled);
         capabilities = changeBitmask(capabilities, CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL,
                 isLocalVideoSupported);
 
