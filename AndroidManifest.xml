@@ -528,7 +528,7 @@
         </activity>
 
         <activity android:name="LimitedServiceActivity"
-            android:autoRemoveFromRecents="true"
+            android:excludeFromRecents="true"
             android:launchMode="singleTask"
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
