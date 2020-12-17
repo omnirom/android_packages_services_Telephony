@@ -59,7 +59,8 @@ public class ConferenceParticipantConnection extends Connection {
     public ConferenceParticipantConnection(
             com.android.internal.telephony.Connection parentConnection,
             ConferenceParticipant participant,
-            boolean isRemotelyHosted) {
+            boolean isRemotelyHosted,
+            boolean isParticipantHost) {
 
         mParentConnection = parentConnection;
 
@@ -79,7 +80,7 @@ public class ConferenceParticipantConnection extends Connection {
         mUserEntity = participant.getHandle();
         mEndpoint = participant.getEndpoint();
 
-        setCapabilitiesAndProperties(isRemotelyHosted);
+        setCapabilitiesAndProperties(isRemotelyHosted, isParticipantHost);
         updateState(participant.getState());
     }
 
@@ -158,12 +159,17 @@ public class ConferenceParticipantConnection extends Connection {
      * @param isRemotelyHosted {@code true} if this participant is part of a conference hosted
      *                         hosted on a remote device, {@code false} otherwise.
      */
-    private void setCapabilitiesAndProperties(boolean isRemotelyHosted) {
+    private void setCapabilitiesAndProperties(boolean isRemotelyHosted,
+            boolean isParticipantHost) {
         int capabilities = CAPABILITY_DISCONNECT_FROM_CONFERENCE;
         setConnectionCapabilities(capabilities);
 
         if (isRemotelyHosted) {
             setConnectionProperties(PROPERTY_REMOTELY_HOSTED);
+        }
+
+        if (isParticipantHost) {
+            setConnectionProperties(PROPERTY_IS_PARTICIPANT_HOST);
         }
     }
 
