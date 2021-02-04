@@ -323,7 +323,7 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
 
                 @Override
                 public void onExtrasChanged(Connection c, Bundle extras) {
-                    Log.v(this, "onExtrasChanged: c=" + c + " Extras=" + extras);
+                    Log.v(this, "onExtrasChanged: c=" + c + " Extras=" + Rlog.pii(LOG_TAG, extras));
                     updateExtras(extras);
                 }
 
@@ -493,6 +493,7 @@ public class ImsConference extends TelephonyConferenceBase implements Holdable {
 
         mTelephonyConnectionService = telephonyConnectionService;
         setConferenceHost(conferenceHost);
+        setVideoProvider(conferenceHost, conferenceHost.getVideoProvider());
 
         int capabilities = Connection.CAPABILITY_MUTE |
                 Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN;

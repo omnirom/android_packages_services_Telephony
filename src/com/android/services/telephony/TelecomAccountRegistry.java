@@ -889,7 +889,8 @@ public class TelecomAccountRegistry {
                 // Next check whether we're in or near a country that supports it
                 String country =
                         mPhone.getServiceStateTracker().getLocaleTracker()
-                                .getCurrentCountry().toLowerCase();
+                                .getLastKnownCountryIso().toLowerCase();
+
                 String[] supportedCountries = mContext.getResources().getStringArray(
                         R.array.config_simless_emergency_rtt_supported_countries);
                 if (supportedCountries == null || Arrays.stream(supportedCountries).noneMatch(
@@ -898,7 +899,7 @@ public class TelecomAccountRegistry {
                             + " not supported in this country: " + country);
                     return false;
                 }
-                
+
                 return true;
             }
 
