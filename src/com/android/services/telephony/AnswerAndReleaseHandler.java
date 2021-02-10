@@ -96,6 +96,11 @@ public class AnswerAndReleaseHandler extends TelephonyConnection.TelephonyConnec
     public void checkAndAnswer(Collection<Connection> allConnections,
             Collection<Conference> allConferences) {
         for (Connection current : allConnections) {
+            // Connection list could contain other types like conference
+            // participant connections which need to be ignored
+            if (!(current instanceof TelephonyConnection)) {
+                continue;
+            }
             int state = current.getState();
             if (state == Connection.STATE_RINGING ||
                     state == Connection.STATE_DISCONNECTED) {
@@ -113,6 +118,9 @@ public class AnswerAndReleaseHandler extends TelephonyConnection.TelephonyConnec
             }
         }
         for (Conference current : allConferences) {
+            if (!(current instanceof TelephonyConferenceBase)) {
+                continue;
+            }
             if (current.getState() == Connection.STATE_DISCONNECTED) {
                 continue;
             }
