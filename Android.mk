@@ -1,3 +1,4 @@
+ifneq ($(TARGET_NO_TELEPHONY), true)
 LOCAL_PATH:= $(call my-dir)
 
 # Build the Phone app which includes the emergency dialer. See Contacts
@@ -58,4 +59,4 @@ include $(BUILD_PACKAGE)
 
 # Build the test package
 include $(call all-makefiles-under,$(LOCAL_PATH))
-
+endif #TARGET_NO_TELEPHONY
