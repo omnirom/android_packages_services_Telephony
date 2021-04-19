@@ -623,17 +623,22 @@ public class TelephonyConnectionService extends ConnectionService {
     }
 
     @Override
-    public void doAnswer(String callId, int videoState) {
+    protected void answer(String callId) {
+        answerVideo(callId, VideoProfile.STATE_AUDIO_ONLY);
+    }
+
+    @Override
+    protected void answerVideo(String callId, int videoState) {
         if (mAnswerAndReleaseHandler != null) {
-            Log.i(this, "doAnswer: duplicate answer request.");
+            Log.i(this, "answerVideo: duplicate answer request.");
             return;
         }
 
         Connection answerAndReleaseConnection = shallDisconnectOtherCalls();
         boolean isAnswerAndReleaseConnection = answerAndReleaseConnection != null;
-        Log.i(this, "isAnswerAndReleaseConnection: " + isAnswerAndReleaseConnection);
+        Log.i(this, "answerVideo: isAnswerAndReleaseConnection: " + isAnswerAndReleaseConnection);
         if (!isAnswerAndReleaseConnection) {
-            super.doAnswer(callId, videoState);
+            super.answerVideo(callId, videoState);
             return;
         }
 
