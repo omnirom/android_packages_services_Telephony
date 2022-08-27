@@ -16,6 +16,24 @@
       "message": "^^^^^^^^",
       "revId": "681a475861b2fef72839685489132a5bcefac8fa",
       "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dbf3a180_ee398668",
+        "filename": "src/com/android/phone/PhoneGlobals.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 561,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2022-08-27T14:04:05Z",
+      "side": 0,
+      "message": "you can try to use check mTelephonyCallbacks.length \u003d\u003d 0 too",
+      "parentUuid": "b422b631_7e5d7375",
+      "revId": "681a475861b2fef72839685489132a5bcefac8fa",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55"
     }
   ]
 }
