@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b422b631_7e5d7375",
+        "filename": "src/com/android/phone/PhoneGlobals.java",
+        "patchSetId": 1
+      },
+      "lineNbr": 561,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2022-08-27T13:59:50Z",
+      "side": 0,
+      "message": "^^^^^^^^",
+      "revId": "681a475861b2fef72839685489132a5bcefac8fa",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55"
+    }
+  ]
+}
