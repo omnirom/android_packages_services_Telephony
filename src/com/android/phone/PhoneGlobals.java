@@ -550,15 +550,14 @@ public class PhoneGlobals extends ContextWrapper {
 
             mTelephonyCallbacks = new PhoneAppCallback[tm.getSupportedModemCount()];
 
-            for (Phone phone : PhoneFactory.getPhones()) {
-                if (phone.getPhoneId() == 0) {
-                    continue;
+            if (mTelephonyCallbacks.length != 0) {
+                for (Phone phone : PhoneFactory.getPhones()) {
+                    int subId = phone.getSubId();
+                    PhoneAppCallback callback = new PhoneAppCallback(subId);
+                    tm.createForSubscriptionId(subId).registerTelephonyCallback(
+                            TelephonyManager.INCLUDE_LOCATION_DATA_NONE, mHandler::post, callback);
+                    mTelephonyCallbacks[phone.getPhoneId()] = callback;
                 }
-                int subId = phone.getSubId();
-                PhoneAppCallback callback = new PhoneAppCallback(subId);
-                tm.createForSubscriptionId(subId).registerTelephonyCallback(
-                        TelephonyManager.INCLUDE_LOCATION_DATA_NONE, mHandler::post, callback);
-                mTelephonyCallbacks[phone.getPhoneId()] = callback;
             }
 
             mCarrierVvmPackageInstalledReceiver.register(this);
