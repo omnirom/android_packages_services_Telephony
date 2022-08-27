@@ -33,6 +33,23 @@
       "message": "abd dont dare to ask google how if - tm.getSupportedModemCount \u003d\u003d 0 - PhoneFactory.getPhones() is not 0 😊",
       "revId": "3d6e60c71e93fc1c9f6d7c695977e6a19c05144a",
       "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2e37a08b_833bab7b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000026
+      },
+      "writtenOn": "2022-08-27T14:40:41Z",
+      "side": 1,
+      "message": "ROOFL - its fixed like that in master",
+      "revId": "3d6e60c71e93fc1c9f6d7c695977e6a19c05144a",
+      "serverId": "56841c99-7c94-43d4-bf0b-cb4707e66d55"
     }
   ]
 }
