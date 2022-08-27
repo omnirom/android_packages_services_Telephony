@@ -551,14 +551,14 @@ public class PhoneGlobals extends ContextWrapper {
             mTelephonyCallbacks = new PhoneAppCallback[tm.getSupportedModemCount()];
 
             for (Phone phone : PhoneFactory.getPhones()) {
-                if (phone.getPhoneId() == 0) {
-                    continue;
-                }
                 int subId = phone.getSubId();
                 PhoneAppCallback callback = new PhoneAppCallback(subId);
                 tm.createForSubscriptionId(subId).registerTelephonyCallback(
                         TelephonyManager.INCLUDE_LOCATION_DATA_NONE, mHandler::post, callback);
                 mTelephonyCallbacks[phone.getPhoneId()] = callback;
+                if (phone.getPhoneId() == 0) {
+                    continue;
+                }
             }
 
             mCarrierVvmPackageInstalledReceiver.register(this);
