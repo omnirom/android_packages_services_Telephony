@@ -547,7 +547,8 @@ countries {
   }
   eccs {
     phone_number: "1414"
-    types: TYPE_UNSPECIFIED
+    types: MOUNTAIN_RESCUE
+    routing: NORMAL
   }
   eccs {
     phone_number: "0800117117"
@@ -837,11 +838,6 @@ countries {
     routing: EMERGENCY
   }
   eccs {
-    phone_number: "088"
-    types: POLICE
-    routing: NORMAL
-  }
-  eccs {
     phone_number: "085"
     types: FIRE
     routing: NORMAL
@@ -1019,6 +1015,7 @@ countries {
   eccs {
     phone_number: "114"
     types: TYPE_UNSPECIFIED
+    routing: NORMAL
   }
   eccs {
     phone_number: "191"
@@ -1381,6 +1378,11 @@ countries {
     types: POLICE
     types: AMBULANCE
     types: FIRE
+  }
+  eccs {
+    phone_number: "108"
+    types: AMBULANCE
+    routing: NORMAL
   }
   eccs {
     phone_number: "100"

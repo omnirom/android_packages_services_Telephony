@@ -157,6 +157,8 @@
     <string name="mobile_network_settings_package" translatable="false">com.android.settings</string>
     <!-- Class name for the mobile network settings activity [DO NOT TRANSLATE] -->
     <string name="mobile_network_settings_class" translatable="false">com.android.settings.Settings$MobileNetworkActivity</string>
+    <!-- Class name for the SIMs settings activity [DO NOT TRANSLATE] -->
+    <string name="sims_settings_class" translatable="false">com.android.settings.Settings$MobileNetworkListActivity</string>
 
     <!-- CDMA activation goes through HFA -->
     <!-- DEPRECATED: Use CarrierConfigManager#KEY_USE_HFA_FOR_PROVISIONING_BOOL -->
@@ -347,6 +349,8 @@
         <!-- b/317945295 -->
         <item>in</item>
         <item>sg</item>
+        <!-- b/341611911 -->
+        <item>my</item>
     </string-array>
 
     <!-- Array of countries that a CS preferred scan is preferred after CSFB failure

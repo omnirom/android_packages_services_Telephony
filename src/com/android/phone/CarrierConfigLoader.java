@@ -44,7 +44,6 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PermissionEnforcer;
 import android.os.PersistableBundle;
-import android.os.Process;
 import android.os.RemoteException;
 import android.os.ResultReceiver;
 import android.os.SystemProperties;
@@ -1345,7 +1344,10 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
             return new PersistableBundle();
         }
 
-        enforceTelephonyFeatureWithException(callingPackage, "getConfigForSubIdWithFeature");
+        if (!mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_force_phone_globals_creation)) {
+            enforceTelephonyFeatureWithException(callingPackage, "getConfigForSubIdWithFeature");
+        }
 
         int phoneId = SubscriptionManager.getPhoneId(subscriptionId);
         PersistableBundle retConfig = CarrierConfigManager.getDefaultConfig();
@@ -1495,10 +1497,8 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
         if (!SubscriptionManager.isValidPhoneId(phoneId)) {
             final String msg =
                     "Ignore invalid phoneId: " + phoneId + " for subId: " + subscriptionId;
-            if (mFeatureFlags.addAnomalyWhenNotifyConfigChangedWithInvalidPhone()) {
-                AnomalyReporter.reportAnomaly(
-                        UUID.fromString(UUID_NOTIFY_CONFIG_CHANGED_WITH_INVALID_PHONE), msg);
-            }
+            AnomalyReporter.reportAnomaly(
+                    UUID.fromString(UUID_NOTIFY_CONFIG_CHANGED_WITH_INVALID_PHONE), msg);
             logd(msg);
             throw new IllegalArgumentException(msg);
         }
@@ -1758,12 +1758,14 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
     private void enforceCallerIsSystemOrRequestingPackage(@NonNull String requestingPackage)
             throws SecurityException {
         final int callingUid = Binder.getCallingUid();
-        if (callingUid == Process.ROOT_UID || callingUid == Process.SYSTEM_UID
-                || callingUid == Process.SHELL_UID || callingUid == Process.PHONE_UID) {
-            // Bug reports (dumpstate.cpp) run as SHELL, and let some other privileged UIDs through
-            // as well.
+        if (TelephonyPermissions.isRootOrShell(callingUid)
+                || TelephonyPermissions.isSystemOrPhone(
+                callingUid)) {
+            // Bug reports (dumpstate.cpp) run as SHELL, and let some other privileged UIDs
+            // through as well.
             return;
         }
+
         // An app is trying to dump extra detail, block it if they aren't who they claim to be.
         AppOpsManager appOps = mContext.getSystemService(AppOpsManager.class);
         if (appOps == null) {
@@ -1870,9 +1872,16 @@ public class CarrierConfigLoader extends ICarrierConfigLoader.Stub {
      */
     @Nullable
     private String getCurrentPackageName() {
+        if (mFeatureFlags.hsumPackageManager()) {
+            PackageManager pm = mContext.createContextAsUser(Binder.getCallingUserHandle(), 0)
+                    .getPackageManager();
+            if (pm == null) return null;
+            String[] callingPackageNames = pm.getPackagesForUid(Binder.getCallingUid());
+            return (callingPackageNames == null) ? null : callingPackageNames[0];
+        }
         if (mPackageManager == null) return null;
-        String[] callingUids = mPackageManager.getPackagesForUid(Binder.getCallingUid());
-        return (callingUids == null) ? null : callingUids[0];
+        String[] callingPackageNames = mPackageManager.getPackagesForUid(Binder.getCallingUid());
+        return (callingPackageNames == null) ? null : callingPackageNames[0];
     }
 
     /**

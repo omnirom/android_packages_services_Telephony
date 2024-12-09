@@ -845,8 +845,11 @@
     <string name="removable_esim_string" msgid="7931369811671787649">"リムーバブル eSIM をデフォルトに設定"</string>
     <string name="radio_info_radio_power" msgid="8805595022160471587">"モバイル無線電力"</string>
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"圏外状態のシミュレート（デバッグビルドのみ）"</string>
+    <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Force Camp Satellite LTE チャンネル（デバッグビルドのみ）"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"携帯通信会社の疑似航空写真モード（デバッグビルドのみ）"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"実際に衛星経由の緊急 SOS モードをテストする（デバッグビルドのみ）"</string>
+    <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"実際に衛星経由の非緊急 SOS モードをテストする（デバッグビルドのみ）"</string>
+    <string name="demo_esos_satellite_string" msgid="2941811482168709730">"デモ用の衛星による緊急 SOS モードをテストする（デバッグビルドのみ）"</string>
     <string name="radioInfo_menu_viewADN" msgid="4533179730908559846">"SIM のアドレス帳を表示"</string>
     <string name="radioInfo_menu_viewFDN" msgid="1847236480527032061">"発信番号制限を表示"</string>
     <string name="radioInfo_menu_viewSDN" msgid="2613431584522392842">"サービス電話番号を表示"</string>
@@ -913,7 +916,6 @@
     <string name="radio_info_smsc_label" msgid="3749927072726033763">"SMSC:"</string>
     <string name="radio_info_smsc_update_label" msgid="5141996256097115753">"更新"</string>
     <string name="radio_info_smsc_refresh_label" msgid="8409923721451604560">"更新"</string>
-    <string name="radio_info_toggle_dns_check_label" msgid="1394078554927787350">"DNS チェックを切り替え"</string>
     <string name="oem_radio_info_label" msgid="2914167475119997456">"OEM 固有の情報 / 設定"</string>
     <string name="radio_info_endc_available" msgid="2983767110681230019">"EN-DC 利用可能（NSA）:"</string>
     <string name="radio_info_dcnr_restricted" msgid="7147511536420148173">"DCNR 制限あり（NSA）:"</string>

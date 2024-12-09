@@ -184,7 +184,7 @@ public class SmsManagerTestApp extends Activity {
         intent.setComponent(SETTINGS_SUB_PICK_ACTIVITY);
         intent.putExtra(DIALOG_TYPE_KEY, SMS_PICK);
         try {
-            startActivity(intent, null);
+            startActivity(intent);
         } catch (ActivityNotFoundException anfe) {
             // If Settings is not installed, only log the error as we do not want to break
             // legacy applications.

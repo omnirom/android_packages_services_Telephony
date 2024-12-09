@@ -2028,10 +2028,17 @@
     <!-- Title for simulating device out of service. -->
     <string name="simulate_out_of_service_string">Simulate Out of Service (Debug Build only)</string>
 
+    <!-- Title for enforcing satellite channels. -->
+    <string name="enforce_satellite_channel_string">Force Camp Satellite LTE Channel (Debug Build only)</string>
+
     <!-- Title for simulating SIM capable of satellite. -->
     <string name="mock_carrier_roaming_satellite_string">Mock Carrier Satellite Mode (Debug Build only)</string>
     <!-- Title for trigger real satellite eSOS. -->
     <string name="esos_satellite_string">Test real satellite eSOS mode (Debug Build only)</string>
+    <!-- Title for enable real satellite non-emergency mode. -->
+    <string name="satellite_enable_non_emergency_mode_string">Test real satellite non-eSOS mode (Debug Build only)</string>
+    <!-- Title for trigger demo satellite eSOS. -->
+    <string name="demo_esos_satellite_string">Test demo satellite eSOS mode (Debug Build only)</string>
 
     <!-- Phone Info screen. Menu item label.  Used for diagnostic info screens, precise translation isn't needed -->
     <string name="radioInfo_menu_viewADN">View SIM Address Book</string>
@@ -2179,7 +2186,6 @@
     <!-- Radio Info screen. Label for a status item.  Used for diagnostic info screens, precise translation isn't needed -->
     <string name="radio_info_smsc_refresh_label">Refresh</string>
     <!-- Radio Info screen. Label for a status item.  Used for diagnostic info screens, precise translation isn't needed -->
-    <string name="radio_info_toggle_dns_check_label">Toggle DNS Check</string>
     <!-- Radio Info screen. Label for a status item.  Used for diagnostic info screens, precise translation isn't needed -->
     <string name="oem_radio_info_label">OEM-specific Info/Settings</string>
     <!-- Radio Info screen. Label for a status item.  Used for diagnostic info screens, precise translation isn't needed -->
