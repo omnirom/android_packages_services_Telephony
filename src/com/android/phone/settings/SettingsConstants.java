@@ -16,6 +16,12 @@
 
 package com.android.phone.settings;
 
+import android.app.Activity;
+
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
 /**
  * Constants related to settings which are shared by two or more classes.
  */
@@ -30,4 +36,23 @@ public class SettingsConstants {
     public static final int HAC_ENABLED = 1;
     public static final String HAC_VAL_ON = "ON";
     public static final String HAC_VAL_OFF = "OFF";
+
+    /**
+     * Given an activity, configure the activity to adjust for edge to edge restrictions.
+     * @param activity the activity.
+     */
+    public static void setupEdgeToEdge(Activity activity) {
+        ViewCompat.setOnApplyWindowInsetsListener(activity.findViewById(android.R.id.content),
+                (v, windowInsets) -> {
+                    Insets insets = windowInsets.getInsets(
+                            WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
+
+                    // Apply the insets paddings to the view.
+                    v.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+
+                    // Return CONSUMED if you don't want the window insets to keep being
+                    // passed down to descendant views.
+                    return WindowInsetsCompat.CONSUMED;
+                });
+    }
 }

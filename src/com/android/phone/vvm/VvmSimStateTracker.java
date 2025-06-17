@@ -234,7 +234,8 @@ public class VvmSimStateTracker extends BroadcastReceiver {
             // return null.
             return;
         }
-        if (telephonyManager.getServiceState().getState()
+        ServiceState currentServiceState = telephonyManager.getServiceState();
+        if (currentServiceState != null && currentServiceState.getState()
                 == ServiceState.STATE_IN_SERVICE) {
             VvmLog.i(TAG, "onCarrierConfigChanged: in service; send connected "
                     + phoneAccountHandle);

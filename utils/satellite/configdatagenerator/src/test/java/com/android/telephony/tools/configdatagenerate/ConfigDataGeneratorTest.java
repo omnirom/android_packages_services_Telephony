@@ -82,8 +82,25 @@ public class ConfigDataGeneratorTest {
         ByteString inputByteStringForS2Cell = ByteString.copyFromUtf8("Test ByteString!");
         writeByteStringToFile(inputS2CellFileName, inputByteStringForS2Cell);
 
-        createInputXml(inputFile, 14, 1, "310062222", 1,
-                "US", true, inputS2CellFileName);
+        Path inputSatelliteAccessConfigFilePath =
+                inputDirPath.resolve("satellite_access_config.json");
+        String inputSatelliteAccessConfigFileAbsolutePath =
+                inputSatelliteAccessConfigFilePath.toAbsolutePath().toString();
+        ByteString inputSatelliteAccessConfigContent =
+                ByteString.copyFromUtf8("Test ByteString for satellite access config!");
+        writeByteStringToFile(
+                inputSatelliteAccessConfigFileAbsolutePath, inputSatelliteAccessConfigContent);
+
+        createInputXml(
+                inputFile,
+                14,
+                1,
+                "310062222",
+                1,
+                "US",
+                true,
+                inputS2CellFileName,
+                inputSatelliteAccessConfigFileAbsolutePath);
         String[] args = {
                 "--input-file", inputFilePath.toAbsolutePath().toString(),
                 "--output-file", outputFilePath.toAbsolutePath().toString()
@@ -113,8 +130,25 @@ public class ConfigDataGeneratorTest {
         ByteString inputByteStringForS2Cell = ByteString.copyFromUtf8("Test ByteString!");
         writeByteStringToFile(inputS2CellFileName, inputByteStringForS2Cell);
 
-        createInputXml(inputFile, 14, 1, "31006", -1,
-                "US", true, inputS2CellFileName);
+        Path inputSatelliteAccessConfigFilePath =
+                inputDirPath.resolve("satellite_access_config.json");
+        String inputSatelliteAccessConfigFileAbsolutePath =
+                inputSatelliteAccessConfigFilePath.toAbsolutePath().toString();
+        ByteString inputSatelliteAccessConfigContent =
+                ByteString.copyFromUtf8("Test ByteString for satellite access config!");
+        writeByteStringToFile(
+                inputSatelliteAccessConfigFileAbsolutePath, inputSatelliteAccessConfigContent);
+
+        createInputXml(
+                inputFile,
+                14,
+                1,
+                "31006",
+                -1,
+                "US",
+                true,
+                inputS2CellFileName,
+                inputSatelliteAccessConfigFileAbsolutePath);
         String[] args = {
                 "--input-file", inputFilePath.toAbsolutePath().toString(),
                 "--output-file", outputFilePath.toAbsolutePath().toString()
@@ -144,8 +178,25 @@ public class ConfigDataGeneratorTest {
         ByteString inputByteStringForS2Cell = ByteString.copyFromUtf8("Test ByteString!");
         writeByteStringToFile(inputS2CellFileName, inputByteStringForS2Cell);
 
-        createInputXml(inputFile, 14, 1, "31006", 1,
-                "USSSS", true, inputS2CellFileName);
+        Path inputSatelliteAccessConfigFilePath =
+                inputDirPath.resolve("satellite_access_config.json");
+        String inputSatelliteAccessConfigFileAbsolutePath =
+                inputSatelliteAccessConfigFilePath.toAbsolutePath().toString();
+        ByteString inputSatelliteAccessConfigContent =
+                ByteString.copyFromUtf8("Test ByteString for satellite access config!");
+        writeByteStringToFile(
+                inputSatelliteAccessConfigFileAbsolutePath, inputSatelliteAccessConfigContent);
+
+        createInputXml(
+                inputFile,
+                14,
+                1,
+                "31006",
+                1,
+                "USSSS",
+                true,
+                inputS2CellFileName,
+                inputSatelliteAccessConfigFileAbsolutePath);
         String[] args = {
                 "--input-file", inputFilePath.toAbsolutePath().toString(),
                 "--output-file", outputFilePath.toAbsolutePath().toString()
@@ -183,8 +234,26 @@ public class ConfigDataGeneratorTest {
         boolean inputIsAllowed = true;
         ByteString inputByteStringForS2Cell = ByteString.copyFromUtf8("Test ByteString!");
         writeByteStringToFile(inputS2CellFileName, inputByteStringForS2Cell);
-        createInputXml(inputFile, inputVersion, inputCarrierId, inputPlmn, inputAllowedService,
-                inputCountryCode, inputIsAllowed, inputS2CellFileName);
+
+        Path inputSatelliteAccessConfigFilePath =
+                inputDirPath.resolve("satellite_access_config.json");
+        String inputSatelliteAccessConfigFileAbsolutePath =
+                inputSatelliteAccessConfigFilePath.toAbsolutePath().toString();
+        ByteString inputSatelliteAccessConfigContent =
+                ByteString.copyFromUtf8("Test ByteString for satellite access config!");
+        writeByteStringToFile(
+                inputSatelliteAccessConfigFileAbsolutePath, inputSatelliteAccessConfigContent);
+
+        createInputXml(
+                inputFile,
+                inputVersion,
+                inputCarrierId,
+                inputPlmn,
+                inputAllowedService,
+                inputCountryCode,
+                inputIsAllowed,
+                inputS2CellFileName,
+                inputSatelliteAccessConfigFileAbsolutePath);
         String[] args = {
                 "--input-file", inputFilePath.toAbsolutePath().toString(),
                 "--output-file", outputFilePath.toAbsolutePath().toString()
@@ -221,10 +290,62 @@ public class ConfigDataGeneratorTest {
         assertEquals(inputS2CellFile, s2cellfile);
         boolean isAllowed = regionProto.getIsAllowed();
         assertEquals(inputIsAllowed, isAllowed);
+
+        ByteString outputSatelliteAccessConfigFileContent =
+                regionProto.getSatelliteAccessConfigFile();
+        byte[] inputSatelliteAccessConfigFileContentAsBytes =
+                Files.readAllBytes(Paths.get(inputSatelliteAccessConfigFileAbsolutePath));
+        ByteString inputSatelliteAccessConfigFileContent =
+                ByteString.copyFrom(inputSatelliteAccessConfigFileContentAsBytes);
+        assertEquals(inputSatelliteAccessConfigContent, outputSatelliteAccessConfigFileContent);
     }
 
-    private void createInputXml(File outputFile, int version, int carrierId, String plmn,
-            int allowedService, String countryCode, boolean isAllowed, String inputS2CellFileName) {
+    @Test
+    public void testSatelliteAccessConfigFileNotPresent() throws Exception {
+        Path inputDirPath = mTempDirPath.resolve("input");
+        Files.createDirectory(inputDirPath);
+        Path inputFilePath = inputDirPath.resolve("test_input.xml");
+        Path inputS2CellFilePath = inputDirPath.resolve("sats2.dat");
+
+        Path outputDirPath = mTempDirPath.resolve("output");
+        Files.createDirectory(outputDirPath);
+        Path outputFilePath = outputDirPath.resolve("test_out.pb");
+        String inputfileName = inputFilePath.toAbsolutePath().toString();
+        String inputS2CellFileName = inputS2CellFilePath.toAbsolutePath().toString();
+        File inputFile = new File(inputfileName);
+        ByteString inputByteStringForS2Cell = ByteString.copyFromUtf8("Test ByteString!");
+        writeByteStringToFile(inputS2CellFileName, inputByteStringForS2Cell);
+
+        createInputXml(inputFile, 14, 1, "31006", 1, "US", true, inputS2CellFileName, null);
+        String[] args = {
+            "--input-file", inputFilePath.toAbsolutePath().toString(),
+            "--output-file", outputFilePath.toAbsolutePath().toString()
+        };
+        try {
+            ConfigDataGenerator.main(args);
+        } catch (Exception ex) {
+            fail("Unexpected exception when executing the tool ex=" + ex);
+        }
+
+        Path filePath = Paths.get(outputFilePath.toAbsolutePath().toString());
+        byte[] fileBytes = Files.readAllBytes(filePath);
+        TelephonyConfigProto telephonyConfigProto = TelephonyConfigProto.parseFrom(fileBytes);
+        SatelliteConfigProto satelliteConfigProto = telephonyConfigProto.getSatellite();
+        SatelliteRegionProto regionProto = satelliteConfigProto.getDeviceSatelliteRegion();
+        ByteString outputSatelliteAccessConfigFile = regionProto.getSatelliteAccessConfigFile();
+        assertEquals(ByteString.EMPTY, outputSatelliteAccessConfigFile);
+    }
+
+    private void createInputXml(
+            File outputFile,
+            int version,
+            int carrierId,
+            String plmn,
+            int allowedService,
+            String countryCode,
+            boolean isAllowed,
+            String inputS2CellFileName,
+            String inputSatelliteAccessConfigFileName) {
         try {
             DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -253,6 +374,11 @@ public class ConfigDataGeneratorTest {
             satelliteRegion.appendChild(
                     createElementWithText(doc, ConfigDataGenerator.TAG_IS_ALLOWED,
                             isAllowed ? "TRUE" : "FALSE"));
+            satelliteRegion.appendChild(
+                    createElementWithText(
+                            doc,
+                            ConfigDataGenerator.TAG_SATELLITE_ACCESS_CONFIG_FILE,
+                            inputSatelliteAccessConfigFileName));
             rootElement.appendChild(satelliteRegion);
 
             // Write XML to File

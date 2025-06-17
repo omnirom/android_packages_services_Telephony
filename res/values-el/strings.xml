@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"Το FDN δεν ενημερώθηκε, επειδή ο αριθμός υπερβαίνει τα <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> ψηφία."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"Δεν έγινε ενημέρωση του FDN. Το PIN2 ήταν λανθασμένο ή ο αριθμός του τηλεφώνου απορρίφθηκε."</string>
     <string name="fdn_failed" msgid="216592346853420250">"Αποτυχία λειτουργίας FDN."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"Δεν είναι δυνατή η κλήση κωδικού MMI, επειδή το FDN είναι ενεργοποιημένο."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"Ανάγνωση από κάρτα SIM…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"Δεν υπάρχουν επαφές στην κάρτα SIM."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"Επιλέξτε επαφές για εισαγωγή"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"Η προσομοίωση δεν λειτουργεί (μόνο έκδοση εντοπισμού σφαλμάτων)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Επιβολή καναλιού Camp Satellite LTE (μόνο έκδοση εντοπισμού σφαλμάτων)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Εικονική λειτουργία δορυφόρου εταιρείας κινητής τηλεφωνίας (μόνο έκδοση εντοπισμού σφαλμάτων)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Εικονική λειτουργία δεδομένων μέσω δορυφόρου (μόνο αποσφαλμάτωση)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Με περιορισμό"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Περιορισμένο"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Χωρίς περιορισμούς"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Δοκιμή πραγματικής δορυφορικής λειτουργίας eSOS (μόνο έκδοση εντοπισμού σφαλμάτων)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Δοκιμή πραγματικής δορυφορικής λειτουργίας εκτός eSOS (μόνο έκδοση εντοπισμού σφαλμάτων)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Έλεγχος δοκιμαστικής δορυφορικής λειτουργίας eSOS (μόνο έκδοση εντοπισμού σφαλμάτων)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"Ακύρωση"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"Εναλλαγή σε προφίλ εργασίας"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"Εγκατάσταση εφαρμογής ανταλλαγής μηνυμάτων για την εργασία"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Εμφάνιση διαμόρφωσης δορυφόρου"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Πρόγραμμα προβολής διαμόρφωσης δορυφόρου"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"έκδοση:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"κωδικοί χωρών:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"μέγεθος του αρχείου sats2.dat:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"json ρύθμισης πρόσβασης δορυφόρου:"</string>
 </resources>

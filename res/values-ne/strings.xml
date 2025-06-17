@@ -83,7 +83,7 @@
     <string name="make_and_receive_calls" msgid="4868913166494621109">"कल गर्नुहोस् र प्राप्त गर्नुहोस्"</string>
     <string name="smart_forwarding_settings_menu" msgid="8850429887958938540">"स्मार्ट तरिकाले फर्वार्ड गर्ने सुविधा"</string>
     <string name="smart_forwarding_settings_menu_summary" msgid="5096947726032885325">"एउटा नम्बर सम्पर्क क्षेत्रबाहिर भएका बेला कल सधैँ आफ्नो अर्को नम्बरमा फर्वार्ड गर्नुहोस्"</string>
-    <string name="voicemail_notifications_preference_title" msgid="7829238858063382977">"सूचनाहरू"</string>
+    <string name="voicemail_notifications_preference_title" msgid="7829238858063382977">"नोटिफिकेसनहरू"</string>
     <string name="cell_broadcast_settings" msgid="8135324242541809924">"आपत्‌कालीन प्रसारणहरू"</string>
     <string name="call_settings" msgid="3677282690157603818">"कल सेटिङहरू"</string>
     <string name="additional_gsm_call_settings" msgid="1561980168685658846">"अतिरिक्त सेटिङहरू"</string>
@@ -271,7 +271,7 @@
     <string name="preferred_network_mode_nr_lte_tdscdma_wcdma_summary" msgid="5912457779733343522">"रुचाइएको नेटवर्क मोड: NR/LTE/TDSCDMA/WCDMA"</string>
     <string name="preferred_network_mode_nr_lte_tdscdma_gsm_wcdma_summary" msgid="6769797110309412576">"रुचाइएको नेटवर्क मोड: NR/LTE/TDSCDMA/GSM/WCDMA"</string>
     <string name="preferred_network_mode_nr_lte_tdscdma_cdma_evdo_gsm_wcdma_summary" msgid="4260661428277578573">"रुचाइएको नेटवर्क मोड: NR/LTE/TDSCDMA/CDMA/EvDo/GSM/WCDMA"</string>
-    <string name="call_category" msgid="4394703838833058138">"कल गर्दै"</string>
+    <string name="call_category" msgid="4394703838833058138">"कल गर्ने सुविधा"</string>
     <string name="network_operator_category" msgid="4992217193732304680">"नेटवर्क"</string>
     <string name="enhanced_4g_lte_mode_title" msgid="4213420368777080540">"Enhanced 4G LTE Mode"</string>
     <!-- no translation found for enhanced_4g_lte_mode_title_variant:0 (7240155150166394308) -->
@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"उक्त सङ्ख्याले <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> अङ्कको अधिकतम सीमा नाघेकाले FDN अद्यावधिक गरिएन।"</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"FDN अद्यावधिक भएको थिएन। PIN2 गलत थियो वा फोन नम्बर अस्वीकार भएको थियो।"</string>
     <string name="fdn_failed" msgid="216592346853420250">"FDN कार्य बिफल भयो।"</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"FDN अन गरिएको हुनाले MMI कोड डायल गर्न सकिएन।"</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"SIM कार्ड पढ्दै..."</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"तपाईँको SIM कार्डमा कुनै पनि सम्पर्क छैन।"</string>
     <string name="simContacts_title" msgid="2714029230160136647">"कन्ट्याक्टहरू इम्पोर्ट गर्न चयन गर्नुहोस्"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"\"सेवा उपलब्ध छैन\" सिमुलेट गर्नुहोस् (डिबग बिल्डमा मात्र सिमुलेट गर्न मिल्छ)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Force Camp Satellite LTE च्यानल (डिबग बिल्ड मात्र)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"सेवा प्रदायकको स्याटेलाइट मोडको परीक्षण गर्नुहोस् (डिबग बिल्ड मात्र)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"स्याटलाइट डेटा मोडको परीक्षण गर्नुहोस् (यो सुविधा डिबग बिल्डमा मात्र उपलब्ध छ)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"प्रतिबन्धित"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"सीमित"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"असीमित"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"वास्तविक स्याटेलाइट eSOS मोड परीक्षण गर्नुहोस् (डिबग बिल्ड मात्र)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"वास्तविक स्याटेलाइट eSOS बाहेकका मोड (डिबग बिल्ड मात्र) परीक्षण गर्नुहोस्"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"डेमो स्याटेलाइट eSOS मोडको परीक्षण गर्नुहोस् (डिबग बिल्ड मात्र)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"रद्द गर्नुहोस्"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"कार्य प्रोफाइल प्रयोग गर्नुहोस्"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"कामसम्बन्धी म्यासेजिङ एप इन्स्टल गर्नुहोस्"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"स्याटलाइट कन्फिगुरेसन देखाउनुहोस्"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"स्याटलाइट कन्फिगुरेसन भ्युअर"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"संस्करण:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"देशका कोडहरू:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"sats2.dat को आकार:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"स्याटलाइट एक्सेस कन्फिगुरेसनको json फाइल:"</string>
 </resources>

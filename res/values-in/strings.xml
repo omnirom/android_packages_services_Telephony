@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"FDN tidak diupdate karena nomor melebihi <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> digit."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"FDN tidak diperbarui. PIN2 salah, atau nomor telepon ditolak."</string>
     <string name="fdn_failed" msgid="216592346853420250">"Operasi FDN gagal."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"Tidak dapat men-dial kode MMI karena FDN diaktifkan."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"Membaca dari kartu SIM…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"Tidak ada kontak pada kartu SIM."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"Pilih kontak untuk diimpor"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"Simulasi Tidak dapat Digunakan (Khusus Build Debug)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Terapkan Saluran Satelit LTE (khusus Build Debug)."</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Mode Satelit Operator Tiruan (khusus Build Debug)."</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Mode Data Satelit Tiruan (Khusus Debug)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Dibatasi"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Terbatas"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Tidak terbatas"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Uji mode eSOS satelit asli (khusus Build Debug)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Uji mode non-eSOS satelit asli (khusus Build Debug)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Uji mode eSOS satelit demo (khusus Build Debug)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"Batal"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"Beralih ke profil kerja"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"Instal aplikasi pesan untuk kerja"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Tampilkan Konfigurasi Satelit"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Penampil Konfigurasi Satelit"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"versi:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"kode negara:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"ukuran sats2.dat:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"json konfigurasi akses satelit:"</string>
 </resources>

@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -51,7 +52,6 @@ import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.telephony.TelephonyRegistryManager;
 import android.testing.AndroidTestingRunner;
-import android.testing.TestableLooper;
 
 import androidx.test.InstrumentationRegistry;
 
@@ -69,6 +69,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -80,7 +81,6 @@ import java.io.StringWriter;
  * Unit Test for CarrierConfigLoader.
  */
 @RunWith(AndroidTestingRunner.class)
-@TestableLooper.RunWithLooper(setAsMainLooper = true)
 public class CarrierConfigLoaderTest extends TelephonyTestBase {
     @Rule
     public TestRule compatChangeRule = new PlatformCompatChangeRule();
@@ -107,7 +107,6 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
     private TelephonyManager mTelephonyManager;
     private CarrierConfigLoader mCarrierConfigLoader;
     private Handler mHandler;
-    private TestableLooper mTestableLooper;
 
     // The AIDL stub will use PermissionEnforcer to check permission from the caller.
     private FakePermissionEnforcer mFakePermissionEnforcer = new FakePermissionEnforcer();
@@ -115,6 +114,9 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        setupTestLooper();
+        doReturn(true).when(mPackageManager).hasSystemFeature(
+                eq(PackageManager.FEATURE_TELEPHONY_SUBSCRIPTION));
         doReturn(Context.PERMISSION_ENFORCER_SERVICE).when(mContext).getSystemServiceName(
                 eq(PermissionEnforcer.class));
         doReturn(mFakePermissionEnforcer).when(mContext).getSystemService(
@@ -148,8 +150,7 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
         when(mContext.getSystemService(TelephonyRegistryManager.class)).thenReturn(
                 mTelephonyRegistryManager);
 
-        mTestableLooper = TestableLooper.get(this);
-        mCarrierConfigLoader = new CarrierConfigLoader(mContext, mTestableLooper.getLooper(),
+        mCarrierConfigLoader = new CarrierConfigLoader(mContext, mTestLooper,
                 mFeatureFlags);
         mHandler = mCarrierConfigLoader.getHandler();
 
@@ -209,7 +210,10 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
         mCarrierConfigLoader.saveNoSimConfigToXml(PLATFORM_CARRIER_CONFIG_PACKAGE, config);
         mCarrierConfigLoader.updateConfigForPhoneId(DEFAULT_PHONE_ID,
                 IccCardConstants.INTENT_VALUE_ICC_ABSENT);
-        mTestableLooper.processAllMessages();
+        processOneMessage();
+        processOneMessage();
+        processOneMessage();
+        processOneMessage();
 
         assertThat(mCarrierConfigLoader.getConfigFromDefaultApp(DEFAULT_PHONE_ID)).isNull();
         assertThat(mCarrierConfigLoader.getConfigFromCarrierApp(DEFAULT_PHONE_ID)).isNull();
@@ -248,7 +252,7 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
                 DEFAULT_PHONE_ID, carrierId, config);
         mCarrierConfigLoader.updateConfigForPhoneId(DEFAULT_PHONE_ID,
                 IccCardConstants.INTENT_VALUE_ICC_LOADED);
-        mTestableLooper.processAllMessages();
+        processAllMessages();
 
         assertThat(mCarrierConfigLoader.getConfigFromDefaultApp(DEFAULT_PHONE_ID).getInt(
                 CARRIER_CONFIG_EXAMPLE_KEY)).isEqualTo(CARRIER_CONFIG_EXAMPLE_VALUE);
@@ -290,7 +294,8 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
 
         mCarrierConfigLoader.overrideConfig(DEFAULT_SUB_ID, null /*overrides*/,
                 false/*persistent*/);
-        mTestableLooper.processAllMessages();
+        processOneMessage();
+        processOneMessage();
 
         assertThat(mCarrierConfigLoader.getOverrideConfig(DEFAULT_PHONE_ID).isEmpty()).isTrue();
         verify(mSubscriptionManagerService).updateSubscriptionByCarrierConfig(
@@ -312,7 +317,8 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
         PersistableBundle config = getTestConfig();
         mCarrierConfigLoader.overrideConfig(DEFAULT_SUB_ID, config /*overrides*/,
                 false/*persistent*/);
-        mTestableLooper.processAllMessages();
+        processOneMessage();
+        processOneMessage();
 
         assertThat(mCarrierConfigLoader.getOverrideConfig(DEFAULT_PHONE_ID).getInt(
                 CARRIER_CONFIG_EXAMPLE_KEY)).isEqualTo(CARRIER_CONFIG_EXAMPLE_VALUE);
@@ -431,7 +437,6 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
         replaceInstance(CarrierConfigLoader.class, "mVendorApiLevel", mCarrierConfigLoader,
                 vendorApiLevel);
 
-        doReturn(true).when(mFeatureFlags).enforceTelephonyFeatureMappingForPublicApis();
         doReturn(false).when(mPackageManager).hasSystemFeature(
                 eq(PackageManager.FEATURE_TELEPHONY_SUBSCRIPTION));
 
@@ -477,9 +482,48 @@ public class CarrierConfigLoaderTest extends TelephonyTestBase {
                 any(Intent.class), any(ServiceConnection.class), anyInt());
         doNothing().when(mContext).sendBroadcastAsUser(any(Intent.class), any(UserHandle.class));
         mHandler.sendMessage(mHandler.obtainMessage(17 /* EVENT_MULTI_SIM_CONFIG_CHANGED */));
-        mTestableLooper.processAllMessages();
+        processAllMessages();
 
         mCarrierConfigLoader.updateConfigForPhoneId(1, IccCardConstants.INTENT_VALUE_ICC_ABSENT);
-        mTestableLooper.processAllMessages();
+        processAllMessages();
+    }
+
+    @Test
+    public void testSystemUnlocked_noCallback() throws Exception {
+        replaceInstance(TelephonyManager.class, "sInstance", null, mTelephonyManager);
+        replaceInstance(CarrierConfigLoader.class, "mHasSentConfigChange",
+                mCarrierConfigLoader, new boolean[]{true});
+        doNothing().when(mContext).sendBroadcastAsUser(any(Intent.class), any(UserHandle.class));
+
+        mFakePermissionEnforcer.grant(android.Manifest.permission.MODIFY_PHONE_STATE);
+        // Prepare to make sure we can save the config into the XML file which used as cache
+        doReturn(PLATFORM_CARRIER_CONFIG_PACKAGE).when(mTelephonyManager)
+                .getCarrierServicePackageNameForLogicalSlot(anyInt());
+
+        doReturn(true).when(mContext).bindService(
+                any(Intent.class), any(ServiceConnection.class), anyInt());
+        Mockito.clearInvocations(mTelephonyRegistryManager);
+        Mockito.clearInvocations(mContext);
+        mHandler.sendMessage(mHandler.obtainMessage(13 /* EVENT_SYSTEM_UNLOCKED */));
+        processOneMessage();
+        mHandler.sendMessage(mHandler.obtainMessage(5 /* EVENT_FETCH_DEFAULT_DONE */));
+        processOneMessage();
+        processOneMessage();
+        mHandler.sendMessage(mHandler.obtainMessage(6 /* EVENT_FETCH_CARRIER_DONE */));
+        processOneMessage();
+        processOneMessage();
+
+        ArgumentCaptor<Runnable> runnableCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(mSubscriptionManagerService).updateSubscriptionByCarrierConfig(eq(0), anyString(),
+                any(PersistableBundle.class), runnableCaptor.capture());
+
+        runnableCaptor.getValue().run();
+        processAllMessages();
+
+        // Broadcast should be sent for backwards compatibility.
+        verify(mContext).sendBroadcastAsUser(any(Intent.class), any(UserHandle.class));
+        // But callback should not be sent.
+        verify(mTelephonyRegistryManager, never()).notifyCarrierConfigChanged(
+                anyInt(), anyInt(), anyInt(), anyInt());
     }
 }

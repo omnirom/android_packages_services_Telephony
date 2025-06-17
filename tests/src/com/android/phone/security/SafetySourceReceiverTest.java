@@ -35,7 +35,6 @@ import android.platform.test.flag.junit.SetFlagsRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.internal.telephony.Phone;
-import com.android.internal.telephony.flags.Flags;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -67,9 +66,6 @@ public class SafetySourceReceiverTest {
 
     @Test
     public void testOnReceive() {
-        mSetFlagsRule.enableFlags(Flags.FLAG_ENABLE_IDENTIFIER_DISCLOSURE_TRANSPARENCY_UNSOL_EVENTS,
-                Flags.FLAG_ENABLE_MODEM_CIPHER_TRANSPARENCY_UNSOL_EVENTS,
-                Flags.FLAG_ENFORCE_TELEPHONY_FEATURE_MAPPING_FOR_PUBLIC_APIS);
         Phone mockPhone = mock(Phone.class);
         when(mSafetySourceReceiver.getDefaultPhone()).thenReturn(mockPhone);
 
@@ -81,24 +77,7 @@ public class SafetySourceReceiverTest {
     }
 
     @Test
-    public void testOnReceive_featureFlagsOff() {
-        mSetFlagsRule.disableFlags(
-                Flags.FLAG_ENABLE_IDENTIFIER_DISCLOSURE_TRANSPARENCY_UNSOL_EVENTS,
-                Flags.FLAG_ENABLE_MODEM_CIPHER_TRANSPARENCY_UNSOL_EVENTS,
-                Flags.FLAG_ENFORCE_TELEPHONY_FEATURE_MAPPING_FOR_PUBLIC_APIS);
-
-        Intent intent = new Intent(ACTION_REFRESH_SAFETY_SOURCES);
-        intent.putExtra(EXTRA_REFRESH_SAFETY_SOURCES_BROADCAST_ID, "aBroadcastId");
-        mSafetySourceReceiver.onReceive(mContext, intent);
-
-        verify(mSafetySourceReceiver, never()).getDefaultPhone();
-    }
-
-    @Test
     public void testOnReceive_phoneNotReadyYet() {
-        mSetFlagsRule.enableFlags(Flags.FLAG_ENABLE_IDENTIFIER_DISCLOSURE_TRANSPARENCY_UNSOL_EVENTS,
-                Flags.FLAG_ENABLE_MODEM_CIPHER_TRANSPARENCY_UNSOL_EVENTS,
-                Flags.FLAG_ENFORCE_TELEPHONY_FEATURE_MAPPING_FOR_PUBLIC_APIS);
         when(mSafetySourceReceiver.getDefaultPhone()).thenReturn(null);
 
         Intent intent = new Intent(ACTION_REFRESH_SAFETY_SOURCES);
@@ -111,10 +90,6 @@ public class SafetySourceReceiverTest {
 
     @Test
     public void testOnReceive_noTelephonyFeature() {
-        mSetFlagsRule.enableFlags(Flags.FLAG_ENABLE_IDENTIFIER_DISCLOSURE_TRANSPARENCY_UNSOL_EVENTS,
-                Flags.FLAG_ENABLE_MODEM_CIPHER_TRANSPARENCY_UNSOL_EVENTS,
-                Flags.FLAG_ENFORCE_TELEPHONY_FEATURE_MAPPING_FOR_PUBLIC_APIS);
-
         when(mContext.getPackageManager().hasSystemFeature(
                 PackageManager.FEATURE_TELEPHONY)).thenReturn(false);
 

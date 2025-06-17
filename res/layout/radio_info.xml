@@ -268,6 +268,42 @@
                 android:layout_height="wrap_content"
                 android:text="@string/mock_carrier_roaming_satellite_string"/>
 
+        <!-- Force to use SIM data in Mock satellite mode -->
+        <Switch android:id="@+id/satellite_data_controller_switch"
+            android:textSize="14sp"
+            android:layout_marginTop="8dip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/choose_satellite_data_mode"/>
+        <RadioGroup
+            android:id="@+id/satellite_data_controller"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dip"
+            android:visibility="gone"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/satellite_data_restricted"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="4dip"
+                android:text="@string/satellite_data_restricted_string" />
+
+            <RadioButton
+                android:id="@+id/satellite_data_constrained"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="4dip"
+                android:text="@string/satellite_data_constrained_string" />
+
+            <RadioButton
+                android:id="@+id/satellite_data_unConstrained"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/satellite_data_unConstrained_string" />
+        </RadioGroup>
+
         <!-- ESOS -->
         <Button android:id="@+id/esos_questionnaire"
                 android:textSize="14sp"
@@ -296,6 +332,16 @@
                 android:textAllCaps="false"
                 android:text="@string/demo_esos_satellite_string"
         />
+
+        <!-- Satellite Config Viewer -->
+        <Button android:id="@+id/satellite_config_viewer"
+            android:textSize="14sp"
+            android:layout_marginTop="8dip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAllCaps="false"
+            android:text="@string/satellite_config_viewer"
+            />
 
         <!-- VoLTE provisioned -->
         <Switch android:id="@+id/volte_provisioned_switch"

@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"ಸಂಖ್ಯೆಯು <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> ಅಂಕಿಗಳನ್ನು ಮೀರುತ್ತಿರುವ ಕಾರಣ FDN ಅನ್ನು ಅಪ್‌ಡೇಟ್ ಮಾಡಲಾಗಲಿಲ್ಲ."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"ಎಫ್‌ಡಿಎನ್‌ ಅನ್ನು ನವೀಕರಿಸಲಾಗಲಿಲ್ಲ. PIN2 ತಪ್ಪಾಗಿದೆ ಅಥವಾ ಫೋನ್ ಸಂಖ್ಯೆಯನ್ನು ತಿರಸ್ಕರಿಸಲಾಗಿದೆ."</string>
     <string name="fdn_failed" msgid="216592346853420250">"ಎಫ್‌ಡಿಎನ್‌ ಕಾರ್ಯಾಚರಣೆ ವಿಫಲವಾಗಿದೆ."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"FDN ಸಕ್ರಿಯಗೊಂಡಿರುವ ಕಾರಣ MMI ಕೋಡ್ ಅನ್ನು ಡಯಲ್ ಮಾಡಲು ಸಾಧ್ಯವಿಲ್ಲ."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"ಸಿಮ್‌ ಕಾರ್ಡ್‌ನಿಂದ ಓದಲಾಗುತ್ತಿದೆ…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"ನಿಮ್ಮ ಸಿಮ್‌ ಕಾರ್ಡ್‌ನಲ್ಲಿ ಯಾವುದೇ ಸಂಪರ್ಕಗಳಿಲ್ಲ."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"ಆಮದು ಮಾಡಲು ಸಂಪರ್ಕಗಳು"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"ಸೇವೆಯಲ್ಲಿಲ್ಲದಿರುವುದನ್ನು ಸಿಮ್ಯುಲೇಟ್‌ ಮಾಡುವುದು (ಡೀಬಗ್ ಬಿಲ್ಡ್ ಮಾತ್ರ)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"ಫೋರ್ಸ್ ಕ್ಯಾಂಪ್ ಸ್ಯಾಟಲೈಟ್ LTE ಚಾನಲ್ (ಡೀಬಗ್ ಬಿಲ್ಡ್ ಮಾತ್ರ)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Mock Carrier ಉಪಗ್ರಹ ಮೋಡ್ (ಡೀಬಗ್ ಬಿಲ್ಡ್ ಮಾತ್ರ)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"ಮಾಕ್ ಸ್ಯಾಟಲೈಟ್ ಡೇಟಾ ಮೋಡ್ (ಡೀಬಗ್ ಮಾತ್ರ)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"ಸೀಮಿತ"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"ಅನಿಯಮಿತ"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"ನೈಜ ಸ್ಯಾಟಲೈಟ್ eSOS ಮೋಡ್ ಅನ್ನು ಪರೀಕ್ಷಿಸಿ (ಡೀಬಗ್ ಬಿಲ್ಡ್ ಮಾತ್ರ)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"ರಿಯಲ್ ಸ್ಯಾಟಲೈಟ್ ನಾನ್-eSOS ಮೋಡ್ (ಡೀಬಗ್ ಬಿಲ್ಡ್ ಮಾತ್ರ) ಅನ್ನು ಟೆಸ್ಟ್ ಮಾಡಿ"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"ಸ್ಯಾಟಲೈಟ್‌ eSOS ಮೋಡ್‌ ಅನ್ನು ಟೆಸ್ಟ್‌ ಡೆಮೋ ನೀಡಿ (ಡೀಬಗ್ ಬಿಲ್ಡ್ ಮಾತ್ರ)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"ರದ್ದುಮಾಡಿ"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"ಉದ್ಯೋಗ ಪ್ರೊಫೈಲ್‌ಗೆ ಬದಲಿಸಿ"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"ಕೆಲಸಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಸಂದೇಶಗಳನ್ನು ಕಳುಹಿಸುವ ಆ್ಯಪ್ ಅನ್ನು ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"ಸ್ಯಾಟಲೈಟ್ ಕಾನ್ಫಿಗರೇಶನ್ ಅನ್ನು ತೋರಿಸಿ"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"ಸ್ಯಾಟಲೈಟ್ ಕಾನ್ಫಿಗರೇಶನ್ ವೀಕ್ಷಕ"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"ಆವೃತ್ತಿ:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"ರಾಷ್ಟ್ರ ಕೋಡ್‌ಗಳು:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"sats2.dat ನ ಗಾತ್ರ:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"ಸ್ಯಾಟಲೈಟ್ ಆ್ಯಕ್ಸೆಸ್ ಕಾನ್ಫಿಗರೇಶನ್ json:"</string>
 </resources>

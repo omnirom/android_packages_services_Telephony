@@ -109,6 +109,7 @@ public class PhoneAccountSettingsFragment extends PreferenceFragment
         }
 
         addPreferencesFromResource(R.xml.phone_account_settings);
+        getView().setFitsSystemWindows(true);
 
         /**
          * Here we make decisions about what we will and will not display with regards to phone-

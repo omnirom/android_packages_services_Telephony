@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"Рұқсат нөмірлер жаңартылмады, себебі нөмір <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> саннан аспауы тиіс."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"ТТН жаңартылмады. PIN2 қате болды немесе телефон нөмірі қабылданбады."</string>
     <string name="fdn_failed" msgid="216592346853420250">"Тұрақты теру нөмірлерінің жұмысы орындалмады."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"MMI кодын теру мүмкін емес, себебі FDN функциясы қосылған."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"SIM картасынан оқу…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"SIM картаңызда контактілер жоқ."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"Импортталатын контактілерді таңдау"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"\"Істен шыққан\" қызметін симуляциялау (түзету құрамасы ғана)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Жерсеріктік LTE каналын мәжбүрлеп қолдану (тек түзету конструкциясы)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Mock Carrier жер серігі режимі (тек түзету құрамасы)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Жалған жерсерік деректері режимі (тек түзету)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Шектелген"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Шектеулі"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Шектеусіз"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Шынайы жерсеріктегі құтқару қызметін шақыру режимін сынау (тек түзету құрамасы)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Шынайы жерсерікті құтқару қызметін шақыру режимінен басқа режимде сынау (тек түзету құрамасы)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Демо жерсеріктегі құтқару қызметін шақыру режимін сынау (тек түзету құрамасы)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"Бас тарту"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"Жұмыс профиліне ауысу"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"Жұмысқа арналған хабар алмасу қолданбасын орнату"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Жерсерік конфигурациясын көрсету"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Жерсерік конфигурациясын көру құралы"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"нұсқасы:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"ел кодтары:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"sats2.dat файлының көлемі:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"жерсерікті пайдалану конфигурациясының JSON файлы:"</string>
 </resources>

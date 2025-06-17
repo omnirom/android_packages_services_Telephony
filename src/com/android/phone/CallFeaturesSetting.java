@@ -234,6 +234,9 @@ public class CallFeaturesSetting extends PreferenceActivity
                                         getString(R.string.mobile_network_settings_package),
                                         getString(R.string.mobile_network_settings_class));
                                 intent.setComponent(mobileNetworkSettingsComponent);
+                                if (mPhone != null) {
+                                    intent.putExtra(Settings.EXTRA_SUB_ID, mPhone.getSubId());
+                                }
                                 startActivityAsUser(intent, UserHandle.CURRENT);
                             }
                         };
@@ -416,7 +419,8 @@ public class CallFeaturesSetting extends PreferenceActivity
         Preference gsmOptions = prefSet.findPreference(BUTTON_GSM_UMTS_OPTIONS);
         Preference fdnButton = prefSet.findPreference(BUTTON_FDN_KEY);
         fdnButton.setIntent(mSubscriptionInfoHelper.getIntent(FdnSetting.class));
-        if (carrierConfig.getBoolean(CarrierConfigManager.KEY_WORLD_PHONE_BOOL)) {
+        if (!Flags.phoneTypeCleanup()
+                && carrierConfig.getBoolean(CarrierConfigManager.KEY_WORLD_PHONE_BOOL)) {
             cdmaOptions.setIntent(mSubscriptionInfoHelper.getIntent(CdmaCallOptions.class));
             gsmOptions.setIntent(mSubscriptionInfoHelper.getIntent(GsmUmtsCallOptions.class));
         } else {
@@ -425,7 +429,8 @@ public class CallFeaturesSetting extends PreferenceActivity
             prefSet.removePreference(gsmOptions);
 
             int phoneType = mPhone.getPhoneType();
-            if (carrierConfig.getBoolean(CarrierConfigManager.KEY_HIDE_CARRIER_NETWORK_SETTINGS_BOOL)) {
+            if (carrierConfig.getBoolean(
+                    CarrierConfigManager.KEY_HIDE_CARRIER_NETWORK_SETTINGS_BOOL)) {
                 prefSet.removePreference(fdnButton);
             } else {
                 if (phoneType == PhoneConstants.PHONE_TYPE_CDMA) {

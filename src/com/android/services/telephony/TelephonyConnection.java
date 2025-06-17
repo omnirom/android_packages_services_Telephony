@@ -1338,8 +1338,10 @@ abstract class TelephonyConnection extends Connection implements Holdable, Commu
                     if (phone.getPhoneType() == PhoneConstants.PHONE_TYPE_IMS) {
                         ImsPhone imsPhone = (ImsPhone) phone;
                         imsPhone.holdActiveCall();
-                        mTelephonyConnectionService.maybeUnholdCallsOnOtherSubs(
-                                getPhoneAccountHandle());
+                        if (!com.android.server.telecom.flags.Flags.enableCallSequencing()) {
+                            mTelephonyConnectionService.maybeUnholdCallsOnOtherSubs(
+                                    getPhoneAccountHandle());
+                        }
                         return;
                     }
                     phone.switchHoldingAndActive();

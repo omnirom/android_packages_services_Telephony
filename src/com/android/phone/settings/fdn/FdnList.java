@@ -39,6 +39,7 @@ import com.android.phone.ADNList;
 import com.android.phone.PhoneGlobals;
 import com.android.phone.R;
 import com.android.phone.SubscriptionInfoHelper;
+import com.android.phone.settings.SettingsConstants;
 
 /**
  * Fixed Dialing Number (FDN) List UI for the Phone app. FDN is a feature of the service provider
@@ -112,6 +113,8 @@ public class FdnList extends ADNList {
         mSubscriptionInfoHelper = new SubscriptionInfoHelper(this, getIntent());
         mSubscriptionInfoHelper.setActionBarTitle(
                 getActionBar(), getResources(), R.string.fdn_list_with_label);
+
+        SettingsConstants.setupEdgeToEdge(this);
     }
 
     @Override

@@ -441,11 +441,11 @@ public class SatelliteControl extends Activity {
     private void provisionSatelliteApp(View view) {
         final AtomicReference<Boolean> enabled = new AtomicReference<>();
         final AtomicReference<Integer> errorCode = new AtomicReference<>();
-        OutcomeReceiver<Boolean, SatelliteManager.SatelliteException> receiver =
+        OutcomeReceiver<Void, SatelliteManager.SatelliteException> receiver =
                 new OutcomeReceiver<>() {
                     @Override
-                    public void onResult(Boolean result) {
-                        enabled.set(result);
+                    public void onResult(Void result) {
+                        enabled.set(true);
                         TextView textView = findViewById(R.id.text_id);
                         if (enabled.get()) {
                             textView.setText("provisionSatellite is true");
@@ -473,11 +473,11 @@ public class SatelliteControl extends Activity {
     private void deprovisionSatelliteApp(View view) {
         final AtomicReference<Boolean> enabled = new AtomicReference<>();
         final AtomicReference<Integer> errorCode = new AtomicReference<>();
-        OutcomeReceiver<Boolean, SatelliteManager.SatelliteException> receiver =
+        OutcomeReceiver<Void, SatelliteManager.SatelliteException> receiver =
                 new OutcomeReceiver<>() {
                     @Override
-                    public void onResult(Boolean result) {
-                        enabled.set(result);
+                    public void onResult(Void result) {
+                        enabled.set(true);
                         TextView textView = findViewById(R.id.text_id);
                         if (enabled.get()) {
                             textView.setText("deprovisionSatellite is true");

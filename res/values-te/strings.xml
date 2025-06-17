@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"నంబర్ <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> అంకెలను మించినందున FDN అప్‌డేట్ చేయబడలేదు."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"FDN అప్‌డేట్ చేయబడలేదు. PIN2 చెల్లదు లేదా ఫోన్ నంబర్ తిరస్కరించబడింది."</string>
     <string name="fdn_failed" msgid="216592346853420250">"FDN చర్య విఫలమైంది."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"FDNను ఎనేబుల్ చేసిన కారణంగా MMI కోడ్‌ను డయల్ చేయలేరు."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"SIM కార్డు నుండి చదువుతోంది…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"మీ SIM కార్డులో కాంటాక్ట్‌లు ఏవీ లేవు."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"దిగుమతి చేసుకోవాలనుకున్న కాంటాక్ట్‌లను ఎంచుకోండి"</string>
@@ -582,7 +583,7 @@
     <string name="description_concat_format" msgid="2014471565101724088">"%1$s, %2$s"</string>
     <string name="dialerKeyboardHintText" msgid="1115266533703764049">"డయల్ చేయడానికి కీబోర్డ్‌ను ఉపయోగించండి"</string>
     <string name="onscreenHoldText" msgid="4025348842151665191">"హోల్డ్ చేయి"</string>
-    <string name="onscreenEndCallText" msgid="6138725377654842757">"ముగించు"</string>
+    <string name="onscreenEndCallText" msgid="6138725377654842757">"ముగించండి"</string>
     <string name="onscreenShowDialpadText" msgid="658465753816164079">"డయల్‌ప్యాడ్"</string>
     <string name="onscreenMuteText" msgid="5470306116733843621">"మ్యూట్ చేయి"</string>
     <string name="onscreenAddCallText" msgid="9075675082903611677">"కాల్‌ను జోడించండి"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"పరికరాన్ని సిమ్యులేట్ చేయడం అందుబాటులో లేదు (డీబగ్ బిల్డ్ మోడ్‌లో మాత్రమే)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"ఫోర్స్ క్యాంప్ శాటిలైట్ LTE ఛానెల్ (డీబగ్ బిల్డ్ మోడ్‌లో మాత్రమే)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"మాక్ క్యారియర్ శాటిలైట్ మోడ్ (డీబగ్ బిల్డ్ మోడ్‌లో మాత్రమే)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"మాక్ శాటిలైట్ డేటా మోడ్ (డీబగ్ మాత్రమే)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"పరిమితం చేయబడింది"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"పరిమితం"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"అపరిమితం"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"రియల్ శాటిలైట్ eSOS మోడ్‌ను టెస్ట్ చేయండి (డీబగ్ బిల్డ్ మోడ్‌లో మాత్రమే)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"రియల్ శాటిలైట్ eSOS యేతర మోడ్‌ను టెస్ట్ చేయండి (డీబగ్ బిల్డ్ మోడ్‌లో మాత్రమే)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"డెమో శాటిలైట్ eSOS మోడ్‌ను టెస్ట్ చేయండి (డీబగ్ బిల్డ్ మోడ్‌లో మాత్రమే)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"రద్దు చేయండి"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"వర్క్ ప్రొఫైల్‌కు స్విచ్ అవ్వండి"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"వర్క్ మెసేజ్‌ల యాప్‌ను ఇన్‌స్టాల్ చేయండి"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"శాటిలైట్ కాన్ఫిగరేషన్‌ను చూడండి"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"శాటిలైట్ కాన్ఫిగరేషన్ వ్యూయర్"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"వెర్షన్:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"దేశం కోడ్:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"sats2.dat సైజు:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"శాటిలైట్ యాక్సెస్ కాన్ఫిగరేషన్ json:"</string>
 </resources>

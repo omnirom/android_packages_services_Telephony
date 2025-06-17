@@ -34,16 +34,18 @@ import static android.telephony.satellite.SatelliteManager.SATELLITE_RESULT_SUCC
 
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.ALLOWED_STATE_CACHE_VALID_DURATION_NANOS;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.CMD_IS_SATELLITE_COMMUNICATION_ALLOWED;
+import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.CONFIG_UPDATER_SATELLITE_VERSION_KEY;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.DEFAULT_DELAY_MINUTES_BEFORE_VALIDATING_POSSIBLE_CHANGE_IN_ALLOWED_REGION;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.DEFAULT_MAX_RETRY_COUNT_FOR_VALIDATING_POSSIBLE_CHANGE_IN_ALLOWED_REGION;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.DEFAULT_REGIONAL_SATELLITE_CONFIG_ID;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.DEFAULT_S2_LEVEL;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.DEFAULT_THROTTLE_INTERVAL_FOR_LOCATION_QUERY_MINUTES;
-import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.EVENT_CONFIG_DATA_UPDATED;
+import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.CMD_UPDATE_CONFIG_DATA;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.EVENT_COUNTRY_CODE_CHANGED;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.EVENT_KEEP_ON_DEVICE_ACCESS_CONTROLLER_RESOURCES_TIMEOUT;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.EVENT_WAIT_FOR_CURRENT_LOCATION_TIMEOUT;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.GOOGLE_US_SAN_SAT_S2_FILE_NAME;
+import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.SATELLITE_ACCESS_CONFIG_FILE_NAME;
 import static com.android.phone.satellite.accesscontrol.SatelliteAccessController.UNKNOWN_REGIONAL_SATELLITE_CONFIG_ID;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -53,7 +55,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -103,7 +104,7 @@ import android.telecom.TelecomManager;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.telephony.satellite.EarfcnRange;
-import android.telephony.satellite.ISatelliteCommunicationAllowedStateCallback;
+import android.telephony.satellite.ISatelliteCommunicationAccessStateCallback;
 import android.telephony.satellite.SatelliteAccessConfiguration;
 import android.telephony.satellite.SatelliteInfo;
 import android.telephony.satellite.SatelliteManager;
@@ -125,7 +126,9 @@ import com.android.internal.telephony.satellite.SatelliteConfig;
 import com.android.internal.telephony.satellite.SatelliteConfigParser;
 import com.android.internal.telephony.satellite.SatelliteController;
 import com.android.internal.telephony.satellite.SatelliteModemInterface;
+import com.android.internal.telephony.satellite.metrics.CarrierRoamingSatelliteControllerStats;
 import com.android.internal.telephony.satellite.metrics.ControllerMetricsStats;
+import com.android.internal.telephony.subscription.SubscriptionManagerService;
 
 import org.junit.After;
 import org.junit.Before;
@@ -136,6 +139,9 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -233,8 +239,14 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
     @Mock
     private ResultReceiver mMockResultReceiver;
     @Mock
-    private ConcurrentHashMap<IBinder, ISatelliteCommunicationAllowedStateCallback>
+    private ConcurrentHashMap<IBinder, ISatelliteCommunicationAccessStateCallback>
             mSatelliteCommunicationAllowedStateCallbackMap;
+    @Mock
+    private ConcurrentHashMap<IBinder, ISatelliteCommunicationAccessStateCallback>
+            mMockSatelliteCommunicationAccessStateChangedListeners;
+    @Mock
+    private CarrierRoamingSatelliteControllerStats mCarrierRoamingSatelliteControllerStats;
+
     private SatelliteInfo mSatelliteInfo;
 
     private TestableLooper mTestableLooper;
@@ -270,7 +282,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
     @Captor
     private ArgumentCaptor<Bundle> mResultDataBundleCaptor;
     @Captor
-    private ArgumentCaptor<ISatelliteCommunicationAllowedStateCallback> mAllowedStateCallbackCaptor;
+    private ArgumentCaptor<ISatelliteCommunicationAccessStateCallback> mAllowedStateCallbackCaptor;
 
     private boolean mQueriedSatelliteAllowed = false;
     private int mQueriedSatelliteAllowedResultCode = SATELLITE_RESULT_SUCCESS;
@@ -317,6 +329,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
 
     @Before
     public void setUp() throws Exception {
+        logd("SatelliteAccessControllerTest setUp");
         super.setUp();
 
         mMockContext = mContext;
@@ -338,16 +351,26 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
             return InstrumentationRegistry.getTargetContext()
                     .getDir((String) args[0], (Integer) args[1]);
         }).when(mPhoneGlobals).getDir(anyString(), anyInt());
+        doAnswer(
+                        inv -> {
+                            return InstrumentationRegistry.getTargetContext().getAssets();
+                        })
+                .when(mPhoneGlobals)
+                .getAssets();
         mPhones = new Phone[]{mMockPhone, mMockPhone2};
         replaceInstance(PhoneFactory.class, "sPhones", null, mPhones);
         replaceInstance(SatelliteController.class, "sInstance", null,
                 mMockSatelliteController);
         replaceInstance(SatelliteModemInterface.class, "sInstance", null,
                 mMockSatelliteModemInterface);
+        replaceInstance(SubscriptionManagerService.class, "sInstance", null,
+                mock(SubscriptionManagerService.class));
         replaceInstance(TelephonyCountryDetector.class, "sInstance", null,
                 mMockCountryDetector);
         replaceInstance(ControllerMetricsStats.class, "sInstance", null,
                 mock(ControllerMetricsStats.class));
+        replaceInstance(CarrierRoamingSatelliteControllerStats.class, "sInstance", null,
+                mCarrierRoamingSatelliteControllerStats);
         when(mMockSatelliteController.getSatellitePhone()).thenReturn(mMockPhone);
         when(mMockPhone.getSubId()).thenReturn(SubscriptionManager.getDefaultSubscriptionId());
 
@@ -394,6 +417,8 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         when(mMockSharedPreferences.getBoolean(anyString(), anyBoolean())).thenReturn(true);
         when(mMockSharedPreferences.getStringSet(anyString(), any()))
                 .thenReturn(Set.of(TEST_SATELLITE_COUNTRY_CODES));
+        when(mMockSharedPreferences.getInt(
+                eq(CONFIG_UPDATER_SATELLITE_VERSION_KEY), anyInt())).thenReturn(0);
         doReturn(mMockSharedPreferencesEditor).when(mMockSharedPreferences).edit();
         doReturn(mMockSharedPreferencesEditor).when(mMockSharedPreferencesEditor)
                 .putBoolean(anyString(), anyBoolean());
@@ -401,11 +426,11 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
                 .putStringSet(anyString(), any());
         doReturn(mMockSharedPreferencesEditor).when(mMockSharedPreferencesEditor)
                 .putLong(anyString(), anyLong());
+        doReturn(mMockSharedPreferencesEditor).when(mMockSharedPreferencesEditor)
+                .putInt(anyString(), anyInt());
         doNothing().when(mMockSharedPreferencesEditor).apply();
 
-        when(mMockFeatureFlags.satellitePersistentLogging()).thenReturn(true);
         when(mMockFeatureFlags.geofenceEnhancementForBetterUx()).thenReturn(true);
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
         when(mMockFeatureFlags.carrierRoamingNbIotNtn()).thenReturn(true);
 
         when(mMockContext.getSystemService(Context.TELEPHONY_SERVICE))
@@ -424,6 +449,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         mMockApplicationInfo.targetSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
         when(mMockPackageManager.getApplicationInfo(anyString(), anyInt()))
                 .thenReturn(mMockApplicationInfo);
+        when(mCarrierRoamingSatelliteControllerStats.isMultiSim()).thenReturn(false);
 
         mSatelliteInfo = new SatelliteInfo(
                 UUID.randomUUID(),
@@ -431,6 +457,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
                 new ArrayList<>(Arrays.asList(5, 30)),
                 new ArrayList<>(Arrays.asList(new EarfcnRange(0, 250))));
 
+        logd("setUp: Initializing mSatelliteAccessControllerUT:TestSatelliteAccessController");
         mSatelliteAccessControllerUT = new TestSatelliteAccessController(mMockContext,
                 mMockFeatureFlags, mTestableLooper.getLooper(), mMockLocationManager,
                 mMockTelecomManager, mMockSatelliteOnDeviceAccessController, mMockSatS2File);
@@ -496,8 +523,6 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
 
     @Test
     public void testIsSatelliteAccessAllowedForLocation() {
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
-
         // Test disallowList case
         when(mMockResources.getBoolean(
                 com.android.internal.R.bool.config_oem_enabled_satellite_access_allow))
@@ -598,15 +623,15 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
                 .get(eq(UNKNOWN_REGIONAL_SATELLITE_CONFIG_ID));
 
         // setup callback
-        ISatelliteCommunicationAllowedStateCallback mockSatelliteAllowedStateCallback = mock(
-                ISatelliteCommunicationAllowedStateCallback.class);
+        ISatelliteCommunicationAccessStateCallback mockSatelliteAllowedStateCallback = mock(
+                ISatelliteCommunicationAccessStateCallback.class);
         ArgumentCaptor<SatelliteAccessConfiguration> satelliteAccessConfigurationCaptor =
                 ArgumentCaptor.forClass(SatelliteAccessConfiguration.class);
 
         when(mSatelliteCommunicationAllowedStateCallbackMap.values())
                 .thenReturn(List.of(mockSatelliteAllowedStateCallback));
         replaceInstance(SatelliteAccessController.class,
-                "mSatelliteCommunicationAllowedStateChangedListeners", mSatelliteAccessControllerUT,
+                "mSatelliteCommunicationAccessStateChangedListeners", mSatelliteAccessControllerUT,
                 mSatelliteCommunicationAllowedStateCallbackMap);
 
         // Test when the featureFlags.carrierRoamingNbIotNtn() is false
@@ -621,7 +646,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         assertEquals(SATELLITE_RESULT_REQUEST_NOT_SUPPORTED, (int) resultCodeCaptor.getValue());
         assertNull(bundleCaptor.getValue());
         verify(mockSatelliteAllowedStateCallback, never())
-                .onSatelliteAccessConfigurationChanged(any());
+                .onAccessConfigurationChanged(any());
 
         doReturn(true).when(mMockFeatureFlags).carrierRoamingNbIotNtn();
 
@@ -642,7 +667,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         assertSame(bundleCaptor.getValue().getParcelable(KEY_SATELLITE_ACCESS_CONFIGURATION,
                 SatelliteAccessConfiguration.class), satelliteAccessConfig);
         verify(mockSatelliteAllowedStateCallback, times(1))
-                .onSatelliteAccessConfigurationChanged(
+                .onAccessConfigurationChanged(
                         satelliteAccessConfigurationCaptor.capture());
         assertEquals(satelliteAccessConfigurationCaptor.getValue(), satelliteAccessConfig);
 
@@ -661,7 +686,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         assertNull(bundleCaptor.getValue());
 
         verify(mockSatelliteAllowedStateCallback, times(1))
-                .onSatelliteAccessConfigurationChanged(
+                .onAccessConfigurationChanged(
                         satelliteAccessConfigurationCaptor.capture());
         assertNull(satelliteAccessConfigurationCaptor.getValue());
     }
@@ -675,52 +700,41 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
 
     @Test
     public void testRegisterForCommunicationAllowedStateChanged() throws Exception {
-        ISatelliteCommunicationAllowedStateCallback mockSatelliteAllowedStateCallback = mock(
-                ISatelliteCommunicationAllowedStateCallback.class);
+        ISatelliteCommunicationAccessStateCallback mockSatelliteAllowedStateCallback = mock(
+                ISatelliteCommunicationAccessStateCallback.class);
         doReturn(true).when(mSatelliteCommunicationAllowedStateCallbackMap)
-                .put(any(IBinder.class), any(ISatelliteCommunicationAllowedStateCallback.class));
+                .put(any(IBinder.class), any(ISatelliteCommunicationAccessStateCallback.class));
         replaceInstance(SatelliteAccessController.class,
-                "mSatelliteCommunicationAllowedStateChangedListeners", mSatelliteAccessControllerUT,
+                "mSatelliteCommunicationAccessStateChangedListeners", mSatelliteAccessControllerUT,
                 mSatelliteCommunicationAllowedStateCallbackMap);
 
-        doReturn(false).when(mMockFeatureFlags).oemEnabledSatelliteFlag();
-        int result = mSatelliteAccessControllerUT.registerForCommunicationAllowedStateChanged(
-                DEFAULT_SUBSCRIPTION_ID, mockSatelliteAllowedStateCallback);
-        mTestableLooper.processAllMessages();
-        assertEquals(SATELLITE_RESULT_REQUEST_NOT_SUPPORTED, result);
-        verify(mockSatelliteAllowedStateCallback, never())
-                .onSatelliteCommunicationAllowedStateChanged(anyBoolean());
-        verify(mockSatelliteAllowedStateCallback, never())
-                .onSatelliteAccessConfigurationChanged(any(SatelliteAccessConfiguration.class));
-
-        doReturn(true).when(mMockFeatureFlags).oemEnabledSatelliteFlag();
-        result = mSatelliteAccessControllerUT.registerForCommunicationAllowedStateChanged(
+        int result = mSatelliteAccessControllerUT.registerForCommunicationAccessStateChanged(
                 DEFAULT_SUBSCRIPTION_ID, mockSatelliteAllowedStateCallback);
         mTestableLooper.processAllMessages();
         assertEquals(SATELLITE_RESULT_SUCCESS, result);
         verify(mockSatelliteAllowedStateCallback, times(1))
-                .onSatelliteCommunicationAllowedStateChanged(anyBoolean());
+                .onAccessAllowedStateChanged(anyBoolean());
         verify(mockSatelliteAllowedStateCallback, times(1))
-                .onSatelliteAccessConfigurationChanged(
+                .onAccessConfigurationChanged(
                         nullable(SatelliteAccessConfiguration.class));
     }
 
     @Test
     public void testNotifyRegionalSatelliteConfigurationChanged() throws Exception {
         // setup test
-        ISatelliteCommunicationAllowedStateCallback mockSatelliteAllowedStateCallback = mock(
-                ISatelliteCommunicationAllowedStateCallback.class);
+        ISatelliteCommunicationAccessStateCallback mockSatelliteAllowedStateCallback = mock(
+                ISatelliteCommunicationAccessStateCallback.class);
         ArgumentCaptor<SatelliteAccessConfiguration> satelliteAccessConfigurationCaptor =
                 ArgumentCaptor.forClass(SatelliteAccessConfiguration.class);
 
         when(mSatelliteCommunicationAllowedStateCallbackMap.values())
                 .thenReturn(List.of(mockSatelliteAllowedStateCallback));
         replaceInstance(SatelliteAccessController.class,
-                "mSatelliteCommunicationAllowedStateChangedListeners", mSatelliteAccessControllerUT,
+                "mSatelliteCommunicationAccessStateChangedListeners", mSatelliteAccessControllerUT,
                 mSatelliteCommunicationAllowedStateCallbackMap);
 
         // register callback
-        mSatelliteAccessControllerUT.registerForCommunicationAllowedStateChanged(
+        mSatelliteAccessControllerUT.registerForCommunicationAccessStateChanged(
                 DEFAULT_SUBSCRIPTION_ID, mockSatelliteAllowedStateCallback);
 
         // verify if the callback is
@@ -737,7 +751,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
                 .notifyRegionalSatelliteConfigurationChanged(satelliteAccessConfig);
 
         // verify if the satelliteAccessConfig is the same instance with the captured one.
-        verify(mockSatelliteAllowedStateCallback).onSatelliteAccessConfigurationChanged(
+        verify(mockSatelliteAllowedStateCallback).onAccessConfigurationChanged(
                 satelliteAccessConfigurationCaptor.capture());
         assertSame(satelliteAccessConfig, satelliteAccessConfigurationCaptor.getValue());
     }
@@ -865,8 +879,6 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
 
     @Test
     public void testIsRegionDisallowed() throws Exception {
-        // setup to make the return value of mQueriedSatelliteAllowed 'true'
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
         when(mMockContext.getResources()).thenReturn(mMockResources);
         when(mMockResources.getBoolean(
                 com.android.internal.R.bool.config_oem_enabled_satellite_access_allow))
@@ -1065,18 +1077,6 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
 
     @Test
     public void testRequestIsSatelliteCommunicationAllowedForCurrentLocation() throws Exception {
-        // OEM-enabled satellite is not supported
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(false);
-        mSatelliteAccessControllerUT.requestIsCommunicationAllowedForCurrentLocation(
-                mSatelliteAllowedReceiver, false);
-        mTestableLooper.processAllMessages();
-        assertTrue(waitForRequestIsSatelliteAllowedForCurrentLocationResult(
-                mSatelliteAllowedSemaphore, 1));
-        assertEquals(SATELLITE_RESULT_REQUEST_NOT_SUPPORTED, mQueriedSatelliteAllowedResultCode);
-
-        // OEM-enabled satellite is supported
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
-
         // Satellite is not supported
         setUpResponseForRequestIsSatelliteSupported(false, SATELLITE_RESULT_SUCCESS);
         clearAllInvocations();
@@ -1230,15 +1230,12 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         long lastKnownLocationElapsedRealtime =
                 firstMccChangedTime + TEST_LOCATION_QUERY_THROTTLE_INTERVAL_NANOS;
 
-        // OEM-enabled satellite is supported
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
-
         verify(mMockCountryDetector).registerForCountryCodeChanged(
                 mCountryDetectorHandlerCaptor.capture(), mCountryDetectorIntCaptor.capture(),
                 mCountryDetectorObjCaptor.capture());
 
         assertSame(mCountryDetectorHandlerCaptor.getValue(), mSatelliteAccessControllerUT);
-        assertSame(mCountryDetectorIntCaptor.getValue(), EVENT_COUNTRY_CODE_CHANGED);
+        assertSame(EVENT_COUNTRY_CODE_CHANGED, mCountryDetectorIntCaptor.getValue());
         assertNull(mCountryDetectorObjCaptor.getValue());
 
         // Setup to invoke GPS query
@@ -1354,9 +1351,6 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
 
     @Test
     public void testValidatePossibleChangeInSatelliteAllowedRegion() throws Exception {
-        // OEM-enabled satellite is supported
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
-
         verify(mMockCountryDetector).registerForCountryCodeChanged(
                 mCountryDetectorHandlerCaptor.capture(), mCountryDetectorIntCaptor.capture(),
                 mCountryDetectorObjCaptor.capture());
@@ -1408,8 +1402,6 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
 
     @Test
     public void testRetryValidatePossibleChangeInSatelliteAllowedRegion() throws Exception {
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
-
         verify(mMockCountryDetector).registerForCountryCodeChanged(
                 mCountryDetectorHandlerCaptor.capture(), mCountryDetectorIntCaptor.capture(),
                 mCountryDetectorObjCaptor.capture());
@@ -1442,11 +1434,6 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
 
     @Test
     public void testLoadSatelliteAccessConfigurationFromDeviceConfig() {
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(false);
-        assertNull(mSatelliteAccessControllerUT
-                .getSatelliteConfigurationFileNameFromOverlayConfig(mMockContext));
-
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
         when(mMockContext.getResources()).thenReturn(mMockResources);
         when(mMockResources
                 .getString(eq(com.android.internal.R.string.satellite_access_config_file)))
@@ -1460,7 +1447,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         assertNull(mSatelliteAccessControllerUT
                 .getSatelliteConfigurationFileNameFromOverlayConfig(mMockContext));
         try {
-            mSatelliteAccessControllerUT.loadSatelliteAccessConfigurationFromDeviceConfig();
+            mSatelliteAccessControllerUT.loadSatelliteAccessConfiguration();
         } catch (Exception e) {
             fail("Unexpected exception thrown: " + e.getMessage());
         }
@@ -1468,23 +1455,28 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
 
 
     @Test
-    public void testUpdateSatelliteConfigData() throws Exception {
+    public void testUpdateSatelliteAccessDataWithConfigUpdaterData() throws Exception {
+        logd("registering for config update changed");
         verify(mMockSatelliteController).registerForConfigUpdateChanged(
                 mConfigUpdateHandlerCaptor.capture(), mConfigUpdateIntCaptor.capture(),
                 mConfigUpdateObjectCaptor.capture());
 
         assertSame(mConfigUpdateHandlerCaptor.getValue(), mSatelliteAccessControllerUT);
-        assertSame(mConfigUpdateIntCaptor.getValue(), EVENT_CONFIG_DATA_UPDATED);
+        assertSame(mConfigUpdateIntCaptor.getValue(), CMD_UPDATE_CONFIG_DATA);
         assertSame(mConfigUpdateObjectCaptor.getValue(), mMockContext);
 
+        logd("replacing instance for mCachedAccessRestrictionMap");
         replaceInstance(SatelliteAccessController.class, "mCachedAccessRestrictionMap",
                 mSatelliteAccessControllerUT, mMockCachedAccessRestrictionMap);
 
         // These APIs are executed during loadRemoteConfigs
-        verify(mMockSharedPreferences, times(1)).getStringSet(anyString(), any());
-        verify(mMockSharedPreferences, times(5)).getBoolean(anyString(), anyBoolean());
+        logd("verify load remote configs shared preferences method calls");
+        verify(mMockSharedPreferences, times(1)).getInt(anyString(), anyInt());
+        verify(mMockSharedPreferences, times(0)).getStringSet(anyString(), any());
+        verify(mMockSharedPreferences, times(4)).getBoolean(anyString(), anyBoolean());
 
         // satelliteConfig is null
+        logd("test for satelliteConfig is null");
         SatelliteConfigParser spyConfigParser =
                 spy(new SatelliteConfigParser("test".getBytes()));
         doReturn(spyConfigParser).when(mMockSatelliteController).getSatelliteConfigParser();
@@ -1493,9 +1485,28 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         sendConfigUpdateChangedEvent(mMockContext);
         verify(mMockSharedPreferences, never()).edit();
         verify(mMockCachedAccessRestrictionMap, never()).clear();
+        verify(mMockSatelliteController, times(1)).getSatelliteConfig();
+
+        // satelliteConfig has satellite config data version(0) which is from device config.
+        logd("test for satelliteConfig from device config version 0");
+        SatelliteConfig mockConfig = mock(SatelliteConfig.class);
+        doReturn(0).when(mockConfig).getSatelliteConfigDataVersion();
+        doReturn(mockConfig).when(mMockSatelliteController).getSatelliteConfig();
+        doReturn(false).when(mockConfig).isSatelliteDataForAllowedRegion();
+
+        sendConfigUpdateChangedEvent(mMockContext);
+        verify(mMockSharedPreferences, never()).edit();
+        verify(mMockCachedAccessRestrictionMap, never()).clear();
+        verify(mMockSatelliteController, times(2)).getSatelliteConfig();
+        verify(mockConfig, times(1)).getSatelliteConfigDataVersion();
+        verify(mockConfig, times(0)).getDeviceSatelliteCountryCodes();
+        verify(mockConfig, times(0)).isSatelliteDataForAllowedRegion();
+        verify(mockConfig, times(0)).getSatelliteS2CellFile(mMockContext);
+        verify(mockConfig, times(0)).getSatelliteAccessConfigJsonFile(mMockContext);
 
         // satelliteConfig has invalid country codes
-        SatelliteConfig mockConfig = mock(SatelliteConfig.class);
+        logd("test for satelliteConfig with invalid country codes");
+        doReturn(1).when(mockConfig).getSatelliteConfigDataVersion();
         doReturn(List.of("USA", "JAP")).when(mockConfig).getDeviceSatelliteCountryCodes();
         doReturn(mockConfig).when(mMockSatelliteController).getSatelliteConfig();
         doReturn(false).when(mockConfig).isSatelliteDataForAllowedRegion();
@@ -1503,8 +1514,15 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         sendConfigUpdateChangedEvent(mMockContext);
         verify(mMockSharedPreferences, never()).edit();
         verify(mMockCachedAccessRestrictionMap, never()).clear();
+        verify(mMockSatelliteController, times(3)).getSatelliteConfig();
+        verify(mockConfig, times(2)).getSatelliteConfigDataVersion();
+        verify(mockConfig, times(1)).getDeviceSatelliteCountryCodes();
+        verify(mockConfig, times(0)).isSatelliteDataForAllowedRegion();
+        verify(mockConfig, times(0)).getSatelliteS2CellFile(mMockContext);
+        verify(mockConfig, times(0)).getSatelliteAccessConfigJsonFile(mMockContext);
 
         // satelliteConfig does not have is_allow_access_control data
+        logd("test for satelliteConfig does not have is_allow_access_control data");
         doReturn(List.of(TEST_SATELLITE_COUNTRY_CODES))
                 .when(mockConfig).getDeviceSatelliteCountryCodes();
         doReturn(null).when(mockConfig).isSatelliteDataForAllowedRegion();
@@ -1512,37 +1530,478 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         sendConfigUpdateChangedEvent(mMockContext);
         verify(mMockSharedPreferences, never()).edit();
         verify(mMockCachedAccessRestrictionMap, never()).clear();
+        verify(mMockSatelliteController, times(4)).getSatelliteConfig();
+        verify(mockConfig, times(3)).getSatelliteConfigDataVersion();
+        verify(mockConfig, times(2)).getDeviceSatelliteCountryCodes();
+        verify(mockConfig, times(1)).isSatelliteDataForAllowedRegion();
+        verify(mockConfig, times(0)).getSatelliteS2CellFile(mMockContext);
+        verify(mockConfig, times(0)).getSatelliteAccessConfigJsonFile(mMockContext);
 
-        // satelliteConfig doesn't have S2CellFile
-        File mockFile = mock(File.class);
-        doReturn(false).when(mockFile).exists();
+        // satelliteConfig doesn't have both S2CellFile and satellite access config json file
+        logd(
+                "test for satelliteConfig doesn't have both S2CellFile and satellite access config"
+                        + " json file");
+        File mockS2File = mock(File.class);
+        doReturn(false).when(mockS2File).exists();
+        File mockSatelliteAccessConfigJsonFile = mock(File.class);
+        doReturn(false).when(mockSatelliteAccessConfigJsonFile).exists();
         doReturn(List.of(TEST_SATELLITE_COUNTRY_CODES))
                 .when(mockConfig).getDeviceSatelliteCountryCodes();
         doReturn(true).when(mockConfig).isSatelliteDataForAllowedRegion();
-        doReturn(mockFile).when(mockConfig).getSatelliteS2CellFile(mMockContext);
+        doReturn(mockS2File).when(mockConfig).getSatelliteS2CellFile(mMockContext);
+        doReturn(mockSatelliteAccessConfigJsonFile)
+                .when(mockConfig)
+                .getSatelliteAccessConfigJsonFile(mMockContext);
 
         sendConfigUpdateChangedEvent(mMockContext);
         verify(mMockSharedPreferences, never()).edit();
         verify(mMockCachedAccessRestrictionMap, never()).clear();
+        verify(mMockSatelliteController, times(5)).getSatelliteConfig();
+        verify(mockConfig, times(4)).getSatelliteConfigDataVersion();
+        verify(mockConfig, times(3)).getDeviceSatelliteCountryCodes();
+        verify(mockConfig, times(2)).isSatelliteDataForAllowedRegion();
+        verify(mockConfig, times(1)).getSatelliteS2CellFile(mMockContext);
+        verify(mockConfig, times(0)).getSatelliteAccessConfigJsonFile(mMockContext);
 
-        // satelliteConfig has valid data
+        // satelliteConfig has s2CellFill, but doesn't have satellite access config json file
+        logd(
+                "test for satelliteConfig having s2CellFill, but doesn't have satellite access"
+                        + " config json file");
         doReturn(mockConfig).when(mMockSatelliteController).getSatelliteConfig();
         File testS2File = mSatelliteAccessControllerUT
                 .getTestSatelliteS2File(GOOGLE_US_SAN_SAT_S2_FILE_NAME);
-        assumeTrue("Satellite not supported", testS2File != null && testS2File.exists());
+        assertTrue("Test S2 file not created", testS2File != null && testS2File.exists());
+        mockSatelliteAccessConfigJsonFile = mock(File.class);
+        doReturn(false).when(mockSatelliteAccessConfigJsonFile).exists();
         doReturn(List.of(TEST_SATELLITE_COUNTRY_CODES))
                 .when(mockConfig).getDeviceSatelliteCountryCodes();
         doReturn(true).when(mockConfig).isSatelliteDataForAllowedRegion();
         doReturn(testS2File).when(mockConfig).getSatelliteS2CellFile(mMockContext);
+        doReturn(mockSatelliteAccessConfigJsonFile)
+                .when(mockConfig)
+                .getSatelliteAccessConfigJsonFile(mMockContext);
 
         sendConfigUpdateChangedEvent(mMockContext);
-        verify(mMockSharedPreferences, times(2)).edit();
+        verify(mMockSharedPreferences, never()).edit();
+        verify(mMockCachedAccessRestrictionMap, never()).clear();
+        verify(mMockSatelliteController, times(6)).getSatelliteConfig();
+        verify(mockConfig, times(5)).getSatelliteConfigDataVersion();
+        verify(mockConfig, times(4)).getDeviceSatelliteCountryCodes();
+        verify(mockConfig, times(3)).isSatelliteDataForAllowedRegion();
+        verify(mockConfig, times(2)).getSatelliteS2CellFile(mMockContext);
+        verify(mockConfig, times(1)).getSatelliteAccessConfigJsonFile(mMockContext);
+
+        // satelliteConfig has valid data
+        logd("test for satelliteConfig having valid data");
+        doReturn(true).when(mockConfig).isSatelliteDataForAllowedRegion();
+        doReturn(List.of(TEST_SATELLITE_COUNTRY_CODES))
+                .when(mockConfig)
+                .getDeviceSatelliteCountryCodes();
+        testS2File =
+                mSatelliteAccessControllerUT.getTestSatelliteS2File(GOOGLE_US_SAN_SAT_S2_FILE_NAME);
+        assertTrue("Test S2 file not created", testS2File != null && testS2File.exists());
+        doReturn(testS2File).when(mockConfig).getSatelliteS2CellFile(mMockContext);
+        File testSatelliteAccessConfigFile =
+                mSatelliteAccessControllerUT.getTestSatelliteConfiguration(
+                        SATELLITE_ACCESS_CONFIG_FILE_NAME);
+        assertTrue(
+                "Test satellite access config file not created",
+                testSatelliteAccessConfigFile != null && testSatelliteAccessConfigFile.exists());
+        doReturn(testSatelliteAccessConfigFile)
+                .when(mockConfig)
+                .getSatelliteAccessConfigJsonFile(mMockContext);
+
+        sendConfigUpdateChangedEvent(mMockContext);
+        verify(mMockSharedPreferences, times(3)).edit();
         verify(mMockCachedAccessRestrictionMap, times(1)).clear();
+        verify(mMockSatelliteController, times(7)).getSatelliteConfig();
+        verify(mockConfig, times(6)).getSatelliteConfigDataVersion();
+        verify(mockConfig, times(5)).getDeviceSatelliteCountryCodes();
+        verify(mockConfig, times(5)).isSatelliteDataForAllowedRegion();
+        verify(mockConfig, times(3)).getSatelliteS2CellFile(mMockContext);
+        verify(mockConfig, times(2)).getSatelliteAccessConfigJsonFile(mMockContext);
+    }
+
+    private String setupTestFileFromRawResource(int resId, String targetFileName)
+            throws IOException {
+        logd("setting up rest file for resId: " + resId + ", targetFileName: " + targetFileName);
+        Context context = InstrumentationRegistry.getInstrumentation().getContext();
+        InputStream is = context.getResources().openRawResource(resId);
+        logd("Copying test file to temp_satellite_config_update");
+        File tempDir =
+                InstrumentationRegistry.getInstrumentation()
+                        .getTargetContext()
+                        .getDir("temp_satellite_config_update", Context.MODE_PRIVATE);
+        File tempFile = new File(tempDir, targetFileName);
+        FileOutputStream fos = new FileOutputStream(tempFile);
+        byte[] buffer = new byte[1024];
+        int length;
+        while ((length = is.read(buffer)) > 0) {
+            fos.write(buffer, 0, length);
+        }
+        is.close();
+        fos.close();
+        return tempFile.getAbsolutePath();
+    }
+
+    private boolean isLocationAllowed(
+            ArgumentCaptor<Bundle> bundleCaptor,
+            Iterator<ResultReceiver> mockResultReceiverIterator,
+            Location location)
+            throws Exception {
+        clearInvocations(mMockResultReceiver);
+        when(mMockLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER))
+                .thenReturn(location);
+        when(mMockLocationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER))
+                .thenReturn(location);
+        doReturn(true, false).when(mockResultReceiverIterator).hasNext();
+        mSatelliteAccessControllerUT.checkSatelliteAccessRestrictionForLocation(location);
+        verify(mMockResultReceiver, times(1))
+                .send(mResultCodeIntCaptor.capture(), bundleCaptor.capture());
+        if (mResultCodeIntCaptor.getValue() != SATELLITE_RESULT_SUCCESS) return false;
+        return bundleCaptor.getValue().getBoolean(KEY_SATELLITE_COMMUNICATION_ALLOWED);
+    }
+
+    private void setupOnDeviceGeofenceData(
+            int sats2ResId,
+            String targetSats2FileName,
+            int satelliteAccessConfigResId,
+            String targetSatelliteAccessConfigFileName)
+            throws Exception {
+        logd("setting up on device geofence data");
+
+        logd("Clearing on device geofence data");
+        sendSatelliteDeviceAccessControllerResourcesTimeOutEvent();
+
+        logd("Creating sats2.dat and satellite_access_config.json files");
+        // set given sats2.dat and satellite_access_config.json as device geofence files
+        doReturn(0).when(mMockSharedPreferences)
+                .getInt(eq(CONFIG_UPDATER_SATELLITE_VERSION_KEY), anyInt());
+        String sats2FilePath = setupTestFileFromRawResource(sats2ResId, targetSats2FileName);
+        when(mMockResources.getString(
+                        com.android.internal.R.string.config_oem_enabled_satellite_s2cell_file))
+                .thenReturn(sats2FilePath);
+        String satelliteAccessConfigFilePath =
+                setupTestFileFromRawResource(
+                        satelliteAccessConfigResId, targetSatelliteAccessConfigFileName);
+        when(mMockResources.getString(com.android.internal.R.string.satellite_access_config_file))
+                .thenReturn(satelliteAccessConfigFilePath);
+        mSatelliteAccessControllerUT.loadOverlayConfigs(mMockContext);
+    }
+
+    private void setupOtaGeofenceData(
+            int version,
+            SatelliteConfig mockConfig,
+            int sats2ResId,
+            String targetSats2FileName,
+            int satelliteAccessConfigResId,
+            String targetSatelliteAccessConfigFileName,
+            String[] countryCodes)
+            throws Exception {
+        String sats2FilePath = setupTestFileFromRawResource(sats2ResId, targetSats2FileName);
+        String satelliteAccessConfigFilePath =
+                setupTestFileFromRawResource(
+                        satelliteAccessConfigResId, targetSatelliteAccessConfigFileName);
+
+        File sats2File = new File(sats2FilePath);
+        assertTrue("OTA geofence S2 file not created", sats2File != null && sats2File.exists());
+        doReturn(sats2File).when(mockConfig).getSatelliteS2CellFile(mMockContext);
+
+        File satelliteAccessConfigFile = new File(satelliteAccessConfigFilePath);
+        assertTrue(
+                "OTA geofence satellite access config file not created",
+                satelliteAccessConfigFile != null && satelliteAccessConfigFile.exists());
+        doReturn(satelliteAccessConfigFile)
+                .when(mockConfig)
+                .getSatelliteAccessConfigJsonFile(mMockContext);
+
+        doReturn(true).when(mockConfig).isSatelliteDataForAllowedRegion();
+        doReturn(List.of(TEST_SATELLITE_COUNTRY_CODES))
+                .when(mockConfig)
+                .getDeviceSatelliteCountryCodes();
+        doReturn(version).when(mockConfig).getSatelliteConfigDataVersion();
+        doReturn(version).when(mMockSharedPreferences)
+                .getInt(eq(CONFIG_UPDATER_SATELLITE_VERSION_KEY), anyInt());
+    }
+
+    private boolean areOnDeviceAndOtaFilesValidAndDifferent(
+            File onDeviceSats2File,
+            File onDeviceSatelliteAccessConfigFile,
+            File otaSats2File,
+            File otaSatelliteAccessConfigFile) {
+        if (onDeviceSats2File == null
+                || onDeviceSatelliteAccessConfigFile == null
+                || otaSats2File == null
+                || otaSatelliteAccessConfigFile == null) {
+            throw new AssertionError("Both on device and OTA files should NOT be null");
+        }
+        String onDeviceSats2FileAbsPath = onDeviceSats2File.getAbsolutePath();
+        String onDeviceSatelliteAccessConfigFileAbsPath =
+                onDeviceSatelliteAccessConfigFile.getAbsolutePath();
+        String otaSats2FileAbsPath = otaSats2File.getAbsolutePath();
+        String otaSatelliteAccessConfigFileAbsPath = otaSatelliteAccessConfigFile.getAbsolutePath();
+
+        logd("onDeviceSats2FileAbsPath: " + onDeviceSats2FileAbsPath);
+        logd(
+                "onDeviceSatelliteAccessConfigFileAbsPath: "
+                        + onDeviceSatelliteAccessConfigFileAbsPath);
+        logd("otaSats2FileAbsPath: " + otaSats2FileAbsPath);
+        logd("otaSatelliteAccessConfigFileAbsPath: " + otaSatelliteAccessConfigFileAbsPath);
+
+        if (onDeviceSats2FileAbsPath.equals(otaSats2FileAbsPath)
+                || onDeviceSatelliteAccessConfigFileAbsPath.equals(
+                        otaSatelliteAccessConfigFileAbsPath)) {
+            return false;
+        }
+
+        logd("areOnDeviceAndOtaFilesValidAndDifferent: true");
+        return true;
+    }
+
+    @Test
+    public void testConfigUpdateAndCorrespondingSatelliteAllowedAtLocationChecks()
+            throws Exception {
+        replaceInstance(
+                SatelliteAccessController.class,
+                "mS2Level",
+                mSatelliteAccessControllerUT,
+                DEFAULT_S2_LEVEL);
+        when(mMockFeatureFlags.carrierRoamingNbIotNtn()).thenReturn(true);
+        when(mMockContext.getResources()).thenReturn(mMockResources);
+        when(mMockResources.getBoolean(
+                        com.android.internal.R.bool.config_oem_enabled_satellite_access_allow))
+                .thenReturn(TEST_SATELLITE_ALLOW);
+        setUpResponseForRequestIsSatelliteSupported(true, SATELLITE_RESULT_SUCCESS);
+        setUpResponseForRequestIsSatelliteProvisioned(true, SATELLITE_RESULT_SUCCESS);
+        doReturn(true).when(mMockLocationManager).isLocationEnabled();
+
+        ArgumentCaptor<Bundle> bundleCaptor = ArgumentCaptor.forClass(Bundle.class);
+        Iterator<ResultReceiver> mockResultReceiverIterator = mock(Iterator.class);
+        doReturn(mockResultReceiverIterator).when(mMockSatelliteAllowResultReceivers).iterator();
+        doNothing().when(mMockSatelliteAllowResultReceivers).clear();
+        doReturn(mMockResultReceiver).when(mockResultReceiverIterator).next();
+        replaceInstance(
+                SatelliteAccessController.class,
+                "mSatelliteAllowResultReceivers",
+                mSatelliteAccessControllerUT,
+                mMockSatelliteAllowResultReceivers);
+        replaceInstance(
+                SatelliteAccessController.class,
+                "mCachedAccessRestrictionMap",
+                mSatelliteAccessControllerUT,
+                mMockCachedAccessRestrictionMap);
+
+        ISatelliteCommunicationAccessStateCallback mockSatelliteAllowedStateCallback = mock(
+                ISatelliteCommunicationAccessStateCallback.class);
+
+        when(mSatelliteCommunicationAllowedStateCallbackMap.values())
+                .thenReturn(List.of(mockSatelliteAllowedStateCallback));
+        replaceInstance(SatelliteAccessController.class,
+                "mSatelliteCommunicationAccessStateChangedListeners", mSatelliteAccessControllerUT,
+                mSatelliteCommunicationAllowedStateCallbackMap);
+
+        SatelliteConfig mockConfig = mock(SatelliteConfig.class);
+        doReturn(mockConfig).when(mMockSatelliteController).getSatelliteConfig();
+
+        Location locationUS = mock(Location.class);
+        when(locationUS.getLatitude()).thenReturn(37.7749);
+        when(locationUS.getLongitude()).thenReturn(-122.4194);
+        Location locationKR = mock(Location.class);
+        when(locationKR.getLatitude()).thenReturn(37.5665);
+        when(locationKR.getLongitude()).thenReturn(126.9780);
+        Location locationTW = mock(Location.class);
+        when(locationTW.getLatitude()).thenReturn(25.034);
+        when(locationTW.getLongitude()).thenReturn(121.565);
+
+        // Test v15 geofence data - supports US location
+        // set v15's sats2.dat and satellite_access_config.json as device geofence files and
+        // verify for below locations are allowed or not for satellite commiunication as expected.
+        // location1 - US - allowed; location2 - KR - not allowed; location3 - TW - not allowed;
+        logd(
+                "Step 1: Testing v15 (US) satellite config files. Expectation: locationUS -"
+                        + " allowed; locationKR - not allowed; locationTW - not allowed");
+        setupOnDeviceGeofenceData(
+                com.android.phone.tests.R.raw.v15_sats2,
+                "v15_sats2.dat",
+                com.android.phone.tests.R.raw.v15_satellite_access_config,
+                "v15_satellite_access_config.json");
+        assertEquals(0, mSatelliteAccessControllerUT.getSatelliteAccessConfigVersion());
+        assertTrue(isLocationAllowed(bundleCaptor, mockResultReceiverIterator, locationUS));
+        assertFalse(isLocationAllowed(bundleCaptor, mockResultReceiverIterator, locationKR));
+        assertFalse(isLocationAllowed(bundleCaptor, mockResultReceiverIterator, locationTW));
+        Map<Integer, SatelliteAccessConfiguration> satelliteAccessConfigurationMap =
+                mSatelliteAccessControllerUT.getSatelliteAccessConfigMap();
+        logd("Obatined satelliteAccessConfigurationMap: " + satelliteAccessConfigurationMap);
+        assertEquals(6, satelliteAccessConfigurationMap.size());
+        assertEquals(
+                "62de127d-ead1-481f-8524-b58e2664103a",
+                satelliteAccessConfigurationMap
+                        .get(5)
+                        .getSatelliteInfos()
+                        .get(0)
+                        .getSatelliteId()
+                        .toString());
+        assertEquals(
+                -98.0,
+                satelliteAccessConfigurationMap
+                        .get(5)
+                        .getSatelliteInfos()
+                        .get(0)
+                        .getSatellitePosition()
+                        .getLongitudeDegrees(),
+                0.001);
+        assertEquals(
+                35775.1,
+                satelliteAccessConfigurationMap
+                        .get(5)
+                        .getSatelliteInfos()
+                        .get(0)
+                        .getSatellitePosition()
+                        .getAltitudeKm(),
+                0.001);
+        File onDeviceSats2File = mSatelliteAccessControllerUT.getSatelliteS2CellFile();
+        File onDeviceSatelliteAccessConfigFile =
+                mSatelliteAccessControllerUT.getSatelliteAccessConfigFile();
+
+        // Test v16 geofence data - supports US, KR, TW locations
+        // Simulate config update to override v16's sats2.dat and satellite_access_config.json
+        // as the geofence files.
+        // And verify for below locations are allowed or not for satellite commiunication as
+        // expected.
+        // location1 - US - allowed; location2 - KR - allowed; location3 - TW - allowed;
+        logd(
+                "Step 2: Testing v16 (US, KR, TW) satellite config files."
+                        + " Simulate config update for v16 files. Expectation: locationUS -"
+                        + " allowed; locationKR - allowed; locationTW - allowed");
+        clearInvocations(mockSatelliteAllowedStateCallback);
+        setupOtaGeofenceData(
+                16,
+                mockConfig,
+                com.android.phone.tests.R.raw.v16_sats2,
+                "v16_sats2.dat",
+                com.android.phone.tests.R.raw.v16_satellite_access_config,
+                "v16_satellite_access_config.json",
+                new String[] {"US", "CA", "UK", "KR", "TW"});
+        sendConfigUpdateChangedEvent(mMockContext);
+        verify(mockSatelliteAllowedStateCallback, times(1))
+                .onAccessConfigurationChanged(any());
+        verify(mockSatelliteAllowedStateCallback, times(1))
+                .onAccessAllowedStateChanged(anyBoolean());
+        assertEquals(16, mSatelliteAccessControllerUT.getSatelliteAccessConfigVersion());
+        assertTrue(isLocationAllowed(bundleCaptor, mockResultReceiverIterator, locationUS));
+        assertTrue(isLocationAllowed(bundleCaptor, mockResultReceiverIterator, locationKR));
+        assertTrue(isLocationAllowed(bundleCaptor, mockResultReceiverIterator, locationTW));
+        satelliteAccessConfigurationMap =
+                mSatelliteAccessControllerUT.getSatelliteAccessConfigMap();
+        logd("Obatined satelliteAccessConfigurationMap: " + satelliteAccessConfigurationMap);
+        assertEquals(8, satelliteAccessConfigurationMap.size());
+        assertEquals(
+                "c9d78ffa-ffa5-4d41-a81b-34693b33b496",
+                satelliteAccessConfigurationMap
+                        .get(6)
+                        .getSatelliteInfos()
+                        .get(0)
+                        .getSatelliteId()
+                        .toString());
+        assertEquals(
+                -101.3,
+                satelliteAccessConfigurationMap
+                        .get(6)
+                        .getSatelliteInfos()
+                        .get(0)
+                        .getSatellitePosition()
+                        .getLongitudeDegrees(),
+                0.001);
+        assertEquals(
+                35786.0,
+                satelliteAccessConfigurationMap
+                        .get(6)
+                        .getSatelliteInfos()
+                        .get(0)
+                        .getSatellitePosition()
+                        .getAltitudeKm(),
+                0.001);
+        File otaSats2File = mSatelliteAccessControllerUT.getSatelliteS2CellFile();
+        File otaSatelliteAccessConfigFile =
+                mSatelliteAccessControllerUT.getSatelliteAccessConfigFile();
+        assertTrue(
+                areOnDeviceAndOtaFilesValidAndDifferent(
+                        onDeviceSats2File,
+                        onDeviceSatelliteAccessConfigFile,
+                        otaSats2File,
+                        otaSatelliteAccessConfigFile));
+
+        // Test v17 geofence data - supports US location
+        // Simulate config update to override v17's sats2.dat and satellite_access_config.json
+        // as the geofence files.
+        // And verify for below locations are allowed or not for satellite commiunication as
+        // expected.
+        // location1 - US - allowed; location2 - KR - not allowed; location3 - TW - not allowed;
+        logd(
+                "Step 3: Testing v17 (US) satellite config files."
+                        + " Simulate config update for v17 files. Expectation: locationUS -"
+                        + " allowed; locationKR - not allowed; locationTW - not allowed");
+        clearInvocations(mockSatelliteAllowedStateCallback);
+        setupOtaGeofenceData(
+                17,
+                mockConfig,
+                com.android.phone.tests.R.raw.v17_sats2,
+                "v17_sats2.dat",
+                com.android.phone.tests.R.raw.v17_satellite_access_config,
+                "v17_satellite_access_config.json",
+                new String[] {"US", "CA", "UK", "KR", "TW"});
+        sendConfigUpdateChangedEvent(mMockContext);
+        verify(mockSatelliteAllowedStateCallback, times(1))
+                .onAccessConfigurationChanged(any());
+        verify(mockSatelliteAllowedStateCallback, times(1))
+                .onAccessAllowedStateChanged(anyBoolean());
+        assertEquals(17, mSatelliteAccessControllerUT.getSatelliteAccessConfigVersion());
+        assertTrue(isLocationAllowed(bundleCaptor, mockResultReceiverIterator, locationUS));
+        assertFalse(isLocationAllowed(bundleCaptor, mockResultReceiverIterator, locationKR));
+        assertFalse(isLocationAllowed(bundleCaptor, mockResultReceiverIterator, locationTW));
+        satelliteAccessConfigurationMap =
+                mSatelliteAccessControllerUT.getSatelliteAccessConfigMap();
+        logd("Obatined satelliteAccessConfigurationMap: " + satelliteAccessConfigurationMap);
+        assertEquals(6, satelliteAccessConfigurationMap.size());
+        assertEquals(
+                "62de127d-ead1-481f-8524-b58e2664103a",
+                satelliteAccessConfigurationMap
+                        .get(5)
+                        .getSatelliteInfos()
+                        .get(0)
+                        .getSatelliteId()
+                        .toString());
+        assertEquals(
+                -98.0,
+                satelliteAccessConfigurationMap
+                        .get(5)
+                        .getSatelliteInfos()
+                        .get(0)
+                        .getSatellitePosition()
+                        .getLongitudeDegrees(),
+                0.001);
+        assertEquals(
+                35775.1,
+                satelliteAccessConfigurationMap
+                        .get(5)
+                        .getSatelliteInfos()
+                        .get(0)
+                        .getSatellitePosition()
+                        .getAltitudeKm(),
+                0.001);
+        otaSats2File = mSatelliteAccessControllerUT.getSatelliteS2CellFile();
+        otaSatelliteAccessConfigFile = mSatelliteAccessControllerUT.getSatelliteAccessConfigFile();
+        assertTrue(
+                areOnDeviceAndOtaFilesValidAndDifferent(
+                        onDeviceSats2File,
+                        onDeviceSatelliteAccessConfigFile,
+                        otaSats2File,
+                        otaSatelliteAccessConfigFile));
     }
 
     @Test
     public void testLocationModeChanged() throws Exception {
-        // setup for querying GPS not to reset mIsSatelliteAllowedRegionPossiblyChanged false.
+        logd("testLocationModeChanged: setup to query the current location");
         when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
         when(mMockContext.getResources()).thenReturn(mMockResources);
         when(mMockResources.getBoolean(
@@ -1558,13 +2017,13 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         doReturn(false).when(mMockCachedAccessRestrictionMap).containsKey(any());
         mSatelliteAccessControllerUT.elapsedRealtimeNanos = TEST_LOCATION_FRESH_DURATION_NANOS + 1;
 
-        // Captor and Verify if the mockReceiver and mocContext is registered well
-        verify(mMockContext, times(2))
-                .registerReceiver(mLocationBroadcastReceiverCaptor.capture(),
-                        mIntentFilterCaptor.capture());
+        logd("testLocationModeChanged: "
+                + "captor and verify if the mockReceiver and mockContext is registered well");
+        verify(mMockContext, times(2)).registerReceiver(
+                mLocationBroadcastReceiverCaptor.capture(), mIntentFilterCaptor.capture());
 
-        // When the intent action is not MODE_CHANGED_ACTION,
-        // verify if the location manager never invoke isLocationEnabled()
+        logd("testLocationModeChanged: verify if the location manager doesn't invoke "
+                + "isLocationEnabled(), when the intent action is not MODE_CHANGED_ACTION");
         doReturn("").when(mMockLocationIntent).getAction();
         mSatelliteAccessControllerUT.setIsSatelliteAllowedRegionPossiblyChanged(false);
         mSatelliteAccessControllerUT.getLocationBroadcastReceiver()
@@ -1573,6 +2032,8 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
 
         // When the intent action is MODE_CHANGED_ACTION and isLocationEnabled() is true,
         // verify if mIsSatelliteAllowedRegionPossiblyChanged is true
+        logd("testLocationModeChanged: verify if mIsSatelliteAllowedRegionPossiblyChanged is true, "
+                + "when the intent action is MODE_CHANGED_ACTION and isLocationEnabled() is true");
         doReturn(MODE_CHANGED_ACTION).when(mMockLocationIntent).getAction();
         doReturn(true).when(mMockLocationManager).isLocationEnabled();
         clearInvocations(mMockLocationManager);
@@ -1583,8 +2044,15 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
         mTestableLooper.processAllMessages();
         assertEquals(true, mSatelliteAccessControllerUT.isSatelliteAllowedRegionPossiblyChanged());
 
-        // When the intent action is MODE_CHANGED_ACTION and isLocationEnabled() is false,
-        // verify if mIsSatelliteAllowedRegionPossiblyChanged is false
+        logd("testLocationModeChanged: "
+                + "verify if mIsSatelliteAllowedRegionPossiblyChanged is false, "
+                + "when the intent action is MODE_CHANGED_ACTION and isLocationEnabled() is false");
+        mSatelliteAccessControllerUT
+                .setIsSatelliteCommunicationAllowedForCurrentLocationCache("cache_allowed");
+        replaceInstance(SatelliteAccessController.class,
+                "mSatelliteCommunicationAccessStateChangedListeners",
+                mSatelliteAccessControllerUT,
+                mMockSatelliteCommunicationAccessStateChangedListeners);
         doReturn(false).when(mMockLocationManager).isLocationEnabled();
         clearInvocations(mMockLocationManager);
         mSatelliteAccessControllerUT.setIsSatelliteAllowedRegionPossiblyChanged(false);
@@ -1592,7 +2060,9 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
                 .onReceive(mMockContext, mMockLocationIntent);
         verify(mMockLocationManager, times(1)).isLocationEnabled();
         mTestableLooper.processAllMessages();
-        assertEquals(false, mSatelliteAccessControllerUT.isSatelliteAllowedRegionPossiblyChanged());
+        assertEquals(false,
+                mSatelliteAccessControllerUT.isSatelliteAllowedRegionPossiblyChanged());
+        verify(mMockSatelliteCommunicationAccessStateChangedListeners, times(1)).values();
     }
 
     @Test
@@ -1707,7 +2177,6 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
     @Test
     public void testRequestIsCommunicationAllowedForCurrentLocationWithEnablingSatellite() {
         // Set non-emergency case
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
         setUpResponseForRequestIsSatelliteSupported(true, SATELLITE_RESULT_SUCCESS);
         setUpResponseForRequestIsSatelliteProvisioned(true, SATELLITE_RESULT_SUCCESS);
         when(mMockCountryDetector.getCurrentNetworkCountryIso()).thenReturn(EMPTY_STRING_LIST);
@@ -1744,7 +2213,6 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
     @Test
     public void testUpdateSystemSelectionChannels() {
         // Set non-emergency case
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
         when(mMockFeatureFlags.carrierRoamingNbIotNtn()).thenReturn(true);
 
         setUpResponseForRequestIsSatelliteSupported(true, SATELLITE_RESULT_SUCCESS);
@@ -1904,7 +2372,6 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
     @Test
     public void testUpdateSystemSelectionChannels_HandleInvalidInput() {
         // Set non-emergency case
-        when(mMockFeatureFlags.oemEnabledSatelliteFlag()).thenReturn(true);
         when(mMockFeatureFlags.carrierRoamingNbIotNtn()).thenReturn(true);
 
         setUpResponseForRequestIsSatelliteSupported(true, SATELLITE_RESULT_SUCCESS);
@@ -2061,6 +2528,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
     }
 
     private void sendSatelliteDeviceAccessControllerResourcesTimeOutEvent() {
+        logd("sendSatelliteDeviceAccessControllerResourcesTimeOutEvent");
         Message msg = mSatelliteAccessControllerUT
                 .obtainMessage(EVENT_KEEP_ON_DEVICE_ACCESS_CONTROLLER_RESOURCES_TIMEOUT);
         msg.sendToTarget();
@@ -2068,7 +2536,7 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
     }
 
     private void sendConfigUpdateChangedEvent(Context context) {
-        Message msg = mSatelliteAccessControllerUT.obtainMessage(EVENT_CONFIG_DATA_UPDATED);
+        Message msg = mSatelliteAccessControllerUT.obtainMessage(CMD_UPDATE_CONFIG_DATA);
         msg.obj = new AsyncResult(context, SATELLITE_RESULT_SUCCESS, null);
         msg.sendToTarget();
         mTestableLooper.processAllMessages();
@@ -2316,6 +2784,18 @@ public class SatelliteAccessControllerTest extends TelephonyTestBase {
                 } else {
                     mSatelliteAccessConfigMap.clear();
                 }
+            }
+        }
+
+        public Map<Integer, SatelliteAccessConfiguration> getSatelliteAccessConfigMap() {
+            synchronized (mLock) {
+                return mSatelliteAccessConfigMap;
+            }
+        }
+
+        public int getSatelliteAccessConfigVersion() {
+            synchronized (mLock) {
+                return mSatelliteAccessConfigVersion;
             }
         }
     }

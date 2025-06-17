@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"FDN មិន​ត្រូវ​បាន​ធ្វើ​បច្ចុប្បន្នភាព​ទេ ដោយ​សារ​លេខ​លើស​ពី <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> ខ្ទង់។"</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"មិន​បាន​ធ្វើ​បច្ចុប្បន្នភាព។ កូដ PIN2 មិន​ត្រឹមត្រូវ ឬ​លេខ​ទូរស័ព្ទ​ត្រូវ​បាន​ច្រានចោល។"</string>
     <string name="fdn_failed" msgid="216592346853420250">"បាន​បរាជ័យ​ក្នុង​ការ​ប្រតិបត្តិការ FDN ។"</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"មិនអាចចុចលេខកូដ MMI បានទេ ដោយសារ FDN ត្រូវបានបើក។"</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"កំពុង​អាន​ពី​ស៊ីមកាត…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"គ្មាន​ទំនាក់ទំនង​នៅ​ក្នុង​​ស៊ីមកាត​របស់​អ្នក​ទេ។"</string>
     <string name="simContacts_title" msgid="2714029230160136647">"ជ្រើស​ទំនាក់​ទំនង​ដើម្បី​នាំចូល"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"ត្រាប់តាម​ពេលគ្មានសេវា (កំណែបង្កើតសម្រាប់ជួសជុលតែប៉ុណ្ណោះ)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Force Camp Satellite LTE Channel (តែកំណែបង្កើតសម្រាប់ជួសជុលប៉ុណ្ណោះ)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"មុខងារ​ផ្កាយរណប​ក្រុមហ៊ុន​សេវាទូរសព្ទ​សាកល្បង (កំណែបង្កើត​សម្រាប់​ជួសជុល​តែប៉ុណ្ណោះ)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"មុខងារ​ទិន្នន័យ​ផ្កាយរណបសាកល្បង (សម្រាប់ជួសជុលតែប៉ុណ្ណោះ)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"បានដាក់កំហិត"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"មាន​កំណត់"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"គ្មាន​ដែនកំណត់"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"មុខងារ​ធ្វើតេស្ត eSOS ផ្កាយរណប​ជាក់ស្ដែង (កំណែបង្កើត​សម្រាប់​ជួសជុល​តែប៉ុណ្ណោះ)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"មុខងារ​ធ្វើតេស្ត​ដែល​មិនមែនជា eSOS ផ្កាយរណប​ជាក់ស្ដែង (កំណែបង្កើត​សម្រាប់​ជួសជុល​តែប៉ុណ្ណោះ)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"មុខងារ​ធ្វើតេស្ត eSOS ផ្កាយរណប​សាកល្បង (កំណែបង្កើត​សម្រាប់​ជួសជុល​តែប៉ុណ្ណោះ)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"បោះបង់"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"ប្ដូរ​ទៅ​កម្រង​ព័ត៌មាន​ការងារ"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"ដំឡើង​កម្មវិធី messages សម្រាប់​ការងារ"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"បង្ហាញ​ការកំណត់​រចនាសម្ព័ន្ធ​ផ្កាយរណប"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"ឧបករណ៍មើល​ការកំណត់​រចនាសម្ព័ន្ធ​ផ្កាយរណប"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"កំណែ៖"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype៖"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"អនុញ្ញាត​ឱ្យចូលប្រើ៖"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"លេខកូដ​ប្រទេស៖"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"ទំហំ sats2.dat៖"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"json នៃការ​កំណត់​រចនាសម្ព័ន្ធ​សិទ្ធិចូលប្រើ​ផ្កាយរណប៖"</string>
 </resources>

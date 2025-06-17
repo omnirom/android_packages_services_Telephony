@@ -177,7 +177,7 @@ public class SimContacts extends ADNList {
         builder.withValue(Data.IS_PRIMARY, 1);
         operationList.add(builder.build());
 
-        if (emailAddresses != null) {
+        if (emailAddressArray != null) {
             for (String emailAddress : emailAddressArray) {
                 builder = ContentProviderOperation.newInsert(Data.CONTENT_URI);
                 builder.withValueBackReference(Email.RAW_CONTACT_ID, 0);

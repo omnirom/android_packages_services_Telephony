@@ -32,6 +32,7 @@ import android.telephony.ims.ImsReasonInfo;
 
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.TelephonyTestBase;
 import com.android.internal.telephony.Call;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.d2d.DtmfTransport;
@@ -43,12 +44,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
 
 @RunWith(AndroidJUnit4.class)
-public class TelephonyConnectionTest {
+public class TelephonyConnectionTest extends TelephonyTestBase {
     @Mock
     private ImsPhoneConnection mImsPhoneConnection;
     @Mock
@@ -56,7 +56,8 @@ public class TelephonyConnectionTest {
 
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
+        super.setUp();
+
         when(mImsPhoneConnection.getState()).thenReturn(Call.State.ACTIVE);
         when(mImsPhoneConnection.getPhoneType()).thenReturn(PhoneConstants.PHONE_TYPE_IMS);
     }

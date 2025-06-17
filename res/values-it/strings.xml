@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"I numeri consentiti non sono stati aggiornati perché il numero supera le <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> cifre."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"Numeri consentiti non aggiornati. Il codice PIN2 non era corretto o il numero di telefono è stato rifiutato."</string>
     <string name="fdn_failed" msgid="216592346853420250">"Operazione numeri consentiti non riuscita."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"Impossibile comporre il codice MMI perché i numeri consentiti sono abilitati."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"Lettura da SIM..."</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"Nessun contatto presente nella SIM."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"Seleziona contatti da importare"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"Simulazione non disponibile (solo build di debug)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Forza canale LTE satellitare del campo (solo build di debug)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Modalità satellite operatore fittizio (solo build di debug)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Modalità dati satellitari fittizia (solo debug)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Con restrizioni"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Con limitazioni"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Senza limitazioni"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Testa la modalità eSOS con satellite reale (solo build di debug)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Testa la modalità non-eSOS con satellite reale (solo build di debug)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Prova la demo della modalità eSOS con satellite (solo build di debug)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"Annulla"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"Passa al profilo di lavoro"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"Installa un\'app di messaggistica di lavoro"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Mostra configurazione satellitare"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Visualizzatore configurazione satellitare"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"versione:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"codici paese:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"dimensioni di sats2.dat:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"JSON di configurazione dell\'accesso satellitare:"</string>
 </resources>

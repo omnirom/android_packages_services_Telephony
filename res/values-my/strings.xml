@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"နံပါတ်တွင် ဂဏန်းအလုံးရေ <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> ကျော်နေပါသဖြင့် FDN ကို အပ်ဒိတ်လုပ်၍ မရပါ။"</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"FDN ပြောင်းလဲမှု မဖြစ်ပါ။ ပင်နံပါတ် ၂ မှားယွင်းခြင်း သို့မဟုတ် ဖုန်းနံပါတ်ကို ငြင်းဖယ်ခံရခြင်း တစ်ခုခုဖြစ်ပါသည်"</string>
     <string name="fdn_failed" msgid="216592346853420250">"FDN လုပ်ဆောင်ချက် မအောင်မြင်ပါ"</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"FDN ဖွင့်ထားသောကြောင့် MMI ကုဒ်ကို ခေါ်ဆို၍မရပါ။"</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"ဆင်းမ်ကတ်မှ ဖတ်နေပါသည်..."</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"ဆင်းမ်ကဒ်ထဲတွင် လိပ်စာများ မရှိပါ"</string>
     <string name="simContacts_title" msgid="2714029230160136647">"ထည့်ယူရန် လိပ်စာများ ရွေးပါ"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"အသွင်တူပြုလုပ်သောစက် အလုပ်မလုပ်ပါ (အမှားရှာပြင်ခြင်းသာလျှင်)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Force Camp Satellite LTE ချန်နယ် (အမှားရှာပြင်ခြင်းအတွက်သာ)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Mock Carrier Satellite Mode (အမှားရှာပြင်ခြင်း အတွက်သာ)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"အသွင်တူ ဂြိုဟ်တုဒေတာမုဒ် (အမှားရှာပြင်ခြင်းအတွက် သီးသန့်)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"ကန့်သတ်ထားသည်"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"အကန့်အသတ်ဖြင့်သာ"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"အကန့်အသတ်မရှိ"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"ဂြိုဟ်တုအစစ် eSOS မုဒ်ကို စမ်းသပ်ခြင်း (အမှားရှာပြင်ခြင်းအတွက်သာ)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"ဂြိုဟ်တုအစစ် eSOS မဟုတ်သော မုဒ်ကို စမ်းသပ်ခြင်း (အမှားရှာပြင်ခြင်းအတွက်သာ)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"သရုပ်ပြ ဂြိုဟ်တု eSOS မုဒ်ကို စမ်းသပ်ခြင်း (အမှားရှာပြင်ခြင်းအတွက်သာ)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"မလုပ်တော့"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"အလုပ်ပရိုဖိုင်သို့ ပြောင်းရန်"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"အလုပ်သုံး မက်ဆေ့ဂျ်ပို့ရန်အက်ပ် ထည့်သွင်းရန်"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"ဂြိုဟ်တု စီစဉ်သတ်မှတ်ချက် ပြပါ"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"ဂြိုဟ်တု စီစဉ်သတ်မှတ်ချက် ကြည့်ရှုစနစ်"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"ဗားရှင်း-"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/ဝန်ဆောင်မှုအမျိုးအစား-"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"သုံးခွင့်ပြုရန်-"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"နိုင်ငံကုဒ်-"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"sats2.dat အရွယ်အစား-"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"ဂြိုဟ်တုသုံးခွင့် စီစဉ်သတ်မှတ်ချက် json-"</string>
 </resources>

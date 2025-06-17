@@ -481,10 +481,11 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"No se actualizó el NMF porque el número supera los <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> dígitos."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"No se actualizó el FDN. El PIN2 era incorrecto o se rechazó el número de teléfono."</string>
     <string name="fdn_failed" msgid="216592346853420250">"Ocurrió un error de funcionamiento con el número de marcado fijo."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"No se puede marcar el código MMI porque el NMF está habilitado."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"Leyendo la tarjeta SIM..."</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"No hay contactos en tu tarjeta SIM."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"Seleccionar contactos para importar"</string>
-    <string name="simContacts_airplaneMode" msgid="4654884030631503808">"Desactivar el modo de avión para importar contactos de la tarjeta SIM"</string>
+    <string name="simContacts_airplaneMode" msgid="4654884030631503808">"Desactivar el modo avión para importar contactos de la tarjeta SIM"</string>
     <string name="enable_pin" msgid="967674051730845376">"Activar/desactivar PIN de tarjeta SIM"</string>
     <string name="change_pin" msgid="3657869530942905790">"Cambiar PIN de tarjeta SIM"</string>
     <string name="enter_pin_text" msgid="3182311451978663356">"PIN de tarjeta SIM:"</string>
@@ -536,9 +537,9 @@
     <string name="notification_voicemail_no_vm_number" msgid="3423686009815186750">"Número de buzón de voz desconocido"</string>
     <string name="notification_network_selection_title" msgid="255595526707809121">"Sin servicio"</string>
     <string name="notification_network_selection_text" msgid="553288408722427659">"La red seleccionada (<xliff:g id="OPERATOR_NAME">%s</xliff:g>) no está disponible"</string>
-    <string name="incall_error_power_off" product="watch" msgid="7191184639454113633">"Activa la red móvil y desactiva el modo de avión o el modo de ahorro de batería para realizar una llamada."</string>
-    <string name="incall_error_power_off" product="default" msgid="8131672264311208673">"Desactivar modo de avión para hacer una llamada"</string>
-    <string name="incall_error_power_off_wfc" msgid="9125661184694727052">"Desactivar el modo de avión o conectarse a una red inalámbrica para hacer una llamada"</string>
+    <string name="incall_error_power_off" product="watch" msgid="7191184639454113633">"Activa la red móvil y desactiva el modo avión o el modo de ahorro de batería para realizar una llamada."</string>
+    <string name="incall_error_power_off" product="default" msgid="8131672264311208673">"Desactivar modo avión para hacer una llamada"</string>
+    <string name="incall_error_power_off_wfc" msgid="9125661184694727052">"Desactivar el modo avión o conectarse a una red inalámbrica para hacer una llamada"</string>
     <string name="incall_error_power_off_thermal" product="default" msgid="8695809601655300168"><b>"Se sobrecalentó el teléfono"</b>\n\n"No se puede completar esta llamada. Vuelve a intentar cuando se enfríe el teléfono.\n\nDe todos modos, puedes hacer llamadas de emergencia."</string>
     <string name="incall_error_ecm_emergency_only" msgid="5622379058883722080">"Para realizar una llamada que no sea de emergencia, sal del modo de devolución de llamada de emergencia."</string>
     <string name="incall_error_emergency_only" msgid="8786127461027964653">"No registrado en la red."</string>
@@ -571,7 +572,7 @@
     <string name="emergency_call_shortcut_hint" msgid="1290485125107779500">"Vuelve a presionar para llamar al <xliff:g id="EMERGENCY_NUMBER">%s</xliff:g>"</string>
     <string name="emergency_enable_radio_dialog_message" msgid="1695305158151408629">"Encendiendo radio..."</string>
     <string name="emergency_enable_radio_dialog_retry" msgid="4329131876852608587">"No hay servicio. Vuelve a intentarlo."</string>
-    <string name="radio_off_during_emergency_call" msgid="8011154134040481609">"No se puede entrar en modo de avión durante una llamada de emergencia."</string>
+    <string name="radio_off_during_emergency_call" msgid="8011154134040481609">"No se puede entrar en modo avión durante una llamada de emergencia."</string>
     <string name="dial_emergency_error" msgid="825822413209026039">"No se puede realizar la llamada. <xliff:g id="NON_EMERGENCY_NUMBER">%s</xliff:g> no es un número de emergencia."</string>
     <string name="dial_emergency_empty_error" msgid="2785803395047793634">"No se puede realizar la llamada. Marca un número de emergencia."</string>
     <string name="dial_emergency_calling_not_available" msgid="6485846193794727823">"Las llamadas de emergencia no están disponibles"</string>
@@ -716,7 +717,7 @@
     <string name="mobile_data_activate_button" msgid="1139792516354374612">"AGREGAR DATOS"</string>
     <string name="mobile_data_activate_cancel_button" msgid="3530174817572005860">"CANCELAR"</string>
     <string name="clh_card_title_call_ended_txt" msgid="5977978317527299698">"Llamada finalizada"</string>
-    <string name="clh_callFailed_powerOff_txt" msgid="8279934912560765361">"El modo de avión está activado"</string>
+    <string name="clh_callFailed_powerOff_txt" msgid="8279934912560765361">"El modo avión está activado"</string>
     <string name="clh_callFailed_simError_txt" msgid="5128538525762326413">"No se puede acceder a la tarjeta SIM"</string>
     <string name="clh_incall_error_out_of_service_txt" msgid="2736010617446749869">"Red móvil no disponible"</string>
     <string name="clh_callFailed_satelliteEnabled_txt" msgid="1675517238240377396">"El modo satelital está activado"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"Simular fuera de servicio (solo para la compilación de depuración)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Canal LTE de satélite del campamento de la fuerza (solo compilación de depuración)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Modo Satélite del operador de prueba (solo en la compilación de depuración)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Simulación de modo de datos por satélite (solo depuración)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Restringido"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Limitado"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Ilimitado"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Prueba el modo eSOS de satélite real (solo en la compilación de depuración)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Prueba el modo que no es eSOS por satélite real (solo en la compilación de depuración)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Prueba el modo de demostración de eSOS de satélite (solo en la compilación de depuración)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"Cancelar"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"Cambiar al perfil de trabajo"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"Instalar una app de mensajes laboral"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Mostrar configuración del satélite"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Visualizador de configuración del satélite"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"Versión:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"ID de suscripción, PLMN y tipo de servicio:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"Parámetro allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"Códigos de país:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"Tamaño de sats2.dat:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"Archivo JSON de configuración del acceso al satélite:"</string>
 </resources>

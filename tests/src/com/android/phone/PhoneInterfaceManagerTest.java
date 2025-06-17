@@ -46,6 +46,7 @@ import android.permission.flags.Flags;
 import android.platform.test.flag.junit.SetFlagsRule;
 import android.preference.PreferenceManager;
 import android.telephony.RadioAccessFamily;
+import android.telephony.Rlog;
 import android.telephony.TelephonyManager;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
@@ -58,6 +59,7 @@ import com.android.internal.telephony.IIntegerConsumer;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.RILConstants;
 import com.android.internal.telephony.flags.FeatureFlags;
+import com.android.internal.telephony.satellite.SatelliteController;
 import com.android.internal.telephony.subscription.SubscriptionManagerService;
 import com.android.phone.satellite.accesscontrol.SatelliteAccessController;
 
@@ -74,6 +76,7 @@ import org.mockito.Mockito;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -84,6 +87,8 @@ import java.util.Locale;
 public class PhoneInterfaceManagerTest extends TelephonyTestBase {
     @Rule
     public TestRule compatChangeRule = new PlatformCompatChangeRule();
+
+    private static final String TAG = "PhoneInterfaceManagerTest";
 
     private PhoneInterfaceManager mPhoneInterfaceManager;
     private SharedPreferences mSharedPreferences;
@@ -114,6 +119,9 @@ public class PhoneInterfaceManagerTest extends TelephonyTestBase {
         replaceInstance(SatelliteAccessController.class, "sInstance", null,
                 Mockito.mock(SatelliteAccessController.class));
 
+        replaceInstance(SatelliteController.class, "sInstance", null,
+                Mockito.mock(SatelliteController.class));
+
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(
                 InstrumentationRegistry.getInstrumentation().getTargetContext());
         doReturn(mSharedPreferences).when(mPhoneGlobals)
@@ -138,7 +146,6 @@ public class PhoneInterfaceManagerTest extends TelephonyTestBase {
         // In order not to affect the existing implementation, define a telephony features
         // and disabled enforce_telephony_feature_mapping_for_public_apis feature flag
         mPhoneInterfaceManager.setFeatureFlags(mFeatureFlags);
-        doReturn(false).when(mFeatureFlags).enforceTelephonyFeatureMappingForPublicApis();
         doReturn(true).when(mFeatureFlags).hsumPackageManager();
         mPhoneInterfaceManager.setPackageManager(mPackageManager);
         doReturn(mPackageManager).when(mPhoneGlobals).getPackageManager();
@@ -322,6 +329,10 @@ public class PhoneInterfaceManagerTest extends TelephonyTestBase {
                 mPhoneInterfaceManager).getDefaultPhone();
     }
 
+    private static void loge(String message) {
+        Rlog.e(TAG, message);
+    }
+
     @Test
     public void setNullCipherNotificationsEnabled_allReqsMet_successfullyEnabled() {
         setModemSupportsNullCipherNotification(true);
@@ -500,7 +511,6 @@ public class PhoneInterfaceManagerTest extends TelephonyTestBase {
     @Test
     @EnableCompatChanges({TelephonyManager.ENABLE_FEATURE_MAPPING})
     public void testWithTelephonyFeatureAndCompatChanges() throws Exception {
-        doReturn(true).when(mFeatureFlags).enforceTelephonyFeatureMappingForPublicApis();
         mPhoneInterfaceManager.setFeatureFlags(mFeatureFlags);
         doNothing().when(mPhoneInterfaceManager).enforceModifyPermission();
 
@@ -525,7 +535,6 @@ public class PhoneInterfaceManagerTest extends TelephonyTestBase {
         doReturn(false).when(mPackageManager).hasSystemFeature(
                 PackageManager.FEATURE_TELEPHONY_RADIO_ACCESS);
         mPhoneInterfaceManager.setPackageManager(mPackageManager);
-        doReturn(true).when(mFeatureFlags).enforceTelephonyFeatureMappingForPublicApis();
         mPhoneInterfaceManager.setFeatureFlags(mFeatureFlags);
         doNothing().when(mPhoneInterfaceManager).enforceModifyPermission();
 
@@ -550,4 +559,25 @@ public class PhoneInterfaceManagerTest extends TelephonyTestBase {
         String packageName = mPhoneInterfaceManager.getCurrentPackageName();
         assertEquals(null, packageName);
     }
+
+    @Test
+    public void testGetSatelliteDataOptimizedApps() throws Exception {
+        doReturn(true).when(mFeatureFlags).carrierRoamingNbIotNtn();
+        mPhoneInterfaceManager.setFeatureFlags(mFeatureFlags);
+        loge("FeatureFlagApi is set to return true");
+
+        boolean containsCtsApp = false;
+        String ctsPackageName = "android.telephony.cts";
+        List<String> listSatelliteApplications =
+                mPhoneInterfaceManager.getSatelliteDataOptimizedApps();
+
+        for (String packageName : listSatelliteApplications) {
+            if (ctsPackageName.equals(packageName)) {
+                containsCtsApp = true;
+            }
+        }
+
+        assertFalse(containsCtsApp);
+    }
+
 }

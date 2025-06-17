@@ -21,6 +21,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -717,7 +718,9 @@ public class SipTransportControllerTest extends TelephonyTestBase {
     @SmallTest
     @Test
     public void testFeatureTagsDeniedByOverride() throws Exception {
-        RcsProvisioningMonitor.getInstance().overrideImsFeatureValidation(TEST_SUB_ID, false);
+        RcsProvisioningMonitor monitor = RcsProvisioningMonitor.getInstance();
+        assumeNotNull(monitor);
+        monitor.overrideImsFeatureValidation(TEST_SUB_ID, false);
         SipTransportController controller = setupLiveTransportController(THROTTLE_MS, 0);
 
         ArraySet<String> requestTags = new ArraySet<>(getBaseDelegateRequest().getFeatureTags());
@@ -737,8 +740,10 @@ public class SipTransportControllerTest extends TelephonyTestBase {
     @SmallTest
     @Test
     public void testFeatureTagsDeniedByConfigAllowedByOverride() throws Exception {
+        RcsProvisioningMonitor monitor = RcsProvisioningMonitor.getInstance();
+        assumeNotNull(monitor);
         setFeatureAllowedConfig(TEST_SUB_ID, new String[]{});
-        RcsProvisioningMonitor.getInstance().overrideImsFeatureValidation(TEST_SUB_ID, true);
+        monitor.overrideImsFeatureValidation(TEST_SUB_ID, true);
         SipTransportController controller = setupLiveTransportController(THROTTLE_MS, 0);
 
         ArraySet<String> requestTags = new ArraySet<>(getBaseDelegateRequest().getFeatureTags());

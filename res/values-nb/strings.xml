@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"FDN ble ikke oppdatert fordi tallet er lengre enn <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> sifre."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"Fast nummer ble ikke oppdatert. PIN2 var feil, eller telefonnummeret ble avvist."</string>
     <string name="fdn_failed" msgid="216592346853420250">"FDN-handlingen mislyktes."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"Kan ikke taste MMI-kode fordi FDN er aktivert."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"Leser fra SIM-kort …"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"Ingen kontakter på SIM-kortet."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"Velg kontakter for import"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"Ute av drift-simulering (bare for feilsøkingsversjoner)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Force Camp Satellite LTE-kanal (bare feilsøkingsversjon)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Satelittmodus for fiktiv operatør (feilsøkingsversjon)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Fiktiv satellittdatamodus (bare feilsøking)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Tilgangsbegrenset"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Begrenset"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Ubegrenset"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Test ekte satellitt med eSOS-modus (kun for feilsøkingsversjoner)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Test ekte satellitt med ikke-eSOS-modus (kun for feilsøkingsversjoner)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Test demo av satellitt med eSOS-modus (kun for feilsøkingsversjoner)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"Avbryt"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"Bytt til jobbprofilen"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"Installer en jobbmeldingsapp"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Vis satellittkonfigurasjon"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Visning av satellittkonfigurasjon"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"versjon:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"landskoder:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"størrelse på sats2.dat:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"JSON-konfigurasjon for satellittilgang:"</string>
 </resources>

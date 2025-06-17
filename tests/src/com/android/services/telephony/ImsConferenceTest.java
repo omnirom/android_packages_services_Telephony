@@ -21,7 +21,7 @@ import static junit.framework.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -32,7 +32,6 @@ import static org.mockito.Mockito.when;
 
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Looper;
 import android.telecom.Call;
 import android.telecom.Conference;
 import android.telecom.Connection;
@@ -40,22 +39,26 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
+import android.testing.AndroidTestingRunner;
 
 import androidx.test.filters.SmallTest;
 
+import com.android.TelephonyTestBase;
 import com.android.ims.internal.ConferenceParticipant;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class ImsConferenceTest {
+@RunWith(AndroidTestingRunner.class)
+public class ImsConferenceTest extends TelephonyTestBase {
     @Mock
     private TelephonyConnectionServiceProxy mMockTelephonyConnectionServiceProxy;
 
@@ -66,15 +69,20 @@ public class ImsConferenceTest {
 
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-        if (Looper.myLooper() == null) {
-            Looper.prepare();
-        }
+        super.setUp();
+        replaceInstance(TelecomAccountRegistry.class, "sInstance", null,
+                mMockTelecomAccountRegistry);
         mConferenceHost = new TestTelephonyConnection();
         mConferenceHost.setManageImsConferenceCallSupported(true);
         when(mMockTelecomAccountRegistry.getAddress(any(PhoneAccountHandle.class)))
                 .thenReturn(null);
     }
+
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+    }
+
     @Test
     @SmallTest
     public void testPropertyPropagation() {

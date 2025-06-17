@@ -43,6 +43,7 @@ import android.util.Base64;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.android.TelephonyTestBase;
 import com.android.internal.telephony.ISipDialogStateCallback;
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.telephony.PhoneFactory;
@@ -64,7 +65,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @RunWith(AndroidJUnit4.class)
-public class SipSessionTrackerTest {
+public class SipSessionTrackerTest extends TelephonyTestBase {
 
     private class DialogAttributes {
         public final String branchId;
@@ -133,6 +134,8 @@ public class SipSessionTrackerTest {
 
     @Before
     public void setUp() throws Exception {
+        super.setUp();
+
         mStringEntryCounter = 0;
         MockitoAnnotations.initMocks(this);
         mTrackerUT = new SipSessionTracker(TEST_SUB_ID, mRcsStats);

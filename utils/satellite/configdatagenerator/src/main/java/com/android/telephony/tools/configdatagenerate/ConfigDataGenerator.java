@@ -47,6 +47,7 @@ public class ConfigDataGenerator {
     public static final String TAG_S2_CELL_FILE = "s2_cell_file";
     public static final String TAG_COUNTRY_CODE = "country_code";
     public static final String TAG_IS_ALLOWED = "is_allowed";
+    public static final String TAG_SATELLITE_ACCESS_CONFIG_FILE = "satellite_access_config_file";
 
     /**
      * Creates a protubuf file with user inputs
@@ -192,6 +193,7 @@ public class ConfigDataGenerator {
      *   &lt;country_code&gt;value2&lt;/country_code&gt;
      *   &lt;country_code&gt;value3&lt;/country_code&gt;
      *   &lt;is_allowed&gt;value4&lt;/is_allowed&gt;
+     *   &lt;satellite_access_config_file&gt;value5lt;/satellite_access_config_file&gt;
      * &lt;/satelliteregion&gt;
      * </pre>
      */
@@ -208,9 +210,22 @@ public class ConfigDataGenerator {
             if (isAllowedString.equals("TRUE")) {
                 isAllowed = true;
             }
+            String satelliteAccessConfigFileName = "";
+            if (satelliteRegionElement
+                            .getElementsByTagName(TAG_SATELLITE_ACCESS_CONFIG_FILE)
+                            .getLength()
+                    > 0) {
+                satelliteAccessConfigFileName =
+                        satelliteRegionElement
+                                .getElementsByTagName(TAG_SATELLITE_ACCESS_CONFIG_FILE)
+                                .item(0)
+                                .getTextContent();
+            }
             System.out.println("\nSatellite Region:");
             System.out.println("  S2 Cell File: " + s2CellFileName);
             System.out.println("  Is Allowed: " + isAllowed);
+            System.out.println(
+                    "  Satellite Access Config File Name: " + satelliteAccessConfigFileName);
 
             NodeList countryCodesList = satelliteRegionElement.getElementsByTagName(
                     TAG_COUNTRY_CODE);
@@ -226,8 +241,11 @@ public class ConfigDataGenerator {
             }
             System.out.println();
             SatelliteConfigProtoGenerator.sRegionProto =
-                    new RegionProto(s2CellFileName, listCountryCode, isAllowed);
+                    new RegionProto(
+                            s2CellFileName,
+                            listCountryCode,
+                            isAllowed,
+                            satelliteAccessConfigFileName);
         }
     }
 }
-

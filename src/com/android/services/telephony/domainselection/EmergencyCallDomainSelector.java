@@ -55,6 +55,8 @@ import static android.telephony.CarrierConfigManager.ImsEmergency.VOWIFI_REQUIRE
 import static android.telephony.CarrierConfigManager.ImsWfc.KEY_EMERGENCY_CALL_OVER_EMERGENCY_PDN_BOOL;
 import static android.telephony.NetworkRegistrationInfo.REGISTRATION_STATE_HOME;
 import static android.telephony.NetworkRegistrationInfo.REGISTRATION_STATE_ROAMING;
+import static android.telephony.NrVopsSupportInfo.NR_STATUS_EMC_5GCN_ONLY;
+import static android.telephony.NrVopsSupportInfo.NR_STATUS_EMC_NR_EUTRA_5GCN;
 import static android.telephony.PreciseDisconnectCause.EMERGENCY_PERM_FAILURE;
 import static android.telephony.PreciseDisconnectCause.EMERGENCY_TEMP_FAILURE;
 import static android.telephony.PreciseDisconnectCause.NO_VALID_SIM;
@@ -1354,7 +1356,8 @@ public class EmergencyCallDomainSelector extends DomainSelectorBase
                 return UNKNOWN;
             }
             if (accessNetwork == NGRAN) {
-                return (regResult.getNwProvidedEmc() > 0
+                return ((regResult.getNwProvidedEmc() == NR_STATUS_EMC_5GCN_ONLY
+                        || regResult.getNwProvidedEmc() == NR_STATUS_EMC_NR_EUTRA_5GCN)
                         && (regResult.isVopsSupported() || !inService))
                         ? NGRAN : UNKNOWN;
             } else if (accessNetwork == EUTRAN) {

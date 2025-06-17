@@ -21,10 +21,16 @@ public class RegionProto {
     String mS2CellFileName;
     String[] mCountryCodeList;
     boolean mIsAllowed;
+    String mSatelliteAccessConfigFileName;
 
-    public RegionProto(String s2CellFileName, String[] countryCodeList, boolean isAllowed) {
+    public RegionProto(
+            String s2CellFileName,
+            String[] countryCodeList,
+            boolean isAllowed,
+            String satelliteAccessConfigFileName) {
         mS2CellFileName = s2CellFileName;
         mCountryCodeList = countryCodeList;
         mIsAllowed = isAllowed;
+        mSatelliteAccessConfigFileName = satelliteAccessConfigFileName;
     }
 }

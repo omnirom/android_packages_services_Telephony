@@ -53,6 +53,7 @@ import android.util.Log;
 import android.util.SparseArray;
 
 import com.android.ims.rcs.uce.util.FeatureTags;
+import com.android.internal.telephony.IIntegerConsumer;
 import com.android.internal.telephony.ITelephony;
 import com.android.internal.telephony.Phone;
 import com.android.internal.telephony.PhoneFactory;
@@ -189,6 +190,10 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
             "set-satellite-listening-timeout-duration";
     private static final String SET_SATELLITE_IGNORE_CELLULAR_SERVICE_STATE =
             "set-satellite-ignore-cellular-service-state";
+    private static final String SET_SUPPORT_DISABLE_SATELLITE_WHILE_ENABLE_IN_PROGRESS =
+            "set-support-disable-satellite-while-enable-in-progress";
+    private static final String SET_SATELLITE_TN_SCANNING_SUPPORT =
+            "set-satellite-tn-scanning-support";
     private static final String SET_SATELLITE_POINTING_UI_CLASS_NAME =
             "set-satellite-pointing-ui-class-name";
     private static final String SET_DATAGRAM_CONTROLLER_TIMEOUT_DURATION =
@@ -200,6 +205,7 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
             "set-satellite-controller-timeout-duration";
     private static final String SET_EMERGENCY_CALL_TO_SATELLITE_HANDOVER_TYPE =
             "set-emergency-call-to-satellite-handover-type";
+    private static final String OVERRIDE_CONFIG_DATA_VERSION = "override-config-data-version";
     private static final String SET_COUNTRY_CODES = "set-country-codes";
     private static final String SET_SATELLITE_ACCESS_CONTROL_OVERLAY_CONFIGS =
             "set-satellite-access-control-overlay-configs";
@@ -212,8 +218,15 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
     private static final String SET_SATELLITE_SUBSCRIBERID_LIST_CHANGED_INTENT_COMPONENT =
             "set-satellite-subscriberid-list-changed-intent-component";
 
+    private static final String  ADD_ATTACH_RESTRICTION_FOR_CARRIER =
+            "add-attach-restriction-for-carrier";
+    private static final String  REMOVE_ATTACH_RESTRICTION_FOR_CARRIER =
+            "remove-attach-restriction-for-carrier";
+
     private static final String SET_SATELLITE_ACCESS_RESTRICTION_CHECKING_RESULT =
             "set-satellite-access-restriction-checking-result";
+    private static final String SET_SATELLITE_ACCESS_ALLOWED_FOR_SUBSCRIPTIONS =
+            "set-satellite-access-allowed-for-subscriptions";
 
     private static final String DOMAIN_SELECTION_SUBCOMMAND = "domainselection";
     private static final String DOMAIN_SELECTION_SET_SERVICE_OVERRIDE = "set-dss-override";
@@ -233,6 +246,9 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
     private static final String GET_IMEI = "get-imei";
     private static final String GET_SIM_SLOTS_MAPPING = "get-sim-slots-mapping";
     private static final String COMMAND_DELETE_IMSI_KEY = "delete_imsi_key";
+    private static final String SET_SATELLITE_IGNORE_PLMN_LIST_FROM_STORAGE =
+            "set-satellite-ignore-plmn-list-from-storage";
+
     // Take advantage of existing methods that already contain permissions checks when possible.
     private final ITelephony mInterface;
 
@@ -408,6 +424,8 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
                 return handleSetSatelliteListeningTimeoutDuration();
             case SET_SATELLITE_IGNORE_CELLULAR_SERVICE_STATE:
                 return handleSetSatelliteIgnoreCellularServiceState();
+            case SET_SUPPORT_DISABLE_SATELLITE_WHILE_ENABLE_IN_PROGRESS:
+                return handleSetSupportDisableSatelliteWhileEnableInProgress();
             case SET_SATELLITE_POINTING_UI_CLASS_NAME:
                 return handleSetSatellitePointingUiClassNameCommand();
             case SET_DATAGRAM_CONTROLLER_TIMEOUT_DURATION:
@@ -422,6 +440,8 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
                 return handleSetShouldSendDatagramToModemInDemoMode();
             case SET_SATELLITE_ACCESS_CONTROL_OVERLAY_CONFIGS:
                 return handleSetSatelliteAccessControlOverlayConfigs();
+            case OVERRIDE_CONFIG_DATA_VERSION:
+                return handleOverrideConfigDataVersion();
             case SET_COUNTRY_CODES:
                 return handleSetCountryCodes();
             case SET_OEM_ENABLED_SATELLITE_PROVISION_STATUS:
@@ -432,8 +452,18 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
                 return handleSetSatelliteSubscriberIdListChangedIntentComponent();
             case SET_SATELLITE_ACCESS_RESTRICTION_CHECKING_RESULT:
                 return handleOverrideCarrierRoamingNtnEligibilityChanged();
+            case ADD_ATTACH_RESTRICTION_FOR_CARRIER:
+                return handleAddAttachRestrictionForCarrier(cmd);
+            case REMOVE_ATTACH_RESTRICTION_FOR_CARRIER:
+                return handleRemoveAttachRestrictionForCarrier(cmd);
+            case SET_SATELLITE_ACCESS_ALLOWED_FOR_SUBSCRIPTIONS:
+                return handleSetSatelliteAccessAllowedForSubscriptions();
+            case SET_SATELLITE_TN_SCANNING_SUPPORT:
+                return handleSetSatelliteTnScanningSupport();
             case COMMAND_DELETE_IMSI_KEY:
                 return handleDeleteTestImsiKey();
+            case SET_SATELLITE_IGNORE_PLMN_LIST_FROM_STORAGE:
+                return handleSetSatelliteIgnorePlmnListFromStorage();
             default: {
                 return handleDefaultCommands(cmd);
             }
@@ -613,7 +643,7 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
         pw.println("  numverify override-package PACKAGE_NAME;");
         pw.println("    Set the authorized package for number verification.");
         pw.println("    Leave the package name blank to reset.");
-        pw.println("  numverify fake-call NUMBER;");
+        pw.println("  numverify fake-call NUMBER <NETWORK_COUNTRY_ISO>");
         pw.println("    Fake an incoming call from NUMBER. This is for testing. Output will be");
         pw.println("    1 if the call would have been intercepted, 0 otherwise.");
     }
@@ -859,6 +889,26 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
         pw.println("    Sets the OEM-enabled satellite provision status. Options are:");
         pw.println("      -p: the overriding satellite provision status. If no option is ");
         pw.println("          specified, reset the overridden provision status.");
+        pw.println("  add-attach-restriction-for-carrier [-s SLOT_ID ");
+        pw.println("    -r SATELLITE_COMMUNICATION_RESTRICTION_REASON] Add a restriction reason ");
+        pw.println("     for disallowing carrier supported satellite plmn scan ");
+        pw.println("     and attach by modem. ");
+        pw.println("    Options are:");
+        pw.println("      -s: The SIM slot ID to add a restriction reason. If no option ");
+        pw.println("          is specified, it will choose the default voice SIM slot.");
+        pw.println("      -r: restriction reason ");
+        pw.println("          If no option is specified, it will use ");
+        pw.println("          the default value SATELLITE_COMMUNICATION_RESTRICTION_REASON_USER.");
+        pw.println("  remove-attach-restriction-for-carrier [-s SLOT_ID ");
+        pw.println("    -r SATELLITE_COMMUNICATION_RESTRICTION_REASON] Add a restriction reason ");
+        pw.println("     for disallowing carrier supported satellite plmn scan ");
+        pw.println("     and attach by modem. ");
+        pw.println("    Options are:");
+        pw.println("      -s: The SIM slot ID to add a restriction reason. If no option ");
+        pw.println("          is specified, it will choose the default voice SIM slot.");
+        pw.println("      -r: restriction reason ");
+        pw.println("          If no option is specified, it will use ");
+        pw.println("          the default value SATELLITE_COMMUNICATION_RESTRICTION_REASON_USER.");
     }
 
     private void onHelpImei() {
@@ -1091,8 +1141,16 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
                 return 0;
             }
             case NUMBER_VERIFICATION_FAKE_CALL: {
+                String number = getNextArg();
+                String country = getNextArg();
+                if (country == null) {
+                    // No locale provided, default to current locale.
+                    Locale currentLocale = Locale.getDefault();
+                    country = currentLocale.getCountry();
+                }
+                Log.i(TAG, "numberVerificationFakeCall: " + number + " Locale: " + country);
                 boolean val = NumberVerificationManager.getInstance()
-                        .checkIncomingCall(getNextArg());
+                        .checkIncomingCall(number, country);
                 getOutPrintWriter().println(val ? "1" : "0");
                 return 0;
             }
@@ -3231,6 +3289,38 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
         return 0;
     }
 
+    private int handleSetSatelliteAccessAllowedForSubscriptions() {
+        PrintWriter errPw = getErrPrintWriter();
+        String subIdListStr = null;
+
+        String opt;
+        while ((opt = getNextOption()) != null) {
+            switch (opt) {
+                case "-s": {
+                    subIdListStr = getNextArgRequired();
+                    break;
+                }
+            }
+        }
+        Log.d(LOG_TAG, "handleSetSatelliteAccessAllowedForSubscriptions: subIdListStr="
+            + subIdListStr);
+
+        try {
+            boolean result = mInterface.setSatelliteAccessAllowedForSubscriptions(subIdListStr);
+            if (VDBG) {
+                Log.v(LOG_TAG, "SetSatelliteAccessAllowedForSubscriptions " + subIdListStr
+                    + ", result = " + result);
+            }
+            getOutPrintWriter().println(result);
+        } catch (RemoteException e) {
+            Log.w(LOG_TAG, "SetSatelliteAccessAllowedForSubscriptions: error = " + e.getMessage());
+            errPw.println("Exception: " + e.getMessage());
+            return -1;
+        }
+
+        return 0;
+    }
+
     private int handleSetSatelliteGatewayServicePackageNameCommand() {
         PrintWriter errPw = getErrPrintWriter();
         String serviceName = null;
@@ -3405,6 +3495,88 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
         } catch (RemoteException e) {
             Log.w(LOG_TAG, "handleSetSatelliteIgnoreCellularServiceState: " + enabled
                     + ", error = " + e.getMessage());
+            errPw.println("Exception: " + e.getMessage());
+            return -1;
+        }
+        return 0;
+    }
+
+    private int handleSetSupportDisableSatelliteWhileEnableInProgress() {
+        PrintWriter errPw = getErrPrintWriter();
+        boolean reset = false;
+        boolean supported = false;
+
+        String opt;
+        while ((opt = getNextOption()) != null) {
+            switch (opt) {
+                case "-r": {
+                    reset = true;
+                    break;
+                }
+                case "-s": {
+                    supported = Boolean.parseBoolean(getNextArgRequired());
+                    break;
+                }
+            }
+        }
+        Log.d(LOG_TAG, "handleSetSupportDisableSatelliteWhileEnableInProgress: reset=" + reset
+            + ", supported=" + supported);
+
+        try {
+            boolean result = mInterface.setSupportDisableSatelliteWhileEnableInProgress(
+                reset, supported);
+            if (VDBG) {
+                Log.v(LOG_TAG, "handleSetSupportDisableSatelliteWhileEnableInProgress: result = "
+                    + result);
+            }
+            getOutPrintWriter().println(result);
+        } catch (RemoteException e) {
+            Log.w(LOG_TAG, "handleSetSupportDisableSatelliteWhileEnableInProgress: error = "
+                + e.getMessage());
+            errPw.println("Exception: " + e.getMessage());
+            return -1;
+        }
+        return 0;
+    }
+
+    private int handleSetSatelliteTnScanningSupport() {
+        PrintWriter errPw = getErrPrintWriter();
+        boolean reset = false;
+        boolean concurrentTnScanningSupported = false;
+        boolean tnScanningDuringSatelliteSessionAllowed = false;
+
+        String opt;
+        while ((opt = getNextOption()) != null) {
+            switch (opt) {
+                case "-r": {
+                    reset = true;
+                    break;
+                }
+                case "-s": {
+                    concurrentTnScanningSupported = Boolean.parseBoolean(getNextArgRequired());
+                    break;
+                }
+                case "-a": {
+                    tnScanningDuringSatelliteSessionAllowed =
+                            Boolean.parseBoolean(getNextArgRequired());
+                    break;
+                }
+            }
+        }
+        Log.d(LOG_TAG, "handleSetSatelliteTnScanningSupport: reset=" + reset
+            + ", concurrentTnScanningSupported =" + concurrentTnScanningSupported
+            + ", tnScanningDuringSatelliteSessionAllowed="
+            + tnScanningDuringSatelliteSessionAllowed);
+
+        try {
+            boolean result = mInterface.setTnScanningSupport(reset,
+                concurrentTnScanningSupported, tnScanningDuringSatelliteSessionAllowed);
+            if (VDBG) {
+                Log.v(LOG_TAG, "handleSetSatelliteTnScanningSupport: result = " + result);
+            }
+            getOutPrintWriter().println(result);
+        } catch (RemoteException e) {
+            Log.w(LOG_TAG, "handleSetSatelliteTnScanningSupport: error = " + e.getMessage());
             errPw.println("Exception: " + e.getMessage());
             return -1;
         }
@@ -3704,6 +3876,40 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
         return 0;
     }
 
+    private int handleOverrideConfigDataVersion() {
+        PrintWriter errPw = getErrPrintWriter();
+        boolean reset = false;
+        int version = 0;
+
+        String opt;
+        while ((opt = getNextOption()) != null) {
+            switch (opt) {
+                case "-r": {
+                    reset = true;
+                    break;
+                }
+                case "-v": {
+                    version = Integer.parseInt(getNextArgRequired());
+                    break;
+                }
+            }
+        }
+        Log.d(LOG_TAG, "overrideConfigDataVersion: reset=" + reset + ", version=" + version);
+
+        try {
+            boolean result = mInterface.overrideConfigDataVersion(reset, version);
+            if (VDBG) {
+                Log.v(LOG_TAG, "overrideConfigDataVersion result =" + result);
+            }
+            getOutPrintWriter().println(result);
+        } catch (RemoteException e) {
+            Log.e(LOG_TAG, "overrideConfigDataVersion: ex=" + e.getMessage());
+            errPw.println("Exception: " + e.getMessage());
+            return -1;
+        }
+        return 0;
+    }
+
     private int handleSetOemEnabledSatelliteProvisionStatus() {
         PrintWriter errPw = getErrPrintWriter();
         boolean isProvisioned = false;
@@ -3841,6 +4047,118 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
         } catch (RemoteException e) {
             Log.w(LOG_TAG, "handleSetSatelliteSubscriberIdListChangedIntentComponent("
                     + name + "), error = " + e.getMessage());
+            errPw.println("Exception: " + e.getMessage());
+            return -1;
+        }
+        return 0;
+    }
+
+    private int handleAddAttachRestrictionForCarrier(String command) {
+        PrintWriter errPw = getErrPrintWriter();
+        String tag = command + ": ";
+        int subId = SubscriptionManager.getDefaultSubscriptionId();
+        int reason = 0;
+
+        String opt;
+        while ((opt = getNextOption()) != null) {
+            switch (opt) {
+                case "-s": {
+                    try {
+                        subId = slotStringToSubId(tag, getNextArgRequired());
+                    } catch (NumberFormatException e) {
+                        errPw.println("handleAddAttachRestrictionForCarrier:"
+                                + " require an integer for subId");
+                        return -1;
+                    }
+                    break;
+                }
+                case "-r": {
+                    try {
+                        reason = Integer.parseInt(getNextArgRequired());
+                    } catch (NumberFormatException e) {
+                        errPw.println("handleAddAttachRestrictionForCarrier:"
+                                + " require an integer for reason");
+                        return -1;
+                    }
+                    break;
+                }
+            }
+        }
+
+        Log.d(LOG_TAG, "handleAddAttachRestrictionForCarrier: subId= "
+                + subId + ", reason= " + reason);
+
+        try {
+            IIntegerConsumer errorCallback = new IIntegerConsumer.Stub() {
+                @Override
+                public void accept(int result) {
+                    if (VDBG) {
+                        Log.v(LOG_TAG, "addAttachRestrictionForCarrier result = " + result);
+                    }
+                    getOutPrintWriter().println(result);
+                }
+            };
+
+            mInterface.addAttachRestrictionForCarrier(subId, reason, errorCallback);
+        } catch (RemoteException e) {
+            Log.e(LOG_TAG, "addAttachRestrictionForCarrier:"
+                    + " error = " + e.getMessage());
+            errPw.println("Exception: " + e.getMessage());
+            return -1;
+        }
+        return 0;
+    }
+
+    private int handleRemoveAttachRestrictionForCarrier(String command) {
+        PrintWriter errPw = getErrPrintWriter();
+        String tag = command + ": ";
+        int subId = SubscriptionManager.getDefaultSubscriptionId();
+        int reason = 0;
+
+        String opt;
+        while ((opt = getNextOption()) != null) {
+            switch (opt) {
+                case "-s": {
+                    try {
+                        subId = slotStringToSubId(tag, getNextArgRequired());
+                    } catch (NumberFormatException e) {
+                        errPw.println("handleRemoveAttachRestrictionForCarrier:"
+                                + " require an integer for subId");
+                        return -1;
+                    }
+                    break;
+                }
+                case "-r": {
+                    try {
+                        reason = Integer.parseInt(getNextArgRequired());
+                    } catch (NumberFormatException e) {
+                        errPw.println("handleRemoveAttachRestrictionForCarrier:"
+                                + " require an integer for reason");
+                        return -1;
+                    }
+                    break;
+                }
+            }
+        }
+
+        Log.d(LOG_TAG, "handleRemoveAttachRestrictionForCarrier: subId= "
+                + subId + ", reason= " + reason);
+
+        try {
+            IIntegerConsumer errorCallback = new IIntegerConsumer.Stub() {
+                @Override
+                public void accept(int result) {
+                    if (VDBG) {
+                        Log.v(LOG_TAG, "removeAttachRestrictionForCarrier result = " + result);
+                    }
+                    getOutPrintWriter().println(result);
+                }
+            };
+
+            mInterface.removeAttachRestrictionForCarrier(subId, reason, errorCallback);
+        } catch (RemoteException e) {
+            Log.e(LOG_TAG, "removeAttachRestrictionForCarrier:"
+                    + " error = " + e.getMessage());
             errPw.println("Exception: " + e.getMessage());
             return -1;
         }
@@ -4160,5 +4478,37 @@ public class TelephonyShellCommand extends BasicShellCommandHandler {
         }
         phone.resetCarrierKeysForImsiEncryption(true);
         return 1;
+    }
+
+    private int handleSetSatelliteIgnorePlmnListFromStorage() {
+        PrintWriter errPw = getErrPrintWriter();
+        boolean enabled = false;
+
+        String opt;
+        while ((opt = getNextOption()) != null) {
+            switch (opt) {
+                case "-d": {
+                    enabled = Boolean.parseBoolean(getNextArgRequired());
+                    break;
+                }
+            }
+        }
+        Log.d(LOG_TAG, "handleSetSatelliteIgnorePlmnListFromStorage: enabled ="
+                + enabled);
+
+        try {
+            boolean result = mInterface.setSatelliteIgnorePlmnListFromStorage(enabled);
+            if (VDBG) {
+                Log.v(LOG_TAG, "handleSetAllPlmnListFromStorageEmpty " + enabled
+                        + ", result = " + result);
+            }
+            getOutPrintWriter().println(result);
+        } catch (RemoteException e) {
+            Log.w(LOG_TAG, "handleSetAllPlmnListFromStorageEmpty: " + enabled
+                    + ", error = " + e.getMessage());
+            errPw.println("Exception: " + e.getMessage());
+            return -1;
+        }
+        return 0;
     }
 }

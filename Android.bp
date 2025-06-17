@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package {
+    default_team: "trendy_team_fwk_telephony",
     // See: http://go/android-license-faq
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
@@ -90,10 +91,10 @@ android_app {
 // Allow other applications to use public constants from SlicePurchaseController
 java_library {
     name: "SlicePurchaseController",
-    srcs: ["src/com/android/phone/slice/*.java",],
+    srcs: ["src/com/android/phone/slice/*.java"],
     libs: [
         "telephony-common",
-        "service-entitlement"
+        "service-entitlement",
     ],
 }
 
@@ -101,4 +102,3 @@ platform_compat_config {
     name: "TeleService-platform-compat-config",
     src: ":TeleService",
 }
-

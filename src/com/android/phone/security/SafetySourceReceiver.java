@@ -26,7 +26,6 @@ import android.content.pm.PackageManager;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.Phone;
-import com.android.internal.telephony.flags.Flags;
 import com.android.phone.PhoneGlobals;
 import com.android.telephony.Rlog;
 
@@ -34,14 +33,6 @@ public class SafetySourceReceiver extends BroadcastReceiver {
     private static final String TAG = "TelephonySafetySourceReceiver";
     @Override
     public void onReceive(Context context, Intent intent) {
-
-        // If none of the features that depend on this receiver are enabled, there's no reason
-        // to progress.
-        if (!Flags.enableIdentifierDisclosureTransparencyUnsolEvents()
-                || !Flags.enableModemCipherTransparencyUnsolEvents()) {
-            return;
-        }
-
         String action = intent.getAction();
         if (!ACTION_REFRESH_SAFETY_SOURCES.equals(action)) {
             return;
@@ -53,11 +44,7 @@ public class SafetySourceReceiver extends BroadcastReceiver {
             return;
         }
 
-        if (Flags.enforceTelephonyFeatureMappingForPublicApis()) {
-            if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_TELEPHONY)) {
-                refreshSafetySources(refreshBroadcastId);
-            }
-        } else {
+        if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_TELEPHONY)) {
             refreshSafetySources(refreshBroadcastId);
         }
     }

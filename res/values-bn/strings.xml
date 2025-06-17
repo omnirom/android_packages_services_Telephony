@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"FDN <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g>টি সংখ্যার সীমা ছাড়িয়ে যাওয়ায় তাকে আপডেট করা যায়নি।"</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"FDN আপডেট করা হয়নি৷ PIN2 ভুল ছিল, বা ফোন নম্বর বাতিল করা হয়েছে৷"</string>
     <string name="fdn_failed" msgid="216592346853420250">"FDN অপারেশন ব্যর্থ হয়েছে৷"</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"FDN চালু থাকায় MMI কোড ডায়াল করা যাচ্ছে না।"</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"সিম কার্ড থেকে পড়া হচ্ছে…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"আপনার সিম কার্ডে কোনো পরিচিত নেই৷"</string>
     <string name="simContacts_title" msgid="2714029230160136647">"পরিচিতগুলি আমদানি করুন"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"আউট-অফ-সার্ভিস সিমুলেট করা (শুধুমাত্র ডিবাগ বিল্ডের জন্য)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"ফোর্স ক্যাম্প স্যাটেলাইট এলটিই চ্যানেল (শুধুমাত্র ডিবাগ বিল্ড)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"নকল পরিষেবা প্রদানকারী উপগ্রহ মোড (শুধুমাত্র ডিবাগ বিল্ড)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"স্যাটেলাইট ডেটা মোড মক করুন (শুধুমাত্র ডিবাগ)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"বিধিনিষেধযুক্ত"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"সীমিত"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"আনলিমিটেড"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"রিয়েল স্যাটেলাইট eSOS মোড পরীক্ষা করুন (শুধুমাত্র ডিবাগ বিল্ড)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"রিয়েল স্যাটেলাইট নন-ইএসওএস মোড পরীক্ষা করুন (শুধুমাত্র ডিবাগ বিল্ড)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"ডেমো স্যাটেলাইট eSOS মোড পরীক্ষা করুন (শুধুমাত্র ডিবাগ বিল্ড)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"বাতিল করুন"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"অফিস প্রোফাইলে পাল্টে নিন"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"অফিসের জন্য একটি মেসেজিং অ্যাপ ইনস্টল করুন"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"স্যাটেলাইট কনফিগারেশন দেখুন"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"স্যাটেলাইট কনফিগারেশন ভিউয়ার"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"ভার্সন:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"দেশের কোড:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"sats2.dat-এর সাইজ:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"স্যাটেলাইট অ্যাক্সেস কনফিগারেশনের json ফাইল:"</string>
 </resources>

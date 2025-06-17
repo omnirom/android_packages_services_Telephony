@@ -200,8 +200,9 @@ public class ConferenceParticipantConnection extends Connection {
 
         int subId = phone.getSubId();
 
-        SubscriptionInfo subInfo = TelecomAccountRegistry.getInstance(null).
-                getSubscriptionManager().getActiveSubscriptionInfo(subId);
+        var subscriptionManager = TelecomAccountRegistry.getInstance(null).getSubscriptionManager();
+        if (subscriptionManager == null) return null;
+        SubscriptionInfo subInfo = subscriptionManager.getActiveSubscriptionInfo(subId);
 
         if (subInfo == null || TextUtils.isEmpty(subInfo.getCountryIso())) {
             return null;

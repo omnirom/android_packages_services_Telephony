@@ -284,8 +284,8 @@
     <string name="data_enable_summary" msgid="696860063456536557">"Дозволи користење интернет"</string>
     <string name="dialog_alert_title" msgid="5260471806940268478">"Внимание"</string>
     <string name="roaming" msgid="1576180772877858949">"Роаминг"</string>
-    <string name="roaming_enable" msgid="6853685214521494819">"Поврзи се со интернет услуги во роаминг"</string>
-    <string name="roaming_disable" msgid="8856224638624592681">"Поврзи се со интернет услуги во роаминг"</string>
+    <string name="roaming_enable" msgid="6853685214521494819">"Поврзувај се на мобилен интернет во роаминг"</string>
+    <string name="roaming_disable" msgid="8856224638624592681">"Поврзувај се на мобилен интернет во роаминг"</string>
     <string name="roaming_reenable_message" msgid="1951802463885727915">"Интернет-роамингот е исклучен. Допрете за да се вклучи."</string>
     <string name="roaming_enabled_message" msgid="9022249120750897">"Може да ви се наплати за роаминг. Допрете за да измените."</string>
     <string name="roaming_notification_title" msgid="3590348480688047320">"Мобилната интернет-врска се прекина"</string>
@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"FDN не е ажуриран затоа што бројот содржи повеќе од <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> цифри."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"FDN не се ажурираше. PIN2 кодот е неточен или телефонскиот број е одбиен."</string>
     <string name="fdn_failed" msgid="216592346853420250">"Операцијата со FDN не успеа."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"Не може да се избере MMI-код бидејќи е овозможен FDN."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"Се чита од SIM картичка..."</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"Нема контакти на вашата SIM картичка."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"Избери контакти за увоз"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"Симулирање „Надвор од употреба“ (само за верзиите за отстранување грешки)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Force Camp Satellite LTE Channel (само верзија за отстранување грешки)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Симулација на режим на сателит за оператор (само за верзиите за отстранување грешки)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Симулација на режим за сателитски интернет (само за отстранување грешки)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Ограничено"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Ограничено"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Неограничено"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Тестирајте го реалниот режим на eSOS (само во верзијата за отстранување грешки)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Тестирајте го реалниот режим што не е на eSOS (само во верзијата за отстранување грешки)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Тестирајте го демо-режимот на eSOS (само во верзијата за отстранување грешки)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"Откажи"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"Префрлете се на работен профил"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"Инсталирајте работна апликација за разменување пораки"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Прикажи ја сателитската конфигурација"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Прикажувач за сателитска конфигурација"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"верзија:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"дозволи пристап:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"кодови на земји:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"големина на sats2.dat:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"json-датотека за конфигурирање сателитски пристап:"</string>
 </resources>

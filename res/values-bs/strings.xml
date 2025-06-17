@@ -16,7 +16,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="phoneAppLabel" product="tablet" msgid="1916019789885839910">"Prijenos podataka na mobilnoj mreži"</string>
+    <string name="phoneAppLabel" product="tablet" msgid="1916019789885839910">"Prenos podataka na mobilnoj mreži"</string>
     <string name="phoneAppLabel" product="default" msgid="130465039375347763">"Telefonske usluge"</string>
     <string name="emergencyDialerIconLabel" msgid="8668005772339436680">"Hitno biranje"</string>
     <string name="phoneIconLabel" msgid="3015941229249651419">"Telefon"</string>
@@ -305,7 +305,7 @@
     <string name="carrier_settings_euicc" msgid="1190237227261337749">"Operater"</string>
     <string name="keywords_carrier_settings_euicc" msgid="8540160967922063745">"mobilni operater, esim, sim, euicc, promijeni mobilnog operatera, dodaj mobilnog operatera"</string>
     <string name="carrier_settings_euicc_summary" msgid="2027941166597330117">"<xliff:g id="CARRIER_NAME">%1$s</xliff:g> — <xliff:g id="PHONE_NUMBER">%2$s</xliff:g>"</string>
-    <string name="mobile_data_settings_title" msgid="7228249980933944101">"Prijenos podataka na mobilnoj mreži"</string>
+    <string name="mobile_data_settings_title" msgid="7228249980933944101">"Prenos podataka na mobilnoj mreži"</string>
     <string name="mobile_data_settings_summary" msgid="5012570152029118471">"Pristup prenosu podataka mobilnom mrežom"</string>
     <string name="data_usage_disable_mobile" msgid="5669109209055988308">"Isključiti prijenos podataka na mobilnoj mreži?"</string>
     <string name="sim_selection_required_pref" msgid="6985901872978341314">"Potreban izbor"</string>
@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"FDN nije ažuriran jer broj ima više od <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> cifara."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"FDN nije ažuriran. PIN2 je netačan ili je broj telefona odbijen."</string>
     <string name="fdn_failed" msgid="216592346853420250">"FDN operacija nije uspjela."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"Nije moguće birati MMI kôd jer je FDN omogućen."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"Čitanje sa SIM kartice u toku…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"Nema kontakata na SIM kartici."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"Odaberite kontakte za uvoz"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"Simulacija ne radi (samo verzija za otklanjanje grešaka)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Satelitski LTE kanala za Force Camp (samo verzija za otklanjanje grešaka)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Lažni način rada operatera za slanje putem satelita (samo verzija za otklanjanje grešaka)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Lažni način rada za satelitske podatke (samo verzija za otklanjanje grešaka)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Ograničeno"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Ograničeno"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Neograničeno"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Testiraj stvarni način rada satelitskog eSOS-a (samo verzija za otklanjanje grešaka)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Testiraj stvarni način rada satelita koji nije eSOS (samo verzija za otklanjanje grešaka)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Testiraj demo način rada satelitskog eSOS-a (samo verzija za otklanjanje grešaka)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"Otkaži"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"Pređite na radni profil"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"Instalirajte poslovnu aplikaciju za razmjenu poruka"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Prikaži konfiguraciju satelita"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Prikazivač konfiguracije satelita"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"verzija:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"pozivni brojevi zemalja:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"veličina fajla sats2.dat:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"JSON konfiguracije za pristup satelitu:"</string>
 </resources>

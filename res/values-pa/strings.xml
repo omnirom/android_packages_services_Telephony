@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"FDN ਨੂੰ ਅੱਪਡੇਟ ਨਹੀਂ ਕੀਤਾ ਗਿਆ ਕਿਉਂਕਿ ਨੰਬਰ <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> ਅੰਕਾਂ ਤੋਂ ਵੱਧ ਹੈ।"</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"FDN ਅੱਪਡੇਟ ਨਹੀਂ ਕੀਤਾ ਗਿਆ ਸੀ। PIN2 ਗ਼ਲਤ ਸੀ ਜਾਂ ਫ਼ੋਨ ਨੰਬਰ ਅਸਵੀਕਾਰ ਕੀਤਾ ਗਿਆ ਸੀ।"</string>
     <string name="fdn_failed" msgid="216592346853420250">"FDN ਓਪਰੇਸ਼ਨ ਅਸਫਲ।"</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"FDN ਚਾਲੂ ਹੋਣ ਕਰਕੇ MMI ਕੋਡ ਡਾਇਲ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਦਾ।"</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"SIM ਕਾਰਡ ਤੋਂ ਪੜ੍ਹ ਰਿਹਾ ਹੈ…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"ਤੁਹਾਡੇ ਸਿਮ ਕਾਰਡ ’ਤੇ ਕੋਈ ਸੰਪਰਕ ਨਹੀਂ।"</string>
     <string name="simContacts_title" msgid="2714029230160136647">"ਆਯਾਤ ਕਰਨ ਲਈ ਸੰਪਰਕ ਚੁਣੋ"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"\'ਸੇਵਾ ਵਿੱਚ ਨਹੀਂ\' ਨੂੰ ਸਿਮੂਲੇਟ ਕਰੋ (ਸਿਰਫ਼ ਡੀਬੱਗ ਬਿਲਡ)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"ਫੋਰਸ ਕੈਂਪ ਸੈਟੇਲਾਈਟ LTE ਚੈਨਲ (ਸਿਰਫ਼ ਡੀਬੱਗ ਬਿਲਡ)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"ਮੌਕ ਕੈਰੀਅਰ ਉਪਗ੍ਰਹਿ ਮੋਡ (ਸਿਰਫ਼ ਡੀਬੱਗ ਬਿਲਡ)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"ਕਲਪਿਤ ਸੈਟੇਲਾਈਟ ਡਾਟਾ ਮੋਡ (ਸਿਰਫ਼ ਡੀਬੱਗ)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"ਪ੍ਰਤਿਬੰਧਿਤ"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"ਸੀਮਤ"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"ਅਸੀਮਤ"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"ਰੀਅਲ ਸੈਟੇਲਾਈਟ eSOS ਮੋਡ ਅਜ਼ਮਾਓ (ਸਿਰਫ਼ ਡੀਬੱਗ ਬਿਲਡ)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"ਰੀਅਲ ਸੈਟੇਲਾਈਟ ਗੈਰ-eSOS ਮੋਡ ਅਜ਼ਮਾਓ (ਸਿਰਫ਼ ਡੀਬੱਗ ਬਿਲਡ)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"ਡੈਮੋ ਸੈਟੇਲਾਈਟ eSOS ਮੋਡ ਅਜ਼ਮਾਓ (ਸਿਰਫ਼ ਡੀਬੱਗ ਬਿਲਡ)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"ਰੱਦ ਕਰੋ"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"ਕਾਰਜ ਪ੍ਰੋਫਾਈਲ \'ਤੇ ਜਾਓ"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"ਕੰਮ ਸੰਬੰਧੀ ਸੁਨੇਹਾ ਐਪ ਸਥਾਪਤ ਕਰੋ"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"ਸੈਟੇਲਾਈਟ ਸੰਰੂਪਣ ਦਿਖਾਓ"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"ਸੈਟੇਲਾਈਟ ਸੰਰੂਪਣ ਦਰਸ਼ਕ"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"ਵਰਜਨ:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"ਦੇਸ਼ਾਂ ਦੇ ਕੋਡ:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"sats2.dat ਦਾ ਆਕਾਰ:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"ਸੈਟੇਲਾਈਟ ਪਹੁੰਚ ਸੰਰੂਪਣ json:"</string>
 </resources>

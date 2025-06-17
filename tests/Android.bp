@@ -60,4 +60,6 @@ android_test {
         "mts",
     ],
 
+    resource_dirs: ["res"],
+
 }

@@ -21,7 +21,6 @@ import static com.android.phone.satellite.entitlement.SatelliteEntitlementResult
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.satellite.SatelliteNetworkInfo;
 import com.android.libraries.entitlement.ServiceEntitlement;
 
@@ -135,7 +134,7 @@ public class SatelliteEntitlementResponse {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     String dataPlanType = jsonArray.getJSONObject(i).has(DATA_PLAN_TYPE_KEY)
                             ? jsonArray.getJSONObject(i).getString(DATA_PLAN_TYPE_KEY) : "";
-                    Map<String, String> allowedServicesInfo = new HashMap<>();
+                    Map<String, String> allowedServicesInfo = null;
                     if (jsonArray.getJSONObject(i).has(ALLOWED_SERVICES_INFO_TYPE_KEY)) {
                         allowedServicesInfo = new HashMap<>();
                         JSONArray jsonArray1 = jsonArray.getJSONObject(i)

@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"Fast númeraval var ekki uppfært vegna þess að númerið er lengra en <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> tölustafir."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"Fast númeraval var ekki uppfært. PIN2-númerið var rangt eða símanúmerinu var hafnað."</string>
     <string name="fdn_failed" msgid="216592346853420250">"Aðgerð fasts númeravals mistókst."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"Ekki er hægt að hringja í MMI-kóða vegna þess að kveikt er á föstu númeravali"</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"Les af SIM-korti…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"Engir tengiliðir á SIM-kortinu."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"Veldu tengiliði til að flytja inn"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"Líkja eftir „Utan þjónustusvæðis“ (aðeins villuleitarsmíði)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Þvinga Camp Satellite LTE-rás (aðeins villuleitarsmíði)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Eftirlíking af gervihnattarstillingu símafyrirtækis (aðeins villuleitarsmíði)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Sýndar-gervihnattargagnastilling (aðeins kembing)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Háð skorðum"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Takmarkað"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Ótakmarkað"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Prófa eSOS-stillingu raunverulegs gervihnattar (eingöngu villuleitarsmíð)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Prófa af-eSOS-stillingu raunverulegs gervihnattar (eingöngu villuleitarsmíð)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Prófa prufuútgáfu af eSOS-stillingu gervihnattar (eingöngu villuleitarsmíð)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"Hætta við"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"Skipta yfir í vinnusnið"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"Setja upp skilaboðaforrit fyrir vinnu"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Sýna stillingar gervihnattar"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Yfirlit yfir stillingar gervihnattar"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"útgáfa:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"landskóðar:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"size of sats2.dat:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"aðgangur að JSON-stillingaskrá gervihnattar:"</string>
 </resources>

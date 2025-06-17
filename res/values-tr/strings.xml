@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"Numara <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> basamaktan uzun olduğu için SAN güncellenemedi."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"FDN güncellenmedi. PIN2 doğru değildi veya telefon numarası reddedildi."</string>
     <string name="fdn_failed" msgid="216592346853420250">"FDN işlemi başarısız oldu."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"SAN etkin olduğundan MMI kodu aranamıyor."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"SIM karttan okunuyor..."</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"SIM kartınızda kişi yok."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"İçe aktarılacak kişileri seçin"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"Hizmet Dışı Simülasyonu (Yalnızca Hata Ayıklama Derlemesi)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Kamp uydusu LTE kanalını zorunlu kılma (yalnızca hata ayıklama derlemesi)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Örnek operatör uydu modu (yalnızca hata ayıklama derlemesi)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Uydu verileri modunu taklit et (yalnızca hata ayıklama)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Kısıtlı"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Sınırlı"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Sınırsız"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Gerçek uydu eSOS modunu test et (yalnızca hata ayıklama derlemesi)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Gerçek uydu üzerinde eSOS olmayan modu test et (yalnızca hata ayıklama derlemesi)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Demo uydu üzerinde eSOS modunu test et (yalnızca hata ayıklama derlemesi)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"İptal"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"İş profiline geç"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"İş mesajları için uygulama yükle"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Uydu Yapılandırmasını Göster"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Uydu Yapılandırması Görüntüleyici"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"sürüm:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"erişime_izin_ver:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"ülke kodları:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"sats2.dat boyutu:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"uydu erişim yapılandırması JSON dosyası:"</string>
 </resources>

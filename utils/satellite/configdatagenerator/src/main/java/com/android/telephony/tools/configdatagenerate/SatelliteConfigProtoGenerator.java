@@ -88,6 +88,8 @@ public class SatelliteConfigProtoGenerator {
             // satelliteRegionBuilder
             SatelliteConfigData.SatelliteRegionProto.Builder satelliteRegionBuilder =
                     SatelliteConfigData.SatelliteRegionProto.newBuilder();
+
+            // mS2CellFileName
             byte[] binaryData;
             try {
                 binaryData = readFileToByteArray(sRegionProto.mS2CellFileName);
@@ -99,11 +101,38 @@ public class SatelliteConfigProtoGenerator {
                 satelliteRegionBuilder.setS2CellFile(ByteString.copyFrom(binaryData));
             }
 
+            // mCountryCodeList
             String[] countryCodeList = sRegionProto.mCountryCodeList;
             for (int i = 0; i < countryCodeList.length; i++) {
                 satelliteRegionBuilder.addCountryCodes(countryCodeList[i]);
             }
+
+            // mIsAllowed
             satelliteRegionBuilder.setIsAllowed(sRegionProto.mIsAllowed);
+
+            // mSatelliteAccessConfigFileName
+            if (sRegionProto.mSatelliteAccessConfigFileName != null
+                    && sRegionProto.mSatelliteAccessConfigFileName.length() > 0) {
+                byte[] satelliteAccessBinaryData;
+                try {
+                    System.out.println(
+                            "ConfigDataGenerator: mSatelliteAccessConfigFileName: "
+                                    + sRegionProto.mSatelliteAccessConfigFileName);
+                    satelliteAccessBinaryData =
+                            readFileToByteArray(sRegionProto.mSatelliteAccessConfigFileName);
+                } catch (IOException e) {
+                    throw new RuntimeException(
+                            "Got exception in reading the mSatelliteAccessConfigFileName "
+                                    + sRegionProto.mSatelliteAccessConfigFileName
+                                    + ", e="
+                                    + e);
+                }
+                if (satelliteAccessBinaryData != null) {
+                    satelliteRegionBuilder.setSatelliteAccessConfigFile(
+                            ByteString.copyFrom(satelliteAccessBinaryData));
+                }
+            }
+
             satelliteConfigBuilder.setDeviceSatelliteRegion(satelliteRegionBuilder);
         } else {
             System.out.print("RegionProto does not exist");
@@ -134,19 +163,19 @@ public class SatelliteConfigProtoGenerator {
     }
 
     private static byte[] readFileToByteArray(String fileName) throws IOException {
-        File sat2File = new File(fileName);
-        if (!sat2File.exists()) {
-            throw new IOException("sat2File " + fileName + " does not exist");
+        File file = new File(fileName);
+        if (!file.exists()) {
+            throw new IOException("File: " + fileName + " does not exist");
         }
 
-        if (sat2File.exists() && sat2File.canRead()) {
-            FileInputStream fileInputStream = new FileInputStream(sat2File);
+        if (file.exists() && file.canRead()) {
+            FileInputStream fileInputStream = new FileInputStream(file);
             long fileSize = fileInputStream.available();
             byte[] bytes = new byte[(int) fileSize];
             int bytesRead = fileInputStream.read(bytes);
             fileInputStream.close();
             if (bytesRead != fileSize) {
-                throw new IOException("file read fail: " + sat2File.getCanonicalPath());
+                throw new IOException("file read fail: " + file.getCanonicalPath());
             }
             return bytes;
         }

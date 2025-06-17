@@ -191,6 +191,7 @@
             android:allowBackup="false"
             android:supportsRtl="true"
             android:usesCleartextTraffic="true"
+            android:enableOnBackInvokedCallback="false"
             android:defaultToDeviceProtectedStorage="true"
             android:directBootAware="true">
 
@@ -277,6 +278,16 @@
                 android:theme="@style/DialerSettingsLight">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name="com.android.phone.settings.SatelliteConfigViewer"
+            android:label="@string/satellite_config_viewer"
+            android:exported="true"
+            android:theme="@style/DialerSettingsLight">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
@@ -586,6 +597,7 @@
         <!-- Update configuration data file -->
         <receiver android:name="com.android.internal.telephony.configupdate.TelephonyConfigUpdateInstallReceiver"
             android:exported="true"
+            androidprv:systemUserOnly="true"
             android:permission="android.permission.UPDATE_CONFIG">
             <intent-filter>
                 <action android:name="android.os.action.UPDATE_CONFIG" />

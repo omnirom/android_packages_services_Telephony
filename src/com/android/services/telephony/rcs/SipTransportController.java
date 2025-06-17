@@ -823,7 +823,7 @@ public class SipTransportController implements RcsFeatureController.Feature,
         mEvaluateCompleteFuture = pendingChange
                 .whenComplete((f, ex) -> {
                     if (ex != null) {
-                        logw("reevaluateDelegates: Exception caught: " + ex);
+                        logw("reevaluateDelegates: Exception caught", ex);
                     }
                 }).thenAccept((associatedFeatures) -> {
                     logi("reevaluateDelegates: reevaluate complete, feature tags associated: "
@@ -977,8 +977,9 @@ public class SipTransportController implements RcsFeatureController.Feature,
      */
     private Set<FeatureTagState> updateSupportedTags(Set<String> candidateFeatureTags,
             Set<String> previouslyGrantedTags) {
-        Boolean overrideRes = RcsProvisioningMonitor.getInstance()
-                .getImsFeatureValidationOverride(mSubId);
+        RcsProvisioningMonitor monitor = RcsProvisioningMonitor.getInstance();
+        Boolean overrideRes = monitor == null ? null :
+                monitor.getImsFeatureValidationOverride(mSubId);
         // deny tags already used by other delegates
         Set<FeatureTagState> deniedTags = new ArraySet<>();
 
@@ -1211,5 +1212,10 @@ public class SipTransportController implements RcsFeatureController.Feature,
     private void logw(String log) {
         Log.w(LOG_TAG, "[" + mSlotId  + "->" + mSubId + "] " + log);
         mLocalLog.log("[W] " + log);
+    }
+
+    private void logw(String log, Throwable ex) {
+        Log.w(LOG_TAG, "[" + mSlotId  + "->" + mSubId + "] " + log, ex);
+        mLocalLog.log("[W] " + log + ": " + ex);
     }
 }

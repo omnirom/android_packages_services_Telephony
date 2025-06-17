@@ -36,6 +36,8 @@ public class AccessibilitySettingsActivity extends PreferenceActivity {
         if (actionBar != null) {
             actionBar.setTitle(R.string.accessibility_settings_activity_title);
         }
+        SettingsConstants.setupEdgeToEdge(this);
+
         getFragmentManager().beginTransaction().replace(
                 android.R.id.content, new AccessibilitySettingsFragment()).commit();
     }

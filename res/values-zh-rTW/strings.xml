@@ -303,7 +303,7 @@
     <string name="data_usage_template" msgid="6287906680674061783">"<xliff:g id="ID_2">%2$s</xliff:g>期間使用了 <xliff:g id="ID_1">%1$s</xliff:g> 的行動數據"</string>
     <string name="advanced_options_title" msgid="9208195294513520934">"進階"</string>
     <string name="carrier_settings_euicc" msgid="1190237227261337749">"電信業者"</string>
-    <string name="keywords_carrier_settings_euicc" msgid="8540160967922063745">"電信業者, eSIM 卡, SIM 卡, eUICC, 切換電信業者, 新增電信業者"</string>
+    <string name="keywords_carrier_settings_euicc" msgid="8540160967922063745">"電信業者, eSIM, SIM 卡, eUICC, 切換電信業者, 新增電信業者"</string>
     <string name="carrier_settings_euicc_summary" msgid="2027941166597330117">"<xliff:g id="CARRIER_NAME">%1$s</xliff:g> - <xliff:g id="PHONE_NUMBER">%2$s</xliff:g>"</string>
     <string name="mobile_data_settings_title" msgid="7228249980933944101">"行動數據"</string>
     <string name="mobile_data_settings_summary" msgid="5012570152029118471">"使用行動網路存取數據"</string>
@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"固定撥號的號碼超過 <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> 位數，因此無法更新。"</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"未更新 FDN。可能是因為 PIN2 碼不正確或電話號碼遭拒。"</string>
     <string name="fdn_failed" msgid="216592346853420250">"FDN 操作失敗。"</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"固定撥號功能已啟用，因此無法撥打 MMI 碼。"</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"正在從 SIM 卡讀取…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"你的 SIM 卡上沒有聯絡人。"</string>
     <string name="simContacts_title" msgid="2714029230160136647">"選取要匯入的聯絡人"</string>
@@ -842,11 +843,15 @@
     <string name="dsds_dialog_message" msgid="4047480385678538850">"你必須重新啟動裝置，才能變更這項設定。"</string>
     <string name="dsds_dialog_confirm" msgid="9032004888134129885">"重新啟動"</string>
     <string name="dsds_dialog_cancel" msgid="3245958947099586655">"取消"</string>
-    <string name="removable_esim_string" msgid="7931369811671787649">"將可移除的 eSIM 卡設為預設 eSIM 卡"</string>
+    <string name="removable_esim_string" msgid="7931369811671787649">"將可移除的 eSIM 設為預設 eSIM"</string>
     <string name="radio_info_radio_power" msgid="8805595022160471587">"行動無線電電源"</string>
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"模擬無法使用服務的情況 (僅限偵錯版本)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"強制執行 Camp 衛星 LTE 頻道 (僅限偵錯版本)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"模擬電信業者衛星模式 (僅限偵錯版本)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"模擬衛星資料模式 (僅限偵錯)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"受限制"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"有限"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"無限制"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"實際測試衛星緊急求救模式 (僅限偵錯版本)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"實際測試衛星非緊急求救模式 (僅限偵錯版本)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"測試衛星緊急求救展示模式 (僅限偵錯版本)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"取消"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"切換至工作資料夾"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"安裝工作訊息應用程式"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"顯示衛星設定"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"衛星設定檢視工具"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"版本："</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"子 ID/PLMN/服務類型："</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"允許存取："</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"國家/地區代碼："</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"sats2.dat 的大小："</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"衛星存取權設定 JSON："</string>
 </resources>

@@ -1058,6 +1058,8 @@
     <string name="pin2_or_fdn_invalid">FDN wasn\'t updated. The PIN2 was incorrect, or the phone number was rejected.</string>
     <!-- FDN settings: error message displayed in a popup (toast) -->
     <string name="fdn_failed">FDN operation failed.</string>
+    <!-- FDN blocked MMI dialing: error message displayed in a popup (toast) -->
+    <string name="fdn_blocked_mmi">Cannot dial MMI code because FDN is enabled.</string>
 
     <!-- ADN related strings -->
     <!-- Placeholder text displayed while loading the list of SIM contacts -->
@@ -2033,6 +2035,11 @@
 
     <!-- Title for simulating SIM capable of satellite. -->
     <string name="mock_carrier_roaming_satellite_string">Mock Carrier Satellite Mode (Debug Build only)</string>
+    <!-- Title for simulating SIM Data in satellite Mode. -->
+    <string name="choose_satellite_data_mode">Mock Satellite Data mode (Debug only)</string>
+    <string name="satellite_data_restricted_string">Restricted</string>
+    <string name="satellite_data_constrained_string">Limited</string>
+    <string name="satellite_data_unConstrained_string">UnLimited</string>
     <!-- Title for trigger real satellite eSOS. -->
     <string name="esos_satellite_string">Test real satellite eSOS mode (Debug Build only)</string>
     <!-- Title for enable real satellite non-emergency mode. -->
@@ -2241,5 +2248,22 @@
     <string name="send_from_work_profile_cancel">Cancel</string>
     <string name="send_from_work_profile_action_str">Switch to work profile</string>
     <string name="install_messages_on_work_profile_action_str">Install a work messages app</string>
+
+    <!-- The title of option menu from phoneInfo test screen, to show satellite config -->
+    <string name="radio_info_data_view_satellite_config">Show Satellite Config</string>
+    <!-- Title of SatelliteConfigViewer screen -->
+    <string name="satellite_config_viewer">Satellite Config Viewer</string>
+    <!-- Satellite config viewer screen. Label for the config data version -->
+    <string name="satellite_config_version_label">version: </string>
+    <!-- Satellite config viewer screen. Label for the subId/plmn/servicetype -->
+    <string name="satellite_config_service_type_label">subId/plmn/servicetype: </string>
+    <!-- Satellite config viewer screen. Label for the allow access -->
+    <string name="satellite_config_allow_access_label">allow_access: </string>
+    <!-- Satellite config viewer screen. Label for the country codes -->
+    <string name="satellite_config_country_code_label">country codes: </string>
+    <!-- Satellite config viewer screen. Label for size of the s2sat.dat file -->
+    <string name="satellite_config_size_of_sats2_dat_label">size of sats2.dat: </string>
+    <!-- Satellite config viewer screen. satellite access config json file -->
+    <string name="satellite_config_json_label">satellite access config json: </string>
 
 </resources>

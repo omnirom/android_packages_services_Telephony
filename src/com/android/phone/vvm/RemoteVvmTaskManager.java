@@ -157,7 +157,6 @@ public class RemoteVvmTaskManager extends Service {
             }
         }
         packages.add(context.getResources().getString(R.string.system_visual_voicemail_client));
-        packages.add(telecomManager.getSystemDialerPackage());
 
         for (String packageName : packages) {
             if (TextUtils.isEmpty(packageName)) {

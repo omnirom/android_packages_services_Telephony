@@ -25,13 +25,13 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.OutcomeReceiver;
 import android.telephony.satellite.SatelliteManager;
-import android.telephony.satellite.SatelliteSupportedStateCallback;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.TextView;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * Activity related to NB IoT satellite APIs.
@@ -76,9 +76,9 @@ public class NbIotSatellite extends Activity {
         mTextView = findViewById(R.id.text_id);
     }
 
-    protected class TestSatelliteSupportedStateCallback implements SatelliteSupportedStateCallback {
+    protected class TestSatelliteSupportedStateCallback implements Consumer<Boolean> {
         @Override
-        public void onSatelliteSupportedStateChanged(boolean supported) {
+        public void accept(Boolean supported) {
             mSatelliteSupported = supported;
             updateLogMessage("onSatelliteSupportedStateChanged: "
                     + (mSatelliteSupported ? "Satellite is supported"

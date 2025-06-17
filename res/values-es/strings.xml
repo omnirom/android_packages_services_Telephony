@@ -85,7 +85,7 @@
     <string name="smart_forwarding_settings_menu_summary" msgid="5096947726032885325">"Cuando no se puede contactar con un número, las llamadas se desvían siempre a otro número"</string>
     <string name="voicemail_notifications_preference_title" msgid="7829238858063382977">"Notificaciones"</string>
     <string name="cell_broadcast_settings" msgid="8135324242541809924">"Difusiones de emergencia"</string>
-    <string name="call_settings" msgid="3677282690157603818">"Ajustes de llamadas"</string>
+    <string name="call_settings" msgid="3677282690157603818">"Ajustes de llamada"</string>
     <string name="additional_gsm_call_settings" msgid="1561980168685658846">"Ajustes adicionales"</string>
     <string name="additional_gsm_call_settings_with_label" msgid="7973920539979524908">"Ajustes adicionales (<xliff:g id="SUBSCRIPTIONLABEL">%s</xliff:g>)"</string>
     <string name="sum_gsm_call_settings" msgid="7964692601608878138">"Ajustes adicionales de llamadas solo GSM"</string>
@@ -131,7 +131,7 @@
     <string name="disable_cdma_cw" msgid="7119290446496301734">"Cancelar"</string>
     <string name="cdma_call_waiting_in_ims_on" msgid="6390979414188659218">"Llamada en espera de CDMA en IMS activada"</string>
     <string name="cdma_call_waiting_in_ims_off" msgid="1099246114368636334">"Llamada en espera de CDMA en IMS desactivada"</string>
-    <string name="updating_title" msgid="6130548922615719689">"Ajustes de llamadas"</string>
+    <string name="updating_title" msgid="6130548922615719689">"Ajustes de llamada"</string>
     <string name="call_settings_admin_user_only" msgid="7238947387649986286">"El administrador es el único usuario que puede cambiar los ajustes de llamada."</string>
     <string name="phone_account_settings_user_restriction" msgid="9142685151087208396">"Solo el administrador o el usuario de trabajo pueden cambiar la configuración de la cuenta del teléfono."</string>
     <string name="phone_account_no_config_mobile_networks" msgid="7351062247756521227">"El propietario del dispositivo ha restringido la posibilidad de cambiar la configuración de la red móvil."</string>
@@ -481,6 +481,7 @@
     <string name="fdn_invalid_number" msgid="9067189814657840439">"No se ha podido actualizar FDN porque el número tiene más de <xliff:g id="FDN_NUMBER_LIMIT_LENGTH">%d</xliff:g> dígitos."</string>
     <string name="pin2_or_fdn_invalid" msgid="7542639487955868181">"FDN no actualizado. El código PIN2 era incorrecto o se ha rechazado el número de teléfono."</string>
     <string name="fdn_failed" msgid="216592346853420250">"Error de funcionamiento de número de marcación fija."</string>
+    <string name="fdn_blocked_mmi" msgid="3218296901316119797">"No se puede marcar el código MMI porque el FDN está habilitado."</string>
     <string name="simContacts_emptyLoading" msgid="4989040293858675483">"Leyendo desde tarjeta SIM…"</string>
     <string name="simContacts_empty" msgid="1135632055473689521">"No hay ningún contacto en la tarjeta SIM."</string>
     <string name="simContacts_title" msgid="2714029230160136647">"Seleccionar contactos para importar"</string>
@@ -847,6 +848,10 @@
     <string name="simulate_out_of_service_string" msgid="7787925611727597193">"Simular fuera del servicio (solo versión de depuración)"</string>
     <string name="enforce_satellite_channel_string" msgid="295306734591329892">"Forzar canal LTE de satélite de campamento (solo versión de depuración)"</string>
     <string name="mock_carrier_roaming_satellite_string" msgid="4796300252858292593">"Simulación del modo Satélite de operador (solo versión de depuración)"</string>
+    <string name="choose_satellite_data_mode" msgid="7526640708482601423">"Simulación del modo de datos por satélite (solo depuración)"</string>
+    <string name="satellite_data_restricted_string" msgid="8729402021843670205">"Restringido"</string>
+    <string name="satellite_data_constrained_string" msgid="4594481912792241881">"Limitado"</string>
+    <string name="satellite_data_unConstrained_string" msgid="3957333012703408141">"Ilimitado"</string>
     <string name="esos_satellite_string" msgid="7274794226125968657">"Probar el modo eSOS por satélite real (solo versión de depuración)"</string>
     <string name="satellite_enable_non_emergency_mode_string" msgid="9005332650950637932">"Probar el modo no eSOS por satélite real (solo versión de depuración)"</string>
     <string name="demo_esos_satellite_string" msgid="2941811482168709730">"Probar el modo eSOS por satélite de demostración (solo versión de depuración)"</string>
@@ -939,4 +944,12 @@
     <string name="send_from_work_profile_cancel" msgid="177746511030381711">"Cancelar"</string>
     <string name="send_from_work_profile_action_str" msgid="6892775562934243337">"Cambiar al perfil de trabajo"</string>
     <string name="install_messages_on_work_profile_action_str" msgid="3773440996395152903">"Instalar una aplicación de mensajería de trabajo"</string>
+    <string name="radio_info_data_view_satellite_config" msgid="343120041798242877">"Mostrar Satellite Config"</string>
+    <string name="satellite_config_viewer" msgid="5128698910841573398">"Lector de Satellite Config"</string>
+    <string name="satellite_config_version_label" msgid="1153447193166314791">"versión:"</string>
+    <string name="satellite_config_service_type_label" msgid="21749170241956082">"subId/plmn/servicetype:"</string>
+    <string name="satellite_config_allow_access_label" msgid="3806779900418131140">"allow_access:"</string>
+    <string name="satellite_config_country_code_label" msgid="1389520866423113166">"códigos de país:"</string>
+    <string name="satellite_config_size_of_sats2_dat_label" msgid="671746449054349967">"tamaño de sats2.dat:"</string>
+    <string name="satellite_config_json_label" msgid="4577292884014824105">"json de configuración de acceso por satélite:"</string>
 </resources>
