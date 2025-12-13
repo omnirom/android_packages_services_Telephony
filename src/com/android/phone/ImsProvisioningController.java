@@ -49,11 +49,9 @@ import android.os.Message;
 import android.os.PersistableBundle;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
-import android.telephony.AnomalyReporter;
 import android.telephony.CarrierConfigManager;
 import android.telephony.CarrierConfigManager.Ims;
 import android.telephony.SubscriptionManager;
-import android.telephony.TelephonyManager;
 import android.telephony.TelephonyRegistryManager;
 import android.telephony.ims.ProvisioningManager;
 import android.telephony.ims.aidl.IFeatureProvisioningCallback;
@@ -78,7 +76,6 @@ import com.android.telephony.Rlog;
 
 import java.util.Arrays;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.Executor;
 
 /**
@@ -156,10 +153,6 @@ public class ImsProvisioningController {
             CAPABILITY_TYPE_OPTIONS_UCE, Ims.KEY_CAPABILITY_TYPE_OPTIONS_UCE_INT_ARRAY,
             CAPABILITY_TYPE_PRESENCE_UCE, Ims.KEY_CAPABILITY_TYPE_PRESENCE_UCE_INT_ARRAY
     );
-
-    private static final UUID VOLTE_PROVISIONING_ANOMALY =
-            UUID.fromString("f5f90e4d-3d73-4f63-a0f9-cbe1941ca57c");
-    private static final String VOLTE_PROVISIONING_ANOMALY_DESC = "VoLTE is Not Provisioned";
 
     /**
      * Create a FeatureConnector for this class to use to connect to an ImsManager.
@@ -537,13 +530,11 @@ public class ImsProvisioningController {
                 // notify provisioning key value to ImsService
                 setInitialProvisioningKeys(mSubId);
 
-                if (mFeatureFlags.notifyInitialImsProvisioningStatus()) {
-                    // Notify MmTel provisioning value based on capability and radio tech.
-                    ProvisioningCallbackManager p =
-                            mProvisioningCallbackManagersSlotMap.get(mSlotId);
-                    if (p != null && p.hasCallblacks()) {
-                        notifyMmTelProvisioningStatus(mSlotId, mSubId, null);
-                    }
+                // Notify MmTel provisioning value based on capability and radio tech.
+                ProvisioningCallbackManager p =
+                        mProvisioningCallbackManagersSlotMap.get(mSlotId);
+                if (p != null && p.hasCallblacks()) {
+                    notifyMmTelProvisioningStatus(mSlotId, mSubId, null);
                 }
             } else {
                 // wait until subId is valid
@@ -777,13 +768,11 @@ public class ImsProvisioningController {
                 // notify provisioning key value to ImsService
                 setInitialProvisioningKeys(mSubId);
 
-                if (mFeatureFlags.notifyInitialImsProvisioningStatus()) {
-                    ProvisioningCallbackManager p =
-                            mProvisioningCallbackManagersSlotMap.get(mSlotId);
-                    if (p != null && p.hasCallblacks()) {
-                        // Notify RCS provisioning value based on capability and radio tech.
-                        notifyRcsProvisioningStatus(mSlotId, mSubId, null);
-                    }
+                ProvisioningCallbackManager p =
+                        mProvisioningCallbackManagersSlotMap.get(mSlotId);
+                if (p != null && p.hasCallblacks()) {
+                    // Notify RCS provisioning value based on capability and radio tech.
+                    notifyRcsProvisioningStatus(mSlotId, mSubId, null);
                 }
             } else {
                 // wait until subId is valid
@@ -1010,14 +999,13 @@ public class ImsProvisioningController {
             throw new IllegalArgumentException("subscription id is not available");
         }
 
+
         try {
             mProvisioningCallbackManagersSlotMap.get(slotId).registerCallback(callback);
             log("Feature Provisioning Callback registered.");
 
-            if (mFeatureFlags.notifyInitialImsProvisioningStatus()) {
-                mHandler.sendMessage(mHandler.obtainMessage(EVENT_NOTIFY_INIT_PROVISIONED_VALUE,
-                        getSlotId(subId), subId, (Object) callback));
-            }
+            mHandler.sendMessage(mHandler.obtainMessage(EVENT_NOTIFY_INIT_PROVISIONED_VALUE,
+                    getSlotId(subId), subId, (Object) callback));
         } catch (NullPointerException e) {
             logw("can not access callback manager to add callback");
         }
@@ -1656,22 +1644,15 @@ public class ImsProvisioningController {
         return value == ProvisioningManager.PROVISIONING_VALUE_ENABLED ? true : false;
     }
 
-    // If VoLTE is not provisioned, generate an anomaly report as this is not expected.
-    private void checkProvisioningValueForAnomaly(String attributionPackage, int subId,
+    // If VoLTE is set as not provisioned, log a warning.
+    private void checkUncommonProvisioningValues(String attributionPackage, int subId,
             int capability, int tech, boolean isProvisioned) {
         if (isProvisioned) return;
         boolean isVolte = capability == CAPABILITY_TYPE_VOICE && tech == REGISTRATION_TECH_LTE;
         if (!isVolte) return;
         // We have hit the condition where VoLTE has been de-provisioned
-        int carrierId = TelephonyManager.UNKNOWN_CARRIER_ID;
-        TelephonyManager manager = mApp.getSystemService(TelephonyManager.class);
-        if (manager != null) {
-            carrierId = manager.createForSubscriptionId(subId).getSimCarrierId();
-        }
-        logAttrW(attributionPackage, "checkProvisioningValueForAnomaly", subId,
+        logAttrW(attributionPackage, "checkUncommonProvisioningValues", subId,
                 "VoLTE provisioning disabled");
-        AnomalyReporter.reportAnomaly(VOLTE_PROVISIONING_ANOMALY,
-                VOLTE_PROVISIONING_ANOMALY_DESC, carrierId);
     }
 
     private boolean setAndNotifyMmTelProvisioningValue(String attributionPackage, int subId,
@@ -1681,7 +1662,7 @@ public class ImsProvisioningController {
                 capability, tech, isProvisioned);
         // notify MmTel capability changed
         if (changed) {
-            checkProvisioningValueForAnomaly(attributionPackage, subId, capability, tech,
+            checkUncommonProvisioningValues(attributionPackage, subId, capability, tech,
                     isProvisioned);
             mHandler.sendMessage(mHandler.obtainMessage(EVENT_PROVISIONING_CAPABILITY_CHANGED,
                     getSlotId(subId), 0, (Object) new FeatureProvisioningData(
